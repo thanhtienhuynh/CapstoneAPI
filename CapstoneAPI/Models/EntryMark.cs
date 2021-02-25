@@ -10,8 +10,8 @@ namespace CapstoneAPI.Models
         public int Id { get; set; }
         public int WeightNumberId { get; set; }
         public int UniversityId { get; set; }
-        public DateTime Year { get; set; }
-        public int Mark { get; set; }
+        public int Year { get; set; }
+        public double Mark { get; set; }
 
         public virtual University University { get; set; }
         public virtual WeightNumber WeightNumber { get; set; }

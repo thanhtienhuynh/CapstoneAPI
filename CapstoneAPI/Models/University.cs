@@ -10,8 +10,8 @@ namespace CapstoneAPI.Models
         public University()
         {
             EntryMarks = new HashSet<EntryMark>();
+            MajorDetails = new HashSet<MajorDetail>();
             Tests = new HashSet<Test>();
-            Tutions = new HashSet<Tution>();
         }
 
         public int Id { get; set; }
@@ -24,7 +24,7 @@ namespace CapstoneAPI.Models
         public int Status { get; set; }
 
         public virtual ICollection<EntryMark> EntryMarks { get; set; }
+        public virtual ICollection<MajorDetail> MajorDetails { get; set; }
         public virtual ICollection<Test> Tests { get; set; }
-        public virtual ICollection<Tution> Tutions { get; set; }
     }
 }

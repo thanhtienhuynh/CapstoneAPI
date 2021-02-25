@@ -16,7 +16,7 @@ namespace CapstoneAPI.Models
         public int SubjectGroupId { get; set; }
         public int MajorId { get; set; }
         public int? SubjectId { get; set; }
-        public int? WeightNumber1 { get; set; }
+        public int? Weight { get; set; }
 
         public virtual Major Major { get; set; }
         public virtual Subject Subject { get; set; }

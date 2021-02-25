@@ -22,6 +22,7 @@ namespace CapstoneAPI.Models
         public virtual DbSet<EntryMark> EntryMarks { get; set; }
         public virtual DbSet<Major> Majors { get; set; }
         public virtual DbSet<MajorCareer> MajorCareers { get; set; }
+        public virtual DbSet<MajorDetail> MajorDetails { get; set; }
         public virtual DbSet<Option> Options { get; set; }
         public virtual DbSet<Question> Questions { get; set; }
         public virtual DbSet<QuestionSubmisstion> QuestionSubmisstions { get; set; }
@@ -34,10 +35,13 @@ namespace CapstoneAPI.Models
         public virtual DbSet<TestType> TestTypes { get; set; }
         public virtual DbSet<Transcript> Transcripts { get; set; }
         public virtual DbSet<TranscriptType> TranscriptTypes { get; set; }
-        public virtual DbSet<Tution> Tutions { get; set; }
         public virtual DbSet<University> Universities { get; set; }
         public virtual DbSet<User> Users { get; set; }
         public virtual DbSet<WeightNumber> WeightNumbers { get; set; }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -74,8 +78,6 @@ namespace CapstoneAPI.Models
                 entity.Property(e => e.UniversityId).HasColumnName("University_Id");
 
                 entity.Property(e => e.WeightNumberId).HasColumnName("WeightNumber_Id");
-
-                entity.Property(e => e.Year).HasColumnType("date");
 
                 entity.HasOne(d => d.University)
                     .WithMany(p => p.EntryMarks)
@@ -124,6 +126,27 @@ namespace CapstoneAPI.Models
                     .HasConstraintName("FK_MajorCareer_Major");
             });
 
+            modelBuilder.Entity<MajorDetail>(entity =>
+            {
+                entity.ToTable("MajorDetail");
+
+                entity.Property(e => e.MajorId).HasColumnName("Major_Id");
+
+                entity.Property(e => e.Tuition).HasColumnType("money");
+
+                entity.Property(e => e.UniversityId).HasColumnName("University_Id");
+
+                entity.HasOne(d => d.Major)
+                    .WithMany(p => p.MajorDetails)
+                    .HasForeignKey(d => d.MajorId)
+                    .HasConstraintName("FK_Tution_Major");
+
+                entity.HasOne(d => d.University)
+                    .WithMany(p => p.MajorDetails)
+                    .HasForeignKey(d => d.UniversityId)
+                    .HasConstraintName("FK_Tution_University");
+            });
+
             modelBuilder.Entity<Option>(entity =>
             {
                 entity.ToTable("Option");
@@ -143,9 +166,7 @@ namespace CapstoneAPI.Models
             {
                 entity.ToTable("Question");
 
-                entity.Property(e => e.QuestionContent)
-                    .IsRequired()
-                    .IsUnicode(false);
+                entity.Property(e => e.QuestionContent).IsRequired();
 
                 entity.Property(e => e.Result)
                     .IsRequired()
@@ -345,29 +366,6 @@ namespace CapstoneAPI.Models
                     .HasMaxLength(50);
             });
 
-            modelBuilder.Entity<Tution>(entity =>
-            {
-                entity.ToTable("Tution");
-
-                entity.Property(e => e.Fee).HasColumnType("money");
-
-                entity.Property(e => e.MajorId).HasColumnName("Major_Id");
-
-                entity.Property(e => e.UniversityId).HasColumnName("University_Id");
-
-                entity.HasOne(d => d.Major)
-                    .WithMany(p => p.Tutions)
-                    .HasForeignKey(d => d.MajorId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_Tution_Major");
-
-                entity.HasOne(d => d.University)
-                    .WithMany(p => p.Tutions)
-                    .HasForeignKey(d => d.UniversityId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_Tution_University");
-            });
-
             modelBuilder.Entity<University>(entity =>
             {
                 entity.ToTable("University");
@@ -425,8 +423,6 @@ namespace CapstoneAPI.Models
                 entity.Property(e => e.SubjectGroupId).HasColumnName("SubjectGroup_Id");
 
                 entity.Property(e => e.SubjectId).HasColumnName("Subject_Id");
-
-                entity.Property(e => e.WeightNumber1).HasColumnName("WeightNumber");
 
                 entity.HasOne(d => d.Major)
                     .WithMany(p => p.WeightNumbers)

@@ -10,7 +10,7 @@ namespace CapstoneAPI.Models
         public Major()
         {
             MajorCareers = new HashSet<MajorCareer>();
-            Tutions = new HashSet<Tution>();
+            MajorDetails = new HashSet<MajorDetail>();
             WeightNumbers = new HashSet<WeightNumber>();
         }
 
@@ -20,7 +20,7 @@ namespace CapstoneAPI.Models
         public int? Status { get; set; }
 
         public virtual ICollection<MajorCareer> MajorCareers { get; set; }
-        public virtual ICollection<Tution> Tutions { get; set; }
+        public virtual ICollection<MajorDetail> MajorDetails { get; set; }
         public virtual ICollection<WeightNumber> WeightNumbers { get; set; }
     }
 }

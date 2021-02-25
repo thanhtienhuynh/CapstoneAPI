@@ -8,7 +8,7 @@ namespace CapstoneAPI.Models
     public partial class Transcript
     {
         public int Id { get; set; }
-        public double Grade { get; set; }
+        public double Mark { get; set; }
         public DateTime DateRecord { get; set; }
         public int TranscriptTypeId { get; set; }
         public int UserId { get; set; }
