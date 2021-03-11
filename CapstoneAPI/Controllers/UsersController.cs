@@ -4,7 +4,6 @@
     using CapstoneAPI.Services.User;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
-    using System.IdentityModel.Tokens.Jwt;
     using System.Threading.Tasks;
 
     [Route("api/v1/user")]
@@ -23,9 +22,9 @@
 
         [AllowAnonymous]
         [HttpPost("auth/google")]
-        public async Task<ActionResult<LoginResponse>> LoginGoogle([FromBody] Token firebaseToken)
+        public async Task<ActionResult<UserDataSet>> LoginGoogle([FromBody] Token firebaseToken)
         {
-            LoginResponse result = await _service.Login(firebaseToken);
+            UserDataSet result = await _service.Login(firebaseToken);
             if (result != null)
             {
                 return Ok(result);

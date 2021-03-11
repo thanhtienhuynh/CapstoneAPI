@@ -7,10 +7,12 @@ namespace CapstoneAPI.DataSets.User
 {
     public class UserDataSet
     {
-        public string Id { get; set; }
+        public int Id { get; set; }
         public string Fullname { get; set; }
         public string Email { get; set; }
         public string Phone { get; set; }
         public string AvatarUrl { get; set; }
+        public bool IsAdmin { get; set; }
+        public string Token { get; set; }
     }
 }

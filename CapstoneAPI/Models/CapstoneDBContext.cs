@@ -55,10 +55,7 @@ namespace CapstoneAPI.Models
 
                 entity.Property(e => e.PublishedDate).HasColumnType("datetime");
 
-                entity.Property(e => e.UserId)
-                    .IsRequired()
-                    .HasMaxLength(320)
-                    .HasColumnName("User_Id");
+                entity.Property(e => e.UserId).HasColumnName("User_Id");
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.Articles)
@@ -270,10 +267,7 @@ namespace CapstoneAPI.Models
 
                 entity.Property(e => e.UniversityId).HasColumnName("University_Id");
 
-                entity.Property(e => e.UserId)
-                    .IsRequired()
-                    .HasMaxLength(320)
-                    .HasColumnName("User_Id");
+                entity.Property(e => e.UserId).HasColumnName("User_Id");
 
                 entity.Property(e => e.Year).HasColumnType("date");
 
@@ -308,9 +302,7 @@ namespace CapstoneAPI.Models
 
                 entity.Property(e => e.TestId).HasColumnName("Test_Id");
 
-                entity.Property(e => e.UserId)
-                    .HasMaxLength(320)
-                    .HasColumnName("User_Id");
+                entity.Property(e => e.UserId).HasColumnName("User_Id");
 
                 entity.HasOne(d => d.Test)
                     .WithMany(p => p.TestSubmissions)
@@ -344,10 +336,7 @@ namespace CapstoneAPI.Models
 
                 entity.Property(e => e.TranscriptTypeId).HasColumnName("TranscriptType_Id");
 
-                entity.Property(e => e.UserId)
-                    .IsRequired()
-                    .HasMaxLength(320)
-                    .HasColumnName("User_Id");
+                entity.Property(e => e.UserId).HasColumnName("User_Id");
 
                 entity.HasOne(d => d.Subject)
                     .WithMany(p => p.Transcripts)
@@ -399,8 +388,6 @@ namespace CapstoneAPI.Models
             modelBuilder.Entity<User>(entity =>
             {
                 entity.ToTable("User");
-
-                entity.Property(e => e.Id).HasMaxLength(320);
 
                 entity.Property(e => e.AvatarUrl).IsUnicode(false);
 

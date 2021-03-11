@@ -15,7 +15,7 @@ namespace CapstoneAPI.Models
             Transcripts = new HashSet<Transcript>();
         }
 
-        public string Id { get; set; }
+        public int Id { get; set; }
         public string Password { get; set; }
         public string Fullname { get; set; }
         public string Email { get; set; }

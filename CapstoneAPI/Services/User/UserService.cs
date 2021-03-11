@@ -25,18 +25,17 @@
             _mapper = mapper;
         }
 
-        public async Task<LoginResponse> Login(Token firebaseToken)
+        public async Task<UserDataSet> Login(Token firebaseToken)
         {
             Models.User user;
             JwtSecurityToken token = null;
             FirebaseToken decodedToken = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(firebaseToken.uidToken);
-            user = await _uow.UserRepository.GetFirst(filter: u => u.Id.Equals(decodedToken.Claims["email"].ToString()) && u.IsActive == true, includeProperties: "Role");
+            user = await _uow.UserRepository.GetFirst(filter: u => u.Email.Equals(decodedToken.Claims["email"].ToString()), includeProperties: "Role");
             if (user == null)
             {
                 int userRoleId = (await _uow.RoleRepository.GetFirst(filter: r => r.Name.Equals(Consts.USER_ROLE))).Id;
                 user = new Models.User()
                 {
-                    Id = decodedToken.Claims["email"].ToString(),
                     Email = decodedToken.Claims["email"].ToString(),
                     Fullname = decodedToken.Claims["name"].ToString(),
                     AvatarUrl = decodedToken.Claims["picture"].ToString(),
@@ -47,7 +46,7 @@
 
                 if (await _uow.CommitAsync() > 0)
                 {
-                    user = await _uow.UserRepository.GetFirst(filter: u => u.Id.Equals(decodedToken.Claims["email"].ToString()) && u.IsActive == true, includeProperties: "Role");
+                    
                 }
                 else
                 {
@@ -69,9 +68,10 @@
                                                 claims,
                                                 //expires: DateTime.Now.AddSeconds(55 * 60),
                                                 signingCredentials: creds);
-
-
-            return new LoginResponse() { IsAdmin = isAdmin, Token = new JwtSecurityTokenHandler().WriteToken(token) };
+            UserDataSet userResponse = _mapper.Map<UserDataSet>(user);
+            userResponse.IsAdmin = isAdmin;
+            userResponse.Token = new JwtSecurityTokenHandler().WriteToken(token);
+            return userResponse;
         }
     }
 }
