@@ -34,5 +34,27 @@ namespace CapstoneAPI.Controllers
             return Ok(result);
         }
 
+        [HttpGet()]
+        public async Task<ActionResult<IEnumerable<University>>> GetAllUniversities()
+        {
+            IEnumerable<University> result = await _service.GetUniversities();
+            if (result == null || !result.Any())
+            {
+                return NotFound();
+            }
+            return Ok(result);
+        }
+
+        [HttpGet("detail/{id}")]
+        public async Task<ActionResult<DetailUniversityDataSet>> GetDetailUniversity([FromRoute] int id)
+        {
+            DetailUniversityDataSet result = await _service.GetDetailUniversity(id);
+            if (result == null)
+            {
+                return NotFound();
+            }
+            return Ok(result);
+        }
+
     }
 }

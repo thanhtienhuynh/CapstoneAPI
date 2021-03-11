@@ -9,6 +9,7 @@ namespace CapstoneAPI.Models
     {
         public SubjectGroup()
         {
+            EntryMarks = new HashSet<EntryMark>();
             SubjectGroupDetails = new HashSet<SubjectGroupDetail>();
             WeightNumbers = new HashSet<WeightNumber>();
         }
@@ -17,6 +18,7 @@ namespace CapstoneAPI.Models
         public string GroupCode { get; set; }
         public int Status { get; set; }
 
+        public virtual ICollection<EntryMark> EntryMarks { get; set; }
         public virtual ICollection<SubjectGroupDetail> SubjectGroupDetails { get; set; }
         public virtual ICollection<WeightNumber> WeightNumbers { get; set; }
     }

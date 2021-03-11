@@ -17,6 +17,11 @@ namespace CapstoneAPI.Repositories
         IGenericRepository<EntryMark> EntryMarkRepository { get; }
         IGenericRepository<Test>TestRepository { get; }
         IGenericRepository<Option> OptionRepository { get; }
+        IGenericRepository<TestSubmission> TestSubmissionRepository { get; }
+        IGenericRepository<Question> QuestionRepository { get; }
+        IGenericRepository<User> UserRepository { get; }
+        IGenericRepository<Role> RoleRepository { get; }
+        IGenericRepository<MajorDetail> MajorDetailRepository { get; }
         Task<int> CommitAsync();
     }
 }

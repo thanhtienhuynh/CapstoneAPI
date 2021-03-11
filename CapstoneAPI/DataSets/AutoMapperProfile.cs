@@ -4,7 +4,9 @@ using CapstoneAPI.DataSets.Option;
 using CapstoneAPI.DataSets.Question;
 using CapstoneAPI.DataSets.Subject;
 using CapstoneAPI.DataSets.Test;
+using CapstoneAPI.DataSets.TestSubmission;
 using CapstoneAPI.DataSets.University;
+using CapstoneAPI.DataSets.User;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,6 +24,12 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.Test, TestDataSet>();
             CreateMap<Models.Question, QuestionDataSet>();
             CreateMap<Models.Option, OptionDataSet>();
+            CreateMap<Models.TestSubmission, TestSubmissionDataSet>();
+            CreateMap<Models.User, UserDataSet>();
+            CreateMap<Models.University, DetailUniversityDataSet>();
+            CreateMap<Models.Major, UniMajorDataSet>();
+            CreateMap<Models.SubjectGroup, UniSubjectGroupDataSet>();
+            CreateMap<Models.EntryMark, UniEntryMarkDataSet>();
         }
     }
 }

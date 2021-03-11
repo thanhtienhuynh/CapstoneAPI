@@ -8,7 +8,7 @@ namespace CapstoneAPI.Services.Test
 {
     public interface ITestService
     {
-        Task<IEnumerable<TestDataSet>> GetFilteredTests(TestParam testParam);
+        Task<List<SubjectBasedTestDataSet>> GetFilteredTests(TestParam testParam);
         Task<TestDataSet> GetTestById(int id);
     }
 }

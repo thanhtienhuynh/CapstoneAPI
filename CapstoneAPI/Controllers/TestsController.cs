@@ -23,9 +23,9 @@ namespace CapstoneAPI.Controllers
         }
 
         [HttpGet("recommendation")]
-        public async Task<ActionResult<IEnumerable<TestDataSet>>> GetFilteredTests([FromQuery]TestParam testParam )
+        public async Task<ActionResult<List<SubjectBasedTestDataSet>>> GetFilteredTests([FromQuery]TestParam testParam )
         {
-            IEnumerable<TestDataSet> results = await _service.GetFilteredTests(testParam);
+            List<SubjectBasedTestDataSet> results = await _service.GetFilteredTests(testParam);
             return Ok(results);
         }
 

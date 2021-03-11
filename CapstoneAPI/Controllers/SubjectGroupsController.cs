@@ -23,7 +23,7 @@ namespace CapstoneAPI.Controllers
         }
 
         [HttpPost("top-subject-group")]
-        public async Task<ActionResult<IEnumerable<SubjectGroupDataSet>>> PostPartnerMapping(SubjectGroupParam subjectGroupParam)
+        public async Task<ActionResult<IEnumerable<SubjectGroupDataSet>>> SuggestTopSubjectGroup(SubjectGroupParam subjectGroupParam)
         {
             IEnumerable<SubjectGroupDataSet> subjectGroups = await _service.GetCaculatedSubjectGroup(subjectGroupParam);
             return Ok(subjectGroups);

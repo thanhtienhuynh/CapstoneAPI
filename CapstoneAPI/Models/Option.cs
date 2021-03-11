@@ -10,6 +10,7 @@ namespace CapstoneAPI.Models
         public int Id { get; set; }
         public string OptionContent { get; set; }
         public int QuestionId { get; set; }
+        public int? Ordinal { get; set; }
 
         public virtual Question Question { get; set; }
     }

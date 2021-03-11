@@ -1,7 +1,5 @@
 ﻿using CapstoneAPI.Models;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace CapstoneAPI.Repositories
@@ -19,6 +17,11 @@ namespace CapstoneAPI.Repositories
         private IGenericRepository<EntryMark> _entryMarkRepository;
         private IGenericRepository<Test> _testRepository;
         private IGenericRepository<Option> _optionRepository;
+        private IGenericRepository<TestSubmission> _testSubmissionRepository;
+        private IGenericRepository<Question> _questionRepository;
+        private IGenericRepository<User> _userRepository;
+        private IGenericRepository<Role> _roleRepository;
+        private IGenericRepository<MajorDetail> _majorDetailRepository;
 
         public IGenericRepository<SubjectGroup> SubjectGroupRepository
         {
@@ -61,6 +64,29 @@ namespace CapstoneAPI.Repositories
         public IGenericRepository<Option> OptionRepository
         {
             get { return _optionRepository ??= new GenericRepository<Option>(_context); }
+        }
+
+        public IGenericRepository<TestSubmission> TestSubmissionRepository
+        {
+            get { return _testSubmissionRepository ??= new GenericRepository<TestSubmission>(_context); }
+        }
+        public IGenericRepository<Question> QuestionRepository
+        {
+            get { return _questionRepository ??= new GenericRepository<Question>(_context); }
+        }
+
+        public IGenericRepository<User> UserRepository
+        {
+            get { return _userRepository ??= new GenericRepository<User>(_context); }
+        }
+        public IGenericRepository<Role> RoleRepository
+        {
+            get { return _roleRepository ??= new GenericRepository<Role>(_context); }
+        }
+
+        public IGenericRepository<MajorDetail> MajorDetailRepository
+        {
+            get { return _majorDetailRepository ??= new GenericRepository<MajorDetail>(_context); }
         }
 
         public UnitOfWork(CapstoneDBContext context)

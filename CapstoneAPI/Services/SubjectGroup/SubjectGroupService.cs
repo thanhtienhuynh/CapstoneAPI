@@ -31,7 +31,7 @@ namespace CapstoneAPI.Services.SubjectGroup
             //Tính điểm mỗi khối
             foreach (Models.SubjectGroup subjectGroup in subjectGroups)
             {
-                double totalMark = CalculateTotalMark(subjectGroupParam, subjectGroup);
+                double totalMark = CalculateSubjectGroupMark(subjectGroupParam, subjectGroup.SubjectGroupDetails.ToList());
                 subjectGroupDataSets.Add(new SubjectGroupDataSet { TotalMark = totalMark, Name = subjectGroup.GroupCode, Id = subjectGroup.Id });
             }
 
@@ -44,71 +44,102 @@ namespace CapstoneAPI.Services.SubjectGroup
 
             foreach (SubjectGroupDataSet suggestGroup in suggestedSubjectGroups)
             {
-                IEnumerable<WeightNumber> weightNumbers = await _uow.WeightNumberRepository.Get(filter: weightNumbers => weightNumbers.SubjectGroupId == suggestGroup.Id, includeProperties: "Major");
-                List<MajorDataSet> majors = weightNumbers.Select(w => _mapper.Map<MajorDataSet>(w.Major)).ToList();
-                //Lọc những ngành không có trường phù hợp vì thấp hơn điểm chuẩn
-                await FilterMajorsWithEntryMark(majors, suggestGroup, weightNumbers);
-                CalculateWeightMark(subjectGroupParam, suggestGroup, weightNumbers, majors);
-                suggestGroup.SuggestedMajors = majors.OrderByDescending(o => o.WeightMark).Take(3).ToList();
+                List<int> majorIds = (await _uow.WeightNumberRepository.
+                                                            Get(filter: weightNumbers => weightNumbers.SubjectGroupId == suggestGroup.Id))
+                                                            .Select(w => w.MajorId).Distinct().ToList();
+                //Lọc những id ngành không có trường phù hợp vì thấp hơn điểm chuẩn
+                await FilterMajorsWithEntryMark(majorIds, suggestGroup);
+
+                //Tính trọng số từng ngành
+                
+                suggestGroup.SuggestedMajors = (await GenerateListMajors(subjectGroupParam, suggestGroup, majorIds)).OrderByDescending(o => o.WeightMark).Take(5).ToList();
             }
 
             return suggestedSubjectGroups;
         }
 
-        private async Task FilterMajorsWithEntryMark(List<MajorDataSet> majors, SubjectGroupDataSet subjectGroup, IEnumerable<WeightNumber> weightNumbers)
+        private async Task FilterMajorsWithEntryMark(List<int> majorIds, SubjectGroupDataSet subjectGroup)
         {
             List<MajorDataSet> filteredMajors = new List<MajorDataSet>();
-            foreach (MajorDataSet majorDataSet in majors.ToList())
+            foreach (int majorId in majorIds.ToList())
             {
-                WeightNumber weightNumber = weightNumbers.Where(w => w.MajorId == majorDataSet.Id).First();
-                bool isSuitable = (await _uow.EntryMarkRepository.Get(filter: (e => e.WeightNumberId == weightNumber.Id && e.Mark <= subjectGroup.TotalMark))).Any();
+                if (majorId == 193)
+                {
+                    Console.WriteLine();
+                }
+                List<int> majorDetailIds = (await _uow.MajorDetailRepository.Get(filter: m => m.MajorId == majorId)).Select(m => m.Id).ToList();
+                bool isSuitable = (await _uow.EntryMarkRepository.Get(filter: (e => majorDetailIds.Contains(e.MajorDetailId) && e.Mark <= subjectGroup.TotalMark))).Any();
                 if (!isSuitable)
                 {
-                    majors.Remove(majorDataSet);
+                    majorIds.Remove(majorId);
                 }
             }
         }
 
-        private void CalculateWeightMark(SubjectGroupParam subjectGroupParam, SubjectGroupDataSet suggestGroup, IEnumerable<WeightNumber> weightNumbers, List<MajorDataSet> majors)
+        private async Task<List<MajorDataSet>> GenerateListMajors(SubjectGroupParam subjectGroupParam, SubjectGroupDataSet suggestGroup, List<int> majorIds)
         {
-            foreach (MajorDataSet majorDataSet in majors)
+            List<MajorDataSet> majorDataSets = new List<MajorDataSet>();
+            foreach (int majorId in majorIds)
             {
-                WeightNumber weightNumber = weightNumbers.Where(w => w.MajorId == majorDataSet.Id).First();
-                majorDataSet.WeightMark = suggestGroup.TotalMark + CalculateMark(subjectGroupParam, weightNumber.SubjectId, (weightNumber.Weight - 1));
+                IEnumerable<WeightNumber> weightNumbers = await _uow.WeightNumberRepository.Get(w => w.MajorId == majorId && w.SubjectGroupId == suggestGroup.Id);
+                MajorDataSet major = _mapper.Map<MajorDataSet>(await _uow.MajorRepository.GetById(majorId));
+                major.WeightMark = CalculateTotalWeightMark(subjectGroupParam, weightNumbers);
+                majorDataSets.Add(major);
             }
+            return majorDataSets;
         }
 
-        private double CalculateTotalMark(SubjectGroupParam subjectGroupParam, Models.SubjectGroup subjectGroup)
+        private double CalculateTotalWeightMark(SubjectGroupParam subjectGroupParam, IEnumerable<WeightNumber> weightNumbers)
         {
             double totalMark = 0;
-            foreach (SubjectGroupDetail subjectGroupDetail in subjectGroup.SubjectGroupDetails)
+            double totalWeight = 0;
+            foreach (WeightNumber weightNumber in weightNumbers)
             {
-                totalMark += CalculateMark(subjectGroupParam, subjectGroupDetail.SubjectId, Consts.DEFAULT_WEIGHT_NUMBER);
+                totalMark += CalculateWeightMark(subjectGroupParam, weightNumber);
+                totalWeight += weightNumber.Weight == null ? 1.0 : (double) weightNumber.Weight;
             }
 
-            return totalMark;
+            return totalMark / totalWeight;
         }
 
-        private double CalculateMark(SubjectGroupParam subjectGroupParam, int? id, int? weight)
+        private double CalculateWeightMark(SubjectGroupParam subjectGroupParam, WeightNumber weightNumber)
         {
-            if (id == null)
+            if (weightNumber.SubjectId == null)
             {
                 return 0;
             }
 
-            if (weight == null)
+            if (weightNumber.Weight == null || weightNumber.Weight <= 0)
             {
-                return 0;
+                weightNumber.Weight = 1;
             }
 
             foreach (MarkParam markParam in subjectGroupParam.Marks)
             {
-                if (markParam.SubjectId == id)
+                if (markParam.SubjectId == weightNumber.SubjectId)
                 {
-                    return (double)(markParam.Mark * weight);
+                    return (double)(markParam.Mark * weightNumber.Weight);
                 }
             }
             return 0;
+        }
+
+        private double CalculateSubjectGroupMark(SubjectGroupParam subjectGroupParam, List<SubjectGroupDetail> subjectGroupDetails)
+        {
+            double totalMark = 0;
+            if (subjectGroupDetails.Count > 3)
+            {
+                return 0;
+            }
+            foreach(SubjectGroupDetail subjectGroupDetail in subjectGroupDetails)
+            {
+                MarkParam markParam =  subjectGroupParam.Marks.FirstOrDefault(m => m.SubjectId == subjectGroupDetail.SubjectId);
+                if (markParam != null)
+                {
+                    totalMark += markParam.Mark;
+                }
+            } 
+            return totalMark;
         }
     }
 }

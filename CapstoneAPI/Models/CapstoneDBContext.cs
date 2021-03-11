@@ -55,7 +55,10 @@ namespace CapstoneAPI.Models
 
                 entity.Property(e => e.PublishedDate).HasColumnType("datetime");
 
-                entity.Property(e => e.UserId).HasColumnName("User_Id");
+                entity.Property(e => e.UserId)
+                    .IsRequired()
+                    .HasMaxLength(320)
+                    .HasColumnName("User_Id");
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.Articles)
@@ -75,21 +78,21 @@ namespace CapstoneAPI.Models
             {
                 entity.ToTable("EntryMark");
 
-                entity.Property(e => e.UniversityId).HasColumnName("University_Id");
+                entity.Property(e => e.MajorDetailId).HasColumnName("MajorDetail_Id");
 
-                entity.Property(e => e.WeightNumberId).HasColumnName("WeightNumber_Id");
+                entity.Property(e => e.SubjectGroupId).HasColumnName("SubjectGroup_Id");
 
-                entity.HasOne(d => d.University)
+                entity.HasOne(d => d.MajorDetail)
                     .WithMany(p => p.EntryMarks)
-                    .HasForeignKey(d => d.UniversityId)
+                    .HasForeignKey(d => d.MajorDetailId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_EntryMark_University");
+                    .HasConstraintName("FK_EntryMark_MajorDetail");
 
-                entity.HasOne(d => d.WeightNumber)
+                entity.HasOne(d => d.SubjectGroup)
                     .WithMany(p => p.EntryMarks)
-                    .HasForeignKey(d => d.WeightNumberId)
+                    .HasForeignKey(d => d.SubjectGroupId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_EntryMark_WeightNumber");
+                    .HasConstraintName("FK_EntryMark_SubjectGroup");
             });
 
             modelBuilder.Entity<Major>(entity =>
@@ -132,8 +135,6 @@ namespace CapstoneAPI.Models
 
                 entity.Property(e => e.MajorId).HasColumnName("Major_Id");
 
-                entity.Property(e => e.Tuition).HasColumnType("money");
-
                 entity.Property(e => e.UniversityId).HasColumnName("University_Id");
 
                 entity.HasOne(d => d.Major)
@@ -169,7 +170,6 @@ namespace CapstoneAPI.Models
                 entity.Property(e => e.QuestionContent).IsRequired();
 
                 entity.Property(e => e.Result)
-                    .IsRequired()
                     .HasMaxLength(10)
                     .IsUnicode(false);
 
@@ -270,7 +270,10 @@ namespace CapstoneAPI.Models
 
                 entity.Property(e => e.UniversityId).HasColumnName("University_Id");
 
-                entity.Property(e => e.UserId).HasColumnName("User_Id");
+                entity.Property(e => e.UserId)
+                    .IsRequired()
+                    .HasMaxLength(320)
+                    .HasColumnName("User_Id");
 
                 entity.Property(e => e.Year).HasColumnType("date");
 
@@ -305,7 +308,9 @@ namespace CapstoneAPI.Models
 
                 entity.Property(e => e.TestId).HasColumnName("Test_Id");
 
-                entity.Property(e => e.UserId).HasColumnName("User_Id");
+                entity.Property(e => e.UserId)
+                    .HasMaxLength(320)
+                    .HasColumnName("User_Id");
 
                 entity.HasOne(d => d.Test)
                     .WithMany(p => p.TestSubmissions)
@@ -324,7 +329,9 @@ namespace CapstoneAPI.Models
 
                 entity.Property(e => e.Id).ValueGeneratedNever();
 
-                entity.Property(e => e.Type).HasMaxLength(50);
+                entity.Property(e => e.Type)
+                    .IsRequired()
+                    .HasMaxLength(50);
             });
 
             modelBuilder.Entity<Transcript>(entity =>
@@ -337,7 +344,10 @@ namespace CapstoneAPI.Models
 
                 entity.Property(e => e.TranscriptTypeId).HasColumnName("TranscriptType_Id");
 
-                entity.Property(e => e.UserId).HasColumnName("User_Id");
+                entity.Property(e => e.UserId)
+                    .IsRequired()
+                    .HasMaxLength(320)
+                    .HasColumnName("User_Id");
 
                 entity.HasOne(d => d.Subject)
                     .WithMany(p => p.Transcripts)
@@ -380,11 +390,17 @@ namespace CapstoneAPI.Models
                 entity.Property(e => e.Name)
                     .IsRequired()
                     .HasMaxLength(100);
+
+                entity.Property(e => e.Phone).HasMaxLength(50);
+
+                entity.Property(e => e.WebUrl).HasColumnName("WebURL");
             });
 
             modelBuilder.Entity<User>(entity =>
             {
                 entity.ToTable("User");
+
+                entity.Property(e => e.Id).HasMaxLength(320);
 
                 entity.Property(e => e.AvatarUrl).IsUnicode(false);
 
@@ -401,11 +417,6 @@ namespace CapstoneAPI.Models
                     .IsUnicode(false);
 
                 entity.Property(e => e.RoleId).HasColumnName("Role_Id");
-
-                entity.Property(e => e.Username)
-                    .IsRequired()
-                    .HasMaxLength(50)
-                    .IsUnicode(false);
 
                 entity.HasOne(d => d.Role)
                     .WithMany(p => p.Users)

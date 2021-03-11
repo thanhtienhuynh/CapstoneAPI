@@ -21,13 +21,68 @@ namespace CapstoneAPI.Services.University
 
         public async Task<IEnumerable<UniversityDataSet>> GetUniversityBySubjectGroupAndMajor(UniversityParam universityParam)
         {
-            WeightNumber weightNumber = await _uow.WeightNumberRepository.GetFirst(filter: w => w.MajorId == universityParam.MajorId && w.SubjectGroupId == universityParam.SubjectGroupId);
-            if (weightNumber == null)
+            List<MajorDetail> majorDetails = (await _uow.MajorDetailRepository.Get(filter: w => w.MajorId == universityParam.MajorId, includeProperties: "University")).ToList();
+            if (majorDetails == null || !majorDetails.Any())
             {
                 return null;
             }
-            IEnumerable<UniversityDataSet> universities = (await _uow.EntryMarkRepository.Get(filter: e => e.WeightNumberId == weightNumber.Id && e.Mark <= universityParam.TotalMark, includeProperties: "University")).OrderByDescending(e => e.Mark).Select(u => _mapper.Map<UniversityDataSet>(u.University));
+            foreach(MajorDetail majorDetail in majorDetails)
+            {
+                EntryMark entryMark = await _uow.EntryMarkRepository.GetFirst(filter: e => e.SubjectGroupId == universityParam.SubjectGroupId);
+                if (entryMark.Mark > universityParam.TotalMark)
+                {
+                    majorDetails.Remove(majorDetail);
+                }
+            }
+            return majorDetails.Select(s => _mapper.Map<UniversityDataSet>(s.University));
+        }
+
+        public async Task<IEnumerable<Models.University>> GetUniversities()
+        {
+            IEnumerable<Models.University> universities = await _uow.UniversityRepository.Get();
             return universities;
+        }
+
+        public async Task<DetailUniversityDataSet> GetDetailUniversity(int universityId)
+        {
+            Models.University university = await _uow.UniversityRepository.GetFirst(filter: u => u.Id == universityId,
+                                            includeProperties: "MajorDetails");
+            DetailUniversityDataSet universityDataSet = _mapper.Map<DetailUniversityDataSet>(university);
+            List<Major> majors = new List<Major>();
+            List<UniMajorDataSet> uniMajorDataSets;
+            foreach (MajorDetail majorDetail in university.MajorDetails)
+            {
+                Major major = await _uow.MajorRepository.GetById(majorDetail.MajorId);
+                majors.Add(major);
+            }
+
+            //Get list majors
+            uniMajorDataSets = majors.Select(m => _mapper.Map<UniMajorDataSet>(m)).ToList();
+
+            foreach(UniMajorDataSet uniMajorDataSet in uniMajorDataSets)
+            {
+                MajorDetail majorDetail = await _uow.MajorDetailRepository.GetFirst(
+                                                filter: m => m.MajorId == uniMajorDataSet.Id && m.UniversityId == universityDataSet.Id);
+                List<int> subjectGroupIds = (await _uow.EntryMarkRepository.Get(
+                                                filter: e => e.MajorDetailId == majorDetail.Id, includeProperties: "SubjectGroup"))
+                                                .Select(e => e.SubjectGroupId).Distinct().ToList();
+                List<UniSubjectGroupDataSet> uniSubjectGroupDataSets = new List<UniSubjectGroupDataSet>();
+                subjectGroupIds.ForEach(async s =>
+                {
+                    uniSubjectGroupDataSets.Add(_mapper.Map<UniSubjectGroupDataSet>(await _uow.SubjectGroupRepository.GetById(s)));
+                });
+
+                foreach(UniSubjectGroupDataSet uniSubjectGroupDataSet in uniSubjectGroupDataSets)
+                {
+                    List<UniEntryMarkDataSet> entryMarks = (await _uow.EntryMarkRepository.Get(
+                                                    filter: e => e.SubjectGroupId == uniSubjectGroupDataSet.Id && e.MajorDetailId == majorDetail.Id ))
+                                                    .Select(e => _mapper.Map<UniEntryMarkDataSet>(e)).ToList();
+                    uniSubjectGroupDataSet.EntryMarks = entryMarks;
+                }
+                uniMajorDataSet.SubjectGroups = uniSubjectGroupDataSets;
+            }
+            universityDataSet.Majors = uniMajorDataSets;
+            return universityDataSet;
         }
     }
 }

@@ -21,9 +21,10 @@ namespace CapstoneAPI.Models
         public DateTime? Year { get; set; }
         public DateTime CreateDate { get; set; }
         public int? SubjectId { get; set; }
-        public int UserId { get; set; }
+        public string UserId { get; set; }
         public int TestTypeId { get; set; }
         public int? UniversityId { get; set; }
+        public int? TimeLimit { get; set; }
 
         public virtual Subject Subject { get; set; }
         public virtual TestType TestType { get; set; }

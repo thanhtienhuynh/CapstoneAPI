@@ -7,11 +7,6 @@ namespace CapstoneAPI.Models
 {
     public partial class WeightNumber
     {
-        public WeightNumber()
-        {
-            EntryMarks = new HashSet<EntryMark>();
-        }
-
         public int Id { get; set; }
         public int SubjectGroupId { get; set; }
         public int MajorId { get; set; }
@@ -21,6 +16,5 @@ namespace CapstoneAPI.Models
         public virtual Major Major { get; set; }
         public virtual Subject Subject { get; set; }
         public virtual SubjectGroup SubjectGroup { get; set; }
-        public virtual ICollection<EntryMark> EntryMarks { get; set; }
     }
 }

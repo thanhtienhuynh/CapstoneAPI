@@ -19,6 +19,8 @@ namespace CapstoneAPI.Models
         public string Result { get; set; }
         public int Type { get; set; }
         public int TestId { get; set; }
+        public bool IsAnnotate { get; set; }
+        public int? Ordinal { get; set; }
 
         public virtual Test Test { get; set; }
         public virtual ICollection<Option> Options { get; set; }

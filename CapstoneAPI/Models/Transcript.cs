@@ -11,7 +11,7 @@ namespace CapstoneAPI.Models
         public double Mark { get; set; }
         public DateTime DateRecord { get; set; }
         public int TranscriptTypeId { get; set; }
-        public int UserId { get; set; }
+        public string UserId { get; set; }
         public int? SubjectId { get; set; }
 
         public virtual Subject Subject { get; set; }
