@@ -11,6 +11,6 @@ namespace CapstoneAPI.Services.User
 {
     public interface IUserService
     {
-        Task<UserDataSet> Login(Token firebaseToken);
+        Task<LoginResponse> Login(Token firebaseToken);
     }
 }

@@ -13,6 +13,5 @@ namespace CapstoneAPI.DataSets.User
         public string Phone { get; set; }
         public string AvatarUrl { get; set; }
         public bool IsAdmin { get; set; }
-        public string Token { get; set; }
     }
 }

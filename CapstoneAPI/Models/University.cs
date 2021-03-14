@@ -11,6 +11,8 @@ namespace CapstoneAPI.Models
         {
             MajorDetails = new HashSet<MajorDetail>();
             Tests = new HashSet<Test>();
+            UniversityAdmissionInformations = new HashSet<UniversityAdmissionInformation>();
+            UserUniversities = new HashSet<UserUniversity>();
         }
 
         public int Id { get; set; }
@@ -19,13 +21,17 @@ namespace CapstoneAPI.Models
         public string Address { get; set; }
         public string LogoUrl { get; set; }
         public string Description { get; set; }
-        public int? Rating { get; set; }
-        public int Status { get; set; }
-        public string Tuition { get; set; }
         public string Phone { get; set; }
         public string WebUrl { get; set; }
+        public int? TuitionType { get; set; }
+        public int? TuitionFrom { get; set; }
+        public int? TuitionTo { get; set; }
+        public int? Rating { get; set; }
+        public int Status { get; set; }
 
         public virtual ICollection<MajorDetail> MajorDetails { get; set; }
         public virtual ICollection<Test> Tests { get; set; }
+        public virtual ICollection<UniversityAdmissionInformation> UniversityAdmissionInformations { get; set; }
+        public virtual ICollection<UserUniversity> UserUniversities { get; set; }
     }
 }

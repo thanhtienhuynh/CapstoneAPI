@@ -25,7 +25,7 @@
             _mapper = mapper;
         }
 
-        public async Task<UserDataSet> Login(Token firebaseToken)
+        public async Task<LoginResponse> Login(Token firebaseToken)
         {
             Models.User user;
             JwtSecurityToken token = null;
@@ -58,6 +58,10 @@
             {
                         new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                         new Claim(ClaimTypes.Role, isAdmin ? Consts.ADMIN_ROLE : Consts.USER_ROLE),
+                        new Claim(ClaimTypes.GivenName, user.Fullname == null ? "" : user.Fullname),
+                        new Claim(ClaimTypes.MobilePhone, user.Phone == null ? "" : user.Phone),
+                        new Claim(ClaimTypes.Uri, user.AvatarUrl == null ? "" : user.AvatarUrl),
+                        new Claim(ClaimTypes.Email, user.Email == null ? "" : user.Email),
                         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
                 };
 
@@ -66,12 +70,16 @@
             token = new JwtSecurityToken(AppSettings.Settings.Issuer,
                                                 AppSettings.Settings.Audience,
                                                 claims,
-                                                //expires: DateTime.Now.AddSeconds(55 * 60),
+                                                expires: DateTime.UtcNow.AddSeconds(1 * 10),
                                                 signingCredentials: creds);
             UserDataSet userResponse = _mapper.Map<UserDataSet>(user);
             userResponse.IsAdmin = isAdmin;
-            userResponse.Token = new JwtSecurityTokenHandler().WriteToken(token);
-            return userResponse;
+            LoginResponse loginResponse = new LoginResponse()
+            {
+                User = userResponse,
+                Token = new JwtSecurityTokenHandler().WriteToken(token)
+            };
+            return loginResponse;
         }
     }
 }

@@ -15,5 +15,7 @@ namespace CapstoneAPI.Helpers
         public static string ADMIN_ROLE = "Admin";
         public static string USER_ROLE = "User";
         public static string FIREBASE_KEY_PATH = "FirebaseKey\\capstone-7071e-firebase-adminsdk-umiw1-2c95fcab0a.json";
+        public static int YEAR_2019 = 2019;
+        public static int YEAR_2020 = 2020;
     }                                             
 }

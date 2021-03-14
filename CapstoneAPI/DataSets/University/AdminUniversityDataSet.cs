@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace CapstoneAPI.DataSets.University
 {
-    public class UniversityDataSet
+    public class AdminUniversityDataSet
     {
         public int Id { get; set; }
         public string Code { get; set; }
@@ -19,5 +19,6 @@ namespace CapstoneAPI.DataSets.University
         public int? TuitionFrom { get; set; }
         public int? TuitionTo { get; set; }
         public int? Rating { get; set; }
+        public int Status { get; set; }
     }
 }

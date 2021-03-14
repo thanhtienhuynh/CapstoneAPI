@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using CapstoneAPI.Helpers;
 
 namespace CapstoneAPI.Services.University
 {
@@ -37,9 +38,10 @@ namespace CapstoneAPI.Services.University
             return majorDetails.Select(s => _mapper.Map<UniversityDataSet>(s.University));
         }
 
-        public async Task<IEnumerable<Models.University>> GetUniversities()
+        public async Task<IEnumerable<AdminUniversityDataSet>> GetUniversities()
         {
-            IEnumerable<Models.University> universities = await _uow.UniversityRepository.Get();
+            IEnumerable<AdminUniversityDataSet> universities = (await _uow.UniversityRepository.Get())
+                                                        .Select(u => _mapper.Map<AdminUniversityDataSet>(u));
             return universities;
         }
 
@@ -75,7 +77,7 @@ namespace CapstoneAPI.Services.University
                 foreach(UniSubjectGroupDataSet uniSubjectGroupDataSet in uniSubjectGroupDataSets)
                 {
                     List<UniEntryMarkDataSet> entryMarks = (await _uow.EntryMarkRepository.Get(
-                                                    filter: e => e.SubjectGroupId == uniSubjectGroupDataSet.Id && e.MajorDetailId == majorDetail.Id ))
+                                                    filter: e => e.SubjectGroupId == uniSubjectGroupDataSet.Id && e.MajorDetailId == majorDetail.Id && (e.Year == Consts.YEAR_2019 || e.Year == Consts.YEAR_2020) ))
                                                     .Select(e => _mapper.Map<UniEntryMarkDataSet>(e)).ToList();
                     uniSubjectGroupDataSet.EntryMarks = entryMarks;
                 }

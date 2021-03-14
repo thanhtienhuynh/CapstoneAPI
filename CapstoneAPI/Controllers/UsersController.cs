@@ -22,9 +22,9 @@
 
         [AllowAnonymous]
         [HttpPost("auth/google")]
-        public async Task<ActionResult<UserDataSet>> LoginGoogle([FromBody] Token firebaseToken)
+        public async Task<ActionResult<LoginResponse>> LoginGoogle([FromBody] Token firebaseToken)
         {
-            UserDataSet result = await _service.Login(firebaseToken);
+            LoginResponse result = await _service.Login(firebaseToken);
             if (result != null)
             {
                 return Ok(result);

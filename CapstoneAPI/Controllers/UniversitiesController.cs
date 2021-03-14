@@ -35,9 +35,9 @@ namespace CapstoneAPI.Controllers
         }
 
         [HttpGet()]
-        public async Task<ActionResult<IEnumerable<University>>> GetAllUniversities()
+        public async Task<ActionResult<IEnumerable<AdminUniversityDataSet>>> GetAllUniversities()
         {
-            IEnumerable<University> result = await _service.GetUniversities();
+            IEnumerable<AdminUniversityDataSet> result = await _service.GetUniversities();
             if (result == null || !result.Any())
             {
                 return NotFound();

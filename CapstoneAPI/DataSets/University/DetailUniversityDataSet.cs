@@ -12,10 +12,14 @@ namespace CapstoneAPI.DataSets.University
         public string Name { get; set; }
         public string Address { get; set; }
         public string LogoUrl { get; set; }
-        public string Infomation { get; set; }
+        public string Description { get; set; }
+        public string Phone { get; set; }
+        public string WebUrl { get; set; }
+        public int? TuitionType { get; set; }
+        public int? TuitionFrom { get; set; }
+        public int? TuitionTo { get; set; }
         public int? Rating { get; set; }
         public int Status { get; set; }
-        public string Tuition { get; set; }
 
         public List<UniMajorDataSet> Majors { get; set; }
     }
@@ -26,7 +30,7 @@ namespace CapstoneAPI.DataSets.University
         public string Name { get; set; }
         public string Code { get; set; }
         public int? Status { get; set; }
-
+        public int NumberOfStudents { get; set; }
         public List<UniSubjectGroupDataSet> SubjectGroups { get; set; }
     }
 

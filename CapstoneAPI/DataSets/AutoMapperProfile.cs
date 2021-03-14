@@ -27,6 +27,7 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.TestSubmission, TestSubmissionDataSet>();
             CreateMap<Models.User, UserDataSet>();
             CreateMap<Models.University, DetailUniversityDataSet>();
+            CreateMap<Models.University, AdminUniversityDataSet>();
             CreateMap<Models.Major, UniMajorDataSet>();
             CreateMap<Models.SubjectGroup, UniSubjectGroupDataSet>();
             CreateMap<Models.EntryMark, UniEntryMarkDataSet>();
