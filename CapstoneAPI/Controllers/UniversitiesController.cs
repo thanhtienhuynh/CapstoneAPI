@@ -55,6 +55,25 @@ namespace CapstoneAPI.Controllers
             }
             return Ok(result);
         }
-
+        [HttpPost]
+        public async Task<ActionResult<AdminUniversityDataSet>> CreateAnUniversity([FromBody] CreateUniversityDataset createUniversityDataset)
+        {
+            AdminUniversityDataSet result = await _service.CreateNewAnUniversity(createUniversityDataset);
+            if (result == null)
+            {
+                return BadRequest();
+            }
+            return Ok(result);
+        }
+        [HttpPut]
+        public async Task<ActionResult<AdminUniversityDataSet>> UpdateUniversity([FromBody] AdminUniversityDataSet adminUniversityDataSet)
+        {
+            AdminUniversityDataSet result = await _service.UpdateUniversity(adminUniversityDataSet);
+            if (result == null)
+            {
+                return BadRequest();
+            }
+            return Ok(result);
+        }
     }
 }

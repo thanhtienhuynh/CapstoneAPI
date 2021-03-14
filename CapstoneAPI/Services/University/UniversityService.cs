@@ -84,7 +84,58 @@ namespace CapstoneAPI.Services.University
                 uniMajorDataSet.SubjectGroups = uniSubjectGroupDataSets;
             }
             universityDataSet.Majors = uniMajorDataSets;
-            return universityDataSet;
+            return universityDataSet;  
+        }
+
+        public async Task<AdminUniversityDataSet> CreateNewAnUniversity(CreateUniversityDataset createUniversityDataset)
+        {
+            if (createUniversityDataset.Name.Equals("") || createUniversityDataset.Code.Equals("") || (createUniversityDataset.Status != 0 && createUniversityDataset.Status != 1))
+                return null;
+            Models.University ExistUni = await _uow.UniversityRepository.GetFirst(filter: u => u.Code.Equals(createUniversityDataset.Code));
+            if (ExistUni != null)
+            {
+                return null;
+            }
+            Models.University university = _mapper.Map<Models.University>(createUniversityDataset);
+            _uow.UniversityRepository.Insert(university);
+            int result = await _uow.CommitAsync();
+            if (result > 0)
+            {
+
+                return _mapper.Map<AdminUniversityDataSet>(university);
+            }
+            return null;
+        }
+
+        public async Task<AdminUniversityDataSet> UpdateUniversity(AdminUniversityDataSet adminUniversityDataSet)
+        {
+            if (adminUniversityDataSet.Name.Equals("") || adminUniversityDataSet.Code.Equals("") || (adminUniversityDataSet.Status != Consts.STATUS_ACTIVE && adminUniversityDataSet.Status != Consts.STATUS_INACTIVE))
+                return null;
+            Models.University existUni = await _uow.UniversityRepository.GetFirst(filter: u => u.Code.Equals(adminUniversityDataSet.Code));
+            if (existUni.Id != adminUniversityDataSet.Id)
+            {
+                return null;
+            }
+            existUni.Code = adminUniversityDataSet.Code;
+            existUni.Name = adminUniversityDataSet.Name;
+            existUni.Address = adminUniversityDataSet.Address;
+            existUni.LogoUrl = adminUniversityDataSet.LogoUrl;
+            existUni.Description = adminUniversityDataSet.Description;
+            existUni.Phone = adminUniversityDataSet.Phone;
+            existUni.WebUrl = adminUniversityDataSet.WebUrl;
+            existUni.TuitionType = adminUniversityDataSet.TuitionType;
+            existUni.TuitionFrom = adminUniversityDataSet.TuitionFrom;
+            existUni.TuitionTo = adminUniversityDataSet.TuitionTo;
+            existUni.Rating = adminUniversityDataSet.Rating;
+            existUni.Status = adminUniversityDataSet.Status;
+
+            _uow.UniversityRepository.Update(existUni);
+            int result = await _uow.CommitAsync();
+            if (result > 0)
+            {
+                return adminUniversityDataSet;
+            }
+            return null;
         }
     }
 }

@@ -21,6 +21,8 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.Major, MajorDataSet>();
             CreateMap<Models.Subject, SubjectDataSet>();
             CreateMap<Models.University, UniversityDataSet>();
+            CreateMap<CreateUniversityDataset, Models.University>();
+            CreateMap<AdminUniversityDataSet, Models.University>();
             CreateMap<Models.Test, TestDataSet>();
             CreateMap<Models.Question, QuestionDataSet>();
             CreateMap<Models.Option, OptionDataSet>();
