@@ -28,6 +28,16 @@ namespace CapstoneAPI.Controllers
             IEnumerable<SubjectGroupDataSet> subjectGroups = await _service.GetCaculatedSubjectGroup(subjectGroupParam);
             return Ok(subjectGroups);
         }
+        [HttpGet()]
+        public async Task<ActionResult<IEnumerable<AdminSubjectGroupDataSet>>> GetSubjectGroupsByAdmin()
+        {
+            IEnumerable<AdminSubjectGroupDataSet> subjectGroups = await _service.GetListSubjectGroups();
+            if (!subjectGroups.Any())
+            {
+                return NotFound();
+            }
+            return Ok(subjectGroups);
+        }
 
     }
 }

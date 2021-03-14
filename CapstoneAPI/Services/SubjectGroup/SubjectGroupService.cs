@@ -89,6 +89,12 @@ namespace CapstoneAPI.Services.SubjectGroup
             return majorDataSets;
         }
 
+        public async Task<IEnumerable<AdminSubjectGroupDataSet>> GetListSubjectGroups()
+        {
+            return (await _uow.SubjectGroupRepository.Get(filter: s => s.Status == Consts.STATUS_ACTIVE))
+                .Select(s => _mapper.Map<AdminSubjectGroupDataSet>(s));
+        }
+
         private double CalculateTotalWeightMark(SubjectGroupParam subjectGroupParam, IEnumerable<WeightNumber> weightNumbers)
         {
             double totalMark = 0;

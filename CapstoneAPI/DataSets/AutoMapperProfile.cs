@@ -3,6 +3,7 @@ using CapstoneAPI.DataSets.Major;
 using CapstoneAPI.DataSets.Option;
 using CapstoneAPI.DataSets.Question;
 using CapstoneAPI.DataSets.Subject;
+using CapstoneAPI.DataSets.SubjectGroup;
 using CapstoneAPI.DataSets.Test;
 using CapstoneAPI.DataSets.TestSubmission;
 using CapstoneAPI.DataSets.University;
@@ -22,7 +23,6 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.Subject, SubjectDataSet>();
             CreateMap<Models.University, UniversityDataSet>();
             CreateMap<CreateUniversityDataset, Models.University>();
-            CreateMap<AdminUniversityDataSet, Models.University>();
             CreateMap<Models.Test, TestDataSet>();
             CreateMap<Models.Question, QuestionDataSet>();
             CreateMap<Models.Option, OptionDataSet>();
@@ -32,6 +32,7 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.University, AdminUniversityDataSet>();
             CreateMap<Models.Major, UniMajorDataSet>();
             CreateMap<Models.SubjectGroup, UniSubjectGroupDataSet>();
+            CreateMap<Models.SubjectGroup, AdminSubjectGroupDataSet>();
             CreateMap<Models.EntryMark, UniEntryMarkDataSet>();
         }
     }

@@ -9,5 +9,6 @@ namespace CapstoneAPI.Services.SubjectGroup
     public interface ISubjectGroupService
     {
         Task<IEnumerable<SubjectGroupDataSet>> GetCaculatedSubjectGroup(SubjectGroupParam subjectGroupParam);
+        Task<IEnumerable<AdminSubjectGroupDataSet>> GetListSubjectGroups();
     }
 }
