@@ -11,5 +11,7 @@ namespace CapstoneAPI.Services.University
         Task<IEnumerable<UniversityDataSet>> GetUniversityBySubjectGroupAndMajor(UniversityParam universityParam);
         Task<IEnumerable<AdminUniversityDataSet>> GetUniversities();
         Task<DetailUniversityDataSet> GetDetailUniversity(int universityId);
+        Task<AdminUniversityDataSet> CreateNewAnUniversity(CreateUniversityDataset createUniversityDataset);
+        Task<AdminUniversityDataSet> UpdateUniversity(AdminUniversityDataSet adminUniversityDataSet);
     }
 }
