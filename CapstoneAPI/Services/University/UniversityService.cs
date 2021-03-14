@@ -84,7 +84,7 @@ namespace CapstoneAPI.Services.University
                 uniMajorDataSet.SubjectGroups = uniSubjectGroupDataSets;
             }
             universityDataSet.Majors = uniMajorDataSets;
-            return universityDataSet;
+            return universityDataSet;  
         }
     }
 }
