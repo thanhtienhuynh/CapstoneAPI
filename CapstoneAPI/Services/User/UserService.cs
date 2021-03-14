@@ -37,6 +37,7 @@
                 user = new Models.User()
                 {
                     Email = decodedToken.Claims["email"].ToString(),
+                    Username = decodedToken.Claims["email"].ToString(),
                     Fullname = decodedToken.Claims["name"].ToString(),
                     AvatarUrl = decodedToken.Claims["picture"].ToString(),
                     IsActive = true,
@@ -70,7 +71,7 @@
             token = new JwtSecurityToken(AppSettings.Settings.Issuer,
                                                 AppSettings.Settings.Audience,
                                                 claims,
-                                                expires: DateTime.UtcNow.AddSeconds(1 * 10),
+                                                expires: DateTime.UtcNow.AddSeconds(Consts.TOKEN_EXPIRED_TIME),
                                                 signingCredentials: creds);
             UserDataSet userResponse = _mapper.Map<UserDataSet>(user);
             userResponse.IsAdmin = isAdmin;

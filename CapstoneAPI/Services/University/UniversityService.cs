@@ -112,28 +112,33 @@ namespace CapstoneAPI.Services.University
             if (adminUniversityDataSet.Name.Equals("") || adminUniversityDataSet.Code.Equals("") || (adminUniversityDataSet.Status != Consts.STATUS_ACTIVE && adminUniversityDataSet.Status != Consts.STATUS_INACTIVE))
                 return null;
             Models.University existUni = await _uow.UniversityRepository.GetFirst(filter: u => u.Code.Equals(adminUniversityDataSet.Code));
-            if (existUni.Id != adminUniversityDataSet.Id)
+            if (existUni != null && existUni.Id != adminUniversityDataSet.Id)
             {
                 return null;
             }
-            existUni.Code = adminUniversityDataSet.Code;
-            existUni.Name = adminUniversityDataSet.Name;
-            existUni.Address = adminUniversityDataSet.Address;
-            existUni.LogoUrl = adminUniversityDataSet.LogoUrl;
-            existUni.Description = adminUniversityDataSet.Description;
-            existUni.Phone = adminUniversityDataSet.Phone;
-            existUni.WebUrl = adminUniversityDataSet.WebUrl;
-            existUni.TuitionType = adminUniversityDataSet.TuitionType;
-            existUni.TuitionFrom = adminUniversityDataSet.TuitionFrom;
-            existUni.TuitionTo = adminUniversityDataSet.TuitionTo;
-            existUni.Rating = adminUniversityDataSet.Rating;
-            existUni.Status = adminUniversityDataSet.Status;
+            Models.University updatedUni = await _uow.UniversityRepository.GetById(adminUniversityDataSet.Id);
+            if (updatedUni == null)
+            {
+                return null;
+            }
+            updatedUni.Code = adminUniversityDataSet.Code;
+            updatedUni.Name = adminUniversityDataSet.Name;
+            updatedUni.Address = adminUniversityDataSet.Address;
+            updatedUni.LogoUrl = adminUniversityDataSet.LogoUrl;
+            updatedUni.Description = adminUniversityDataSet.Description;
+            updatedUni.Phone = adminUniversityDataSet.Phone;
+            updatedUni.WebUrl = adminUniversityDataSet.WebUrl;
+            updatedUni.TuitionType = adminUniversityDataSet.TuitionType;
+            updatedUni.TuitionFrom = adminUniversityDataSet.TuitionFrom;
+            updatedUni.TuitionTo = adminUniversityDataSet.TuitionTo;
+            updatedUni.Rating = adminUniversityDataSet.Rating;
+            updatedUni.Status = adminUniversityDataSet.Status;
 
-            _uow.UniversityRepository.Update(existUni);
+            _uow.UniversityRepository.Update(updatedUni);
             int result = await _uow.CommitAsync();
             if (result > 0)
             {
-                return adminUniversityDataSet;
+                return _mapper.Map<AdminUniversityDataSet>(updatedUni);
             }
             return null;
         }
