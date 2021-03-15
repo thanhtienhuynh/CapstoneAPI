@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
+using CapstoneAPI.Services.Major;
 using CapstoneAPI.Services.Subject;
 using CapstoneAPI.Services.SubjectGroup;
 using CapstoneAPI.Services.Test;
@@ -83,6 +84,7 @@ namespace CapstoneAPI
             services.AddScoped<ITestService, TestService>();
             services.AddScoped<ITestSubmissionService, TestSubmissionService>();
             services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IMajorService, MajorService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

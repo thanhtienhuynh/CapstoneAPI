@@ -75,5 +75,16 @@ namespace CapstoneAPI.Controllers
             }
             return Ok(result);
         }
+        [HttpPost("major-addition")]
+        public async Task<ActionResult<DetailUniversityDataSet>> AddMajorToUniversity([FromBody] AddingMajorUniversityParam addingMajorUniversityParam)
+        {
+            DetailUniversityDataSet result = await _service.AddMajorToUniversity(addingMajorUniversityParam);
+            if (result == null)
+            {
+                return BadRequest();
+            }
+            return Ok(result);
+        }
+
     }
 }

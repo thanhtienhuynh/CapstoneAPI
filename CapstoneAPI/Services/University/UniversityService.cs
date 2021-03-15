@@ -50,11 +50,11 @@ namespace CapstoneAPI.Services.University
             Models.University university = await _uow.UniversityRepository.GetFirst(filter: u => u.Id == universityId,
                                             includeProperties: "MajorDetails");
             DetailUniversityDataSet universityDataSet = _mapper.Map<DetailUniversityDataSet>(university);
-            List<Major> majors = new List<Major>();
+            List<Models.Major> majors = new List<Models.Major>();
             List<UniMajorDataSet> uniMajorDataSets;
             foreach (MajorDetail majorDetail in university.MajorDetails)
             {
-                Major major = await _uow.MajorRepository.GetById(majorDetail.MajorId);
+                Models.Major major = await _uow.MajorRepository.GetById(majorDetail.MajorId);
                 majors.Add(major);
             }
 
@@ -141,6 +141,104 @@ namespace CapstoneAPI.Services.University
                 return _mapper.Map<AdminUniversityDataSet>(updatedUni);
             }
             return null;
+        }
+
+        public async Task<DetailUniversityDataSet> AddMajorToUniversity(AddingMajorUniversityParam addingMajorUniversityParam)
+        {
+            MajorDetail majorDetail = null;
+            if (addingMajorUniversityParam.MajorId < 0)
+            {
+                if (addingMajorUniversityParam.MajorCode == null || addingMajorUniversityParam.MajorCode.Equals(""))
+                {
+                    return null;
+                }
+
+                bool isMajorExisted = (await _uow.MajorRepository.Get(filter: m => m.Code.Equals(m.Code.Trim()))).Any();
+
+                if (isMajorExisted)
+                {
+                    return null;
+                }
+
+                Models.Major newMajor = new Models.Major()
+                {
+                    Code = addingMajorUniversityParam.MajorCode,
+                    Name = addingMajorUniversityParam.MajorName,
+                    Status = Consts.STATUS_ACTIVE
+                };
+
+                _uow.MajorRepository.Insert(newMajor);
+
+                if ((await _uow.CommitAsync()) <= 0) {
+                    return null;
+                }
+
+                    majorDetail = new MajorDetail() { 
+                    MajorId = newMajor.Id,
+                    NumberOfStudents = addingMajorUniversityParam.NumberOfStudents,
+                    UniversityId = addingMajorUniversityParam.UniversityId
+                };
+            }
+            else
+            {
+                MajorDetail existedMajorDetail = await _uow.MajorDetailRepository
+                        .GetFirst(m => m.MajorId == addingMajorUniversityParam.MajorId && m.UniversityId == addingMajorUniversityParam.UniversityId);
+                if (existedMajorDetail != null)
+                {
+                    return null;
+                }
+                majorDetail = new MajorDetail()
+                {
+                    MajorId = addingMajorUniversityParam.MajorId,
+                    NumberOfStudents = addingMajorUniversityParam.NumberOfStudents,
+                    UniversityId = addingMajorUniversityParam.UniversityId
+                };
+            }
+
+            _uow.MajorDetailRepository.Insert(majorDetail);
+
+            if ((await _uow.CommitAsync()) <= 0)
+            {
+                return null;
+            }
+
+            if (addingMajorUniversityParam.SubjectGroups != null && addingMajorUniversityParam.SubjectGroups.Any())
+            {
+                foreach (UniSubjectGroupDataSet uniSubjectGroupDataSet in addingMajorUniversityParam.SubjectGroups)
+                {
+                    if (uniSubjectGroupDataSet.EntryMarks == null || !uniSubjectGroupDataSet.EntryMarks.Any())
+                    {
+                        _uow.EntryMarkRepository.Insert(new EntryMark()
+                            {
+                                MajorDetailId = majorDetail.Id,
+                                Mark = null,
+                                Year = Consts.YEAR_2020,
+                                SubjectGroupId = uniSubjectGroupDataSet.Id
+                            }
+                        );
+                    }
+                    else
+                    {
+                        foreach (UniEntryMarkDataSet uniEntryMarkDataSet in uniSubjectGroupDataSet.EntryMarks)
+                        {
+                            _uow.EntryMarkRepository.Insert(new EntryMark()
+                                {
+                                    MajorDetailId = majorDetail.Id,
+                                    Mark = uniEntryMarkDataSet.Mark,
+                                    Year = uniEntryMarkDataSet.Year,
+                                    SubjectGroupId = uniSubjectGroupDataSet.Id
+                                }
+                            );
+                        }
+                    }
+
+                    if ((await _uow.CommitAsync()) <= 0)
+                    {
+                        return null;
+                    }
+                }
+            }
+            return await GetDetailUniversity(addingMajorUniversityParam.UniversityId);
         }
     }
 }

@@ -13,5 +13,6 @@ namespace CapstoneAPI.Services.University
         Task<DetailUniversityDataSet> GetDetailUniversity(int universityId);
         Task<AdminUniversityDataSet> CreateNewAnUniversity(CreateUniversityDataset createUniversityDataset);
         Task<AdminUniversityDataSet> UpdateUniversity(AdminUniversityDataSet adminUniversityDataSet);
+        Task<DetailUniversityDataSet> AddMajorToUniversity(AddingMajorUniversityParam addingMajorUniversityParam);
     }
 }
