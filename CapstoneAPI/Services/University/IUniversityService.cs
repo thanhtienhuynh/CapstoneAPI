@@ -14,5 +14,6 @@ namespace CapstoneAPI.Services.University
         Task<AdminUniversityDataSet> CreateNewAnUniversity(CreateUniversityDataset createUniversityDataset);
         Task<AdminUniversityDataSet> UpdateUniversity(AdminUniversityDataSet adminUniversityDataSet);
         Task<DetailUniversityDataSet> AddMajorToUniversity(AddingMajorUniversityParam addingMajorUniversityParam);
+        Task<DetailUniversityDataSet> UpdateMajorOfUniversity(UpdatingMajorUniversityParam updatingMajorUniversityParam);
     }
 }

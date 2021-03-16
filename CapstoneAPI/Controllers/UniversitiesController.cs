@@ -85,6 +85,16 @@ namespace CapstoneAPI.Controllers
             }
             return Ok(result);
         }
+        [HttpPut("major-updation")]
+        public async Task<ActionResult<DetailUniversityDataSet>> UpdateMajorOfUniversity([FromBody] UpdatingMajorUniversityParam updatingMajorUniversityParam)
+        {
+            DetailUniversityDataSet result = await _service.UpdateMajorOfUniversity(updatingMajorUniversityParam);
+            if (result == null)
+            {
+                return BadRequest();
+            }
+            return Ok(result);
+        }
 
     }
 }

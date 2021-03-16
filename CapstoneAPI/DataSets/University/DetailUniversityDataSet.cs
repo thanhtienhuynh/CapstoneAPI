@@ -58,4 +58,19 @@ namespace CapstoneAPI.DataSets.University
         public int NumberOfStudents { get; set; }
         public List<UniSubjectGroupDataSet> SubjectGroups { get; set; }
     }
+
+    public class UpdatingMajorUniversityParam
+    {
+        public int UniversityId { get; set; }
+        public int MajorId { get; set; }
+        public int NumberOfStudents { get; set; }
+        public List<UpdatingUniSubjectGroupDataSet> SubjectGroups { get; set; }
+    }
+
+    public class UpdatingUniSubjectGroupDataSet
+    {
+        public int Id { get; set; }
+        public bool IsDeleted { get; set; }
+        public List<UniEntryMarkDataSet> EntryMarks { get; set; }
+    }
 }

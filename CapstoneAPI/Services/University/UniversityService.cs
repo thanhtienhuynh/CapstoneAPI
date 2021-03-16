@@ -240,5 +240,79 @@ namespace CapstoneAPI.Services.University
             }
             return await GetDetailUniversity(addingMajorUniversityParam.UniversityId);
         }
+        public async Task<DetailUniversityDataSet> UpdateMajorOfUniversity(UpdatingMajorUniversityParam updatingMajorUniversityParam)
+        {
+            if (updatingMajorUniversityParam.MajorId < 0)
+            {
+                return null;
+            }
+
+            bool isMajorExisted = (await _uow.MajorRepository.GetById(updatingMajorUniversityParam.MajorId)) != null;
+
+            if (!isMajorExisted)
+            {
+                return null;
+            }
+
+            MajorDetail majorDetail = await _uow.MajorDetailRepository
+                .GetFirst(filter: m => m.MajorId == updatingMajorUniversityParam.MajorId && m.UniversityId == updatingMajorUniversityParam.UniversityId);
+            if (majorDetail == null)
+            {
+                return null;
+            }
+
+            if (updatingMajorUniversityParam.NumberOfStudents <= 0)
+            {
+                return null;
+            }
+
+            majorDetail.NumberOfStudents = updatingMajorUniversityParam.NumberOfStudents;
+            _uow.MajorDetailRepository.Update(majorDetail);
+
+            foreach(UpdatingUniSubjectGroupDataSet updatingUniSubjectGroupDataSet in updatingMajorUniversityParam.SubjectGroups)
+            {
+               if (updatingUniSubjectGroupDataSet.IsDeleted)
+               {
+                    foreach (UniEntryMarkDataSet entryMark in updatingUniSubjectGroupDataSet.EntryMarks)
+                    {
+                        _uow.EntryMarkRepository.Delete(entryMark.Id);
+                    }
+               } else
+               {
+                    foreach (UniEntryMarkDataSet entryMark in updatingUniSubjectGroupDataSet.EntryMarks)
+                    {
+                        if (entryMark.Id < 0)
+                        {
+                            if (entryMark.Mark <= 0)
+                            {
+                                return null;
+                            }
+                            EntryMark newEntryMark = new EntryMark()
+                            {
+                                MajorDetailId = majorDetail.Id,
+                                Mark = entryMark.Mark,
+                                SubjectGroupId = updatingUniSubjectGroupDataSet.Id,
+                                Year = entryMark.Year
+                            };
+                            _uow.EntryMarkRepository.Insert(newEntryMark);
+                        } else
+                        {
+                            EntryMark existedEntryMark = await _uow.EntryMarkRepository.GetById(entryMark.Id);
+                            existedEntryMark.Mark = entryMark.Mark;
+                            _uow.EntryMarkRepository.Update(existedEntryMark);
+                        }
+                    }
+                }
+               
+            }
+
+            if ((await _uow.CommitAsync()) <= 0)
+            {
+                return null;
+            }
+            
+            return await GetDetailUniversity(updatingMajorUniversityParam.UniversityId);
+        }
     }
+
 }
