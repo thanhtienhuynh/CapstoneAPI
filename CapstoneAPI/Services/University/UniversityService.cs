@@ -287,6 +287,13 @@ namespace CapstoneAPI.Services.University
                             {
                                 return null;
                             }
+                            EntryMark existedEntryMark = await _uow.EntryMarkRepository
+                                .GetFirst(filter: s => s.SubjectGroupId == updatingUniSubjectGroupDataSet.Id
+                                                && s.MajorDetailId == majorDetail.Id && s.Year == entryMark.Year);
+                            if (existedEntryMark != null)
+                            {
+                                return null;
+                            }
                             EntryMark newEntryMark = new EntryMark()
                             {
                                 MajorDetailId = majorDetail.Id,
