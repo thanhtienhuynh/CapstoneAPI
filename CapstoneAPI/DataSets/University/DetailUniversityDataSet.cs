@@ -37,6 +37,7 @@ namespace CapstoneAPI.DataSets.University
     public class UniSubjectGroupDataSet
     {
         public int Id { get; set; }
+        public string GroupCode { get; set; }
         public int Status { get; set; }
         public List<UniEntryMarkDataSet> EntryMarks { get; set; }
     }
