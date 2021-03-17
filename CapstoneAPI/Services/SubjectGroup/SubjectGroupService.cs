@@ -63,10 +63,6 @@ namespace CapstoneAPI.Services.SubjectGroup
             List<MajorDataSet> filteredMajors = new List<MajorDataSet>();
             foreach (int majorId in majorIds.ToList())
             {
-                if (majorId == 193)
-                {
-                    Console.WriteLine();
-                }
                 List<int> majorDetailIds = (await _uow.MajorDetailRepository.Get(filter: m => m.MajorId == majorId)).Select(m => m.Id).ToList();
                 bool isSuitable = (await _uow.EntryMarkRepository.Get(filter: (e => majorDetailIds.Contains(e.MajorDetailId) && e.Mark <= subjectGroup.TotalMark))).Any();
                 if (!isSuitable)

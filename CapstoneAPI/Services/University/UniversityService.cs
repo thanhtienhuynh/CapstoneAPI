@@ -50,16 +50,14 @@ namespace CapstoneAPI.Services.University
             Models.University university = await _uow.UniversityRepository.GetFirst(filter: u => u.Id == universityId,
                                             includeProperties: "MajorDetails");
             DetailUniversityDataSet universityDataSet = _mapper.Map<DetailUniversityDataSet>(university);
-            List<Models.Major> majors = new List<Models.Major>();
-            List<UniMajorDataSet> uniMajorDataSets;
+            List<UniMajorDataSet> uniMajorDataSets = new List<UniMajorDataSet>();
             foreach (MajorDetail majorDetail in university.MajorDetails)
             {
                 Models.Major major = await _uow.MajorRepository.GetById(majorDetail.MajorId);
-                majors.Add(major);
+                UniMajorDataSet uniMajorDataSet = _mapper.Map<UniMajorDataSet>(major);
+                uniMajorDataSet.NumberOfStudents = majorDetail.NumberOfStudents;
+                uniMajorDataSets.Add(uniMajorDataSet);
             }
-
-            //Get list majors
-            uniMajorDataSets = majors.Select(m => _mapper.Map<UniMajorDataSet>(m)).ToList();
 
             foreach(UniMajorDataSet uniMajorDataSet in uniMajorDataSets)
             {
@@ -269,7 +267,7 @@ namespace CapstoneAPI.Services.University
             majorDetail.NumberOfStudents = updatingMajorUniversityParam.NumberOfStudents;
             _uow.MajorDetailRepository.Update(majorDetail);
 
-            foreach(UpdatingUniSubjectGroupDataSet updatingUniSubjectGroupDataSet in updatingMajorUniversityParam.SubjectGroups)
+            foreach (UpdatingUniSubjectGroupDataSet updatingUniSubjectGroupDataSet in updatingMajorUniversityParam.SubjectGroups)
             {
                if (updatingUniSubjectGroupDataSet.IsDeleted)
                {

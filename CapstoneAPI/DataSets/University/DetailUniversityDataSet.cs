@@ -30,14 +30,13 @@ namespace CapstoneAPI.DataSets.University
         public string Name { get; set; }
         public string Code { get; set; }
         public int? Status { get; set; }
-        public int NumberOfStudents { get; set; }
+        public int? NumberOfStudents { get; set; }
         public List<UniSubjectGroupDataSet> SubjectGroups { get; set; }
     }
 
     public class UniSubjectGroupDataSet
     {
         public int Id { get; set; }
-        public string GroupCode { get; set; }
         public int Status { get; set; }
         public List<UniEntryMarkDataSet> EntryMarks { get; set; }
     }
