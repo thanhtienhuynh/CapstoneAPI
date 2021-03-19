@@ -90,5 +90,11 @@ namespace CapstoneAPI.Repositories
             }
             return query.FirstOrDefaultAsync();
         }
+
+        public virtual void InsertRange(IEnumerable<T> list)
+        {
+            if (list == null) throw new ArgumentException("list");
+            dbSet.AddRange(list);
+        }
     }
 }
