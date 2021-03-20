@@ -87,7 +87,7 @@ namespace CapstoneAPI.Services.University
 
         public async Task<AdminUniversityDataSet> CreateNewAnUniversity(CreateUniversityDataset createUniversityDataset)
         {
-            if (createUniversityDataset.Name.Equals("") || createUniversityDataset.Code.Equals("") || (createUniversityDataset.Status != 0 && createUniversityDataset.Status != 1))
+            if (createUniversityDataset.Name.Equals("") || createUniversityDataset.Code.Equals("") || (createUniversityDataset.Status != 0 && createUniversityDataset.Status != Consts.STATUS_ACTIVE))
                 return null;
             Models.University ExistUni = await _uow.UniversityRepository.GetFirst(filter: u => u.Code.Equals(createUniversityDataset.Code));
             if (ExistUni != null)
@@ -99,7 +99,6 @@ namespace CapstoneAPI.Services.University
             int result = await _uow.CommitAsync();
             if (result > 0)
             {
-
                 return _mapper.Map<AdminUniversityDataSet>(university);
             }
             return null;

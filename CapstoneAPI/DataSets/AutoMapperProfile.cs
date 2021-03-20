@@ -35,6 +35,8 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.SubjectGroup, UniSubjectGroupDataSet>();
             CreateMap<Models.SubjectGroup, AdminSubjectGroupDataSet>();
             CreateMap<Models.EntryMark, UniEntryMarkDataSet>();
+            CreateMap<CreateMajorDataSet, Models.Major>();
+            CreateMap<Models.Major, ResultOfCreateMajorDataSet>();
         }
     }
 }
