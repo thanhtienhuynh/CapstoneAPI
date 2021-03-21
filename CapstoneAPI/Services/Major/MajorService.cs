@@ -26,7 +26,7 @@ namespace CapstoneAPI.Services.Major
 
         public async Task<ResultOfCreateMajorDataSet> CreateAMajor(CreateMajorDataSet createMajorDataSet)
         {
-            if(createMajorDataSet.Name.Equals("")|| createMajorDataSet.Code.Equals("") || createMajorDataSet.Status != Consts.STATUS_ACTIVE)
+            if(createMajorDataSet.Name.Equals("")|| createMajorDataSet.Code.Equals(""))
             {
                 return null;
             }
@@ -45,14 +45,7 @@ namespace CapstoneAPI.Services.Major
             int result = await _uow.CommitAsync();
             if(result > 0)
             {
-                ResultOfCreateMajorDataSet MajorResult = new ResultOfCreateMajorDataSet
-                {
-                    Id = newMajor.Id,
-                    Name = newMajor.Name,
-                    Code = newMajor.Code,
-                    Status = (int)newMajor.Status
-                };
-                return MajorResult;
+                return _mapper.Map<ResultOfCreateMajorDataSet>(newMajor);
             }
             return null;
         }
