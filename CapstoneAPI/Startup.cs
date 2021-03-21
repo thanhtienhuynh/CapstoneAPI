@@ -1,11 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using CapstoneAPI.CronJobs;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
+using CapstoneAPI.Services.Crawler;
 using CapstoneAPI.Services.Major;
 using CapstoneAPI.Services.Subject;
 using CapstoneAPI.Services.SubjectGroup;
@@ -23,6 +20,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
+using Quartz;
+using Quartz.Impl;
+using Quartz.Spi;
+using System;
+using System.Text;
 
 namespace CapstoneAPI
 {
@@ -70,10 +72,21 @@ namespace CapstoneAPI
                        RequireExpirationTime = false
                    };
                });
+
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             AddServicesScoped(services);
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddCors();
+
+            services.AddSingleton<IJobFactory, SingletonJobFactory>();
+            services.AddSingleton<ISchedulerFactory, StdSchedulerFactory>();
+
+            // Add our job
+            services.AddSingleton<ArticleCrawlerCronJob>();
+            services.AddSingleton(new JobSchedule(
+                jobType: typeof(ArticleCrawlerCronJob),
+                cronExpression: "0 */2 * ? * *"));
+            services.AddHostedService<QuartzHostedService>();
         }
 
         private void AddServicesScoped(IServiceCollection services)
@@ -85,6 +98,7 @@ namespace CapstoneAPI
             services.AddScoped<ITestSubmissionService, TestSubmissionService>();
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IMajorService, MajorService>();
+            services.AddScoped<IArticleCrawlerService, ArticleCrawlerService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

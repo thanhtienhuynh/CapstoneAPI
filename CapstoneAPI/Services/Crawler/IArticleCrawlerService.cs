@@ -7,8 +7,8 @@ namespace CapstoneAPI.Services.Crawler
 {
     public interface IArticleCrawlerService
     {
-        Task CrawlArticleFromVNExpress();
-        Task CrawlArticleFromGDTD();
+        Task<int> CrawlArticleFromVNExpress();
+        Task<int> CrawlArticleFromGDTD();
 
     }
 }
