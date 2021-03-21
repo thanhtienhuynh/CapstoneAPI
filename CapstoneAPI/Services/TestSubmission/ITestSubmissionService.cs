@@ -1,4 +1,5 @@
-﻿using CapstoneAPI.DataSets.Question;
+﻿using CapstoneAPI.DataSets;
+using CapstoneAPI.DataSets.Question;
 using CapstoneAPI.DataSets.TestSubmission;
 using System;
 using System.Collections.Generic;
@@ -10,6 +11,7 @@ namespace CapstoneAPI.Services.TestSubmission
     public interface ITestSubmissionService
     {
         Task<TestSubmissionDataSet> ScoringTest(TestSubmissionParam testSubmissionParam);
+        Task<BaseResponse> SaveTestSubmission(SaveTestSubmissionParam saveTestSubmissionParam, string token);
         Task<IEnumerable<QuestionDataSet>> ScoringTest1();
     }
 }

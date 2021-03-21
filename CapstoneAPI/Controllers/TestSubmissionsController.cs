@@ -9,6 +9,8 @@ using CapstoneAPI.Models;
 using CapstoneAPI.Services.TestSubmission;
 using CapstoneAPI.DataSets.TestSubmission;
 using CapstoneAPI.DataSets.Question;
+using CapstoneAPI.Helpers;
+using CapstoneAPI.DataSets;
 
 namespace CapstoneAPI.Controllers
 {
@@ -29,6 +31,20 @@ namespace CapstoneAPI.Controllers
         {
             TestSubmissionDataSet result = await _service.ScoringTest(testSubmissionParam);
             return Ok(result);
+        }
+        [HttpPost("saving")]
+        public async Task<ActionResult<BaseResponse>> SaveTestSubmission(SaveTestSubmissionParam saveTestSubmissionParam)
+        {
+            string token = Request.Headers["Authorization"];
+            BaseResponse result = await _service.SaveTestSubmission(saveTestSubmissionParam, token);
+            if (result.isSuccess)
+            {
+                return Ok(result);
+            }
+            else
+            {
+                return BadRequest(result);
+            }
         }
 
         [HttpGet]
