@@ -41,6 +41,7 @@ namespace CapstoneAPI.Services.Major
                 return null;
             }
             Models.Major newMajor = _mapper.Map<Models.Major>(createMajorDataSet);
+            newMajor.Status = Consts.STATUS_ACTIVE;
             _uow.MajorRepository.Insert(newMajor);
             int result = await _uow.CommitAsync();
             if(result > 0)
