@@ -35,6 +35,15 @@ namespace CapstoneAPI.Controllers
             }
             return Ok(subjectGroups);
         }
-
+        [HttpPost]
+        public async Task<ActionResult<CreateSubjectGroupDataset>> CreateASubjectGroup(CreateSubjectGroupParam createSubjectGroupParam)
+        {
+            CreateSubjectGroupDataset createSubjectGroupDataset = await _service.CreateNewSubjectGroup(createSubjectGroupParam);
+           if(createSubjectGroupDataset == null)
+            {
+                return BadRequest();
+            }
+            return Ok(createSubjectGroupDataset);
+        }
     }
 }
