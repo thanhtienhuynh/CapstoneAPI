@@ -167,19 +167,20 @@ namespace CapstoneAPI.Services.SubjectGroup
 
             foreach (int id in foundedSubjectGroupIds)
             {
-                bool isExit = (await _uow.SubjecGroupDetailRepository.Get(filter: s => s.SubjectGroupId == id)).Count() == listOfSubjectId.Count;
-                if (isExit)
+                bool isExisted = (await _uow.SubjecGroupDetailRepository.Get(filter: s => s.SubjectGroupId == id)).Count() == listOfSubjectId.Count;
+                if (isExisted)
                 {
                     return null;
                 }
             }
             Models.SubjectGroup insertSubjectGroupModels = new Models.SubjectGroup
             {
-                GroupCode = createSubjectGroupParam.GroupCode
+                GroupCode = createSubjectGroupParam.GroupCode,
+                Status = Consts.STATUS_ACTIVE
             };
              _uow.SubjectGroupRepository.Insert(insertSubjectGroupModels);
           int result =  await _uow.CommitAsync();
-            if (result < 0)
+            if (result <= 0)
             {
                 return null;
             }
@@ -192,7 +193,7 @@ namespace CapstoneAPI.Services.SubjectGroup
                 };
                 _uow.SubjecGroupDetailRepository.Insert(insertSubjectGroupDetailModel);
                 result = await _uow.CommitAsync();
-                if (result < 0)
+                if (result <= 0)
                 {
                     return null;
                 }
@@ -208,7 +209,7 @@ namespace CapstoneAPI.Services.SubjectGroup
                 Id = insertSubjectGroupModels.Id,
                 GroupCode = createSubjectGroupParam.GroupCode,
                 ListOfSubject = subjectDatas,
-                Status = Consts.STATUS_ACTIVE,
+                Status = insertSubjectGroupModels.Status
             };
             return createSubjectGroupDataset;
 
