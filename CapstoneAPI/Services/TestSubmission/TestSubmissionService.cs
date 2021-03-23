@@ -2,7 +2,9 @@
 {
     using AutoMapper;
     using CapstoneAPI.DataSets;
+    using CapstoneAPI.DataSets.Option;
     using CapstoneAPI.DataSets.Question;
+    using CapstoneAPI.DataSets.QuestionSubmission;
     using CapstoneAPI.DataSets.TestSubmission;
     using CapstoneAPI.Helpers;
     using CapstoneAPI.Models;
@@ -99,6 +101,94 @@
             }
             response.isSuccess = isSuccess;
             return response;
+        }
+
+        public async Task<List<UserTestSubmissionDataSet>> GetTestSubmissionsByUser(string token)
+        {
+            if (token == null || token.Trim().Length == 0)
+            {
+                return null;
+            }
+            
+            string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
+            if (userIdString != null && userIdString.Length > 0)
+            {
+                int userId = Int32.Parse(userIdString);
+                IEnumerable<TestSubmission> testSubmissionDataSets = (await _uow.TestSubmissionRepository
+                    .Get(filter: t => t.UserId == userId,
+                        includeProperties: "Test",
+                        orderBy: t => t.OrderBy(t => t.SpentTime))).GroupBy(t => t.TestId).Select(g => g.Last());
+                if (!testSubmissionDataSets.Any())
+                {
+                    return null;
+                }
+                List<UserTestSubmissionDataSet> userTestSubmissionDataSets = new List<UserTestSubmissionDataSet>();
+                foreach(TestSubmission testSubmission in testSubmissionDataSets)
+                {
+                    UserTestSubmissionDataSet userTestSubmissionDataSet = _mapper.Map<UserTestSubmissionDataSet>(testSubmission);
+                    userTestSubmissionDataSet.TimeLimit = (int) testSubmission.Test.TimeLimit;
+                    userTestSubmissionDataSet.NumberOfQuestion = testSubmission.Test.NumberOfQuestion;
+                    userTestSubmissionDataSet.NumberOfCompletion = (await _uow.TestSubmissionRepository
+                        .Get(filter: t => t.UserId == userId && t.TestId == testSubmission.TestId)).Count();
+                    userTestSubmissionDataSet.TestName = testSubmission.Test.Name;
+                    userTestSubmissionDataSets.Add(userTestSubmissionDataSet);
+                }
+                return userTestSubmissionDataSets;
+            }
+
+            return null;
+        }
+
+        public async Task<DetailTestSubmissionDataSet> GetDetailTestSubmissionByUser(int testSubmissionId, string token)
+        {
+            if (token == null || token.Trim().Length == 0)
+            {
+                return null;
+            }
+
+            string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
+
+            if (userIdString == null || userIdString.Trim().Length <= 0)
+            {
+                return null;
+            }
+            int userId = Int32.Parse(userIdString);
+            TestSubmission testSubmission = await _uow.TestSubmissionRepository
+               .GetFirst(filter: t => t.Id == testSubmissionId && t.UserId == userId,
+                        includeProperties: "Test");
+
+            if (testSubmission == null)
+            {
+                return null;
+            }
+
+            List<QuestionSubmissionDataSet> questionSubmissionDataSets = new List<QuestionSubmissionDataSet>();
+
+
+            IEnumerable<QuestionSubmisstion> questionSubmissions = (await _uow.QuestionSubmisstionRepository
+                .Get(filter: q => q.TestSubmissionId == testSubmission.Id,
+                 includeProperties: "Question,Question.Options")).OrderBy(q => q.Question.Ordinal);
+            foreach (QuestionSubmisstion questionSubmission in questionSubmissions)
+            {
+                QuestionSubmissionDataSet questionSubmissionDataSet = _mapper.Map<QuestionSubmissionDataSet>(questionSubmission);
+                questionSubmissionDataSet.RightResult = questionSubmission.Question.Result;
+                questionSubmissionDataSet.QuestionContent = questionSubmission.Question.QuestionContent;
+                questionSubmissionDataSet.NumberOfOption = questionSubmission.Question.NumberOfOption;
+                questionSubmissionDataSet.Type = questionSubmission.Question.Type;
+                questionSubmissionDataSet.TestId = questionSubmission.Question.TestId;
+                questionSubmissionDataSet.Options = questionSubmission.Question.Options.OrderBy(o => o.Ordinal).Select(o => _mapper.Map<OptionDataSet>(o)).ToList();
+                questionSubmissionDataSets.Add(questionSubmissionDataSet);
+            }
+
+            DetailTestSubmissionDataSet detailTestSubmissionDataSet = _mapper.Map<DetailTestSubmissionDataSet>(testSubmission);
+
+            detailTestSubmissionDataSet.NumberOfCompletion = (await _uow.TestSubmissionRepository
+                        .Get(filter: t => t.UserId == userId && t.TestId == testSubmission.TestId)).Count();
+            detailTestSubmissionDataSet.QuestionSubmissions = questionSubmissionDataSets;
+            detailTestSubmissionDataSet.NumberOfQuestion = testSubmission.Test.NumberOfQuestion;
+            detailTestSubmissionDataSet.TimeLimit = (int) testSubmission.Test.TimeLimit;
+
+            return detailTestSubmissionDataSet;
         }
 
         public async Task<IEnumerable<QuestionDataSet>> ScoringTest1()

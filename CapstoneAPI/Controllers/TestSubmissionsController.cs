@@ -32,6 +32,7 @@ namespace CapstoneAPI.Controllers
             TestSubmissionDataSet result = await _service.ScoringTest(testSubmissionParam);
             return Ok(result);
         }
+
         [HttpPost("saving")]
         public async Task<ActionResult<BaseResponse>> SaveTestSubmission(SaveTestSubmissionParam saveTestSubmissionParam)
         {
@@ -47,11 +48,41 @@ namespace CapstoneAPI.Controllers
             }
         }
 
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<QuestionDataSet>>> Get()
+        [HttpGet()]
+        public async Task<ActionResult<List<UserTestSubmissionDataSet>>> GetTestSubmissionsByUser()
         {
-            IEnumerable<QuestionDataSet> result = await _service.ScoringTest1();
-            return Ok(result);
+            string token = Request.Headers["Authorization"];
+            List<UserTestSubmissionDataSet> result = await _service.GetTestSubmissionsByUser(token);
+            if (result == null || !result.Any())
+            {
+                return NotFound();
+            }
+            else
+            {
+                return Ok(result);
+            }
         }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<DetailTestSubmissionDataSet>> GetDetailTestSubmissionByUser(int id)
+        {
+            string token = Request.Headers["Authorization"];
+            DetailTestSubmissionDataSet result = await _service.GetDetailTestSubmissionByUser(id, token);
+            if (result == null)
+            {
+                return NotFound();
+            }
+            else
+            {
+                return Ok(result);
+            }
+        }
+
+        //[HttpGet]
+        //public async Task<ActionResult<IEnumerable<QuestionDataSet>>> Get()
+        //{
+        //    IEnumerable<QuestionDataSet> result = await _service.ScoringTest1();
+        //    return Ok(result);
+        //}
     }
 }
