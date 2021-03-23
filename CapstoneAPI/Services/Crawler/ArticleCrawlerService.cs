@@ -210,6 +210,7 @@ namespace CapstoneAPI.Services.Crawler
 
                         if (imgUrl.Count() > 0)
                         {
+                            UpdateNewSrcInImgTag(imgUrl);
                             postImgUrl = imgUrl.First().GetAttributeValue(
                                 configuration.SelectToken("VNExpress.imgUrlTag.attribute").ToString(), "");
                         }
@@ -262,11 +263,17 @@ namespace CapstoneAPI.Services.Crawler
                 content.RemoveAllChildren();
                 content.AppendChild(detail);
 
+                var imgs = detail.Descendants(configuration.SelectToken("VNExpress.imgUrlTag.name").ToString())
+                                .Where(node => node.GetAttributeValue(
+                                    configuration.SelectToken("VNExpress.imgUrlTag.containAttribute").ToString(), "")
+                                .Contains(configuration.SelectToken("VNExpress.imgUrlTag.containAttributeValue").ToString()));
+                UpdateNewSrcInImgTag(imgs);
+
                 var related = detail.Descendants(
-                    configuration.SelectToken("VNExpress.articleDetails.detailTag.name").ToString())
+                    configuration.SelectToken("VNExpress.articleDetails.relatedTag.name").ToString())
                     .Where(node => node.GetAttributeValue(
-                        configuration.SelectToken("VNExpress.articleDetails.detailTag.attribute").ToString(), "")
-                    .Contains(configuration.SelectToken("VNExpress.articleDetails.detailTag.attributeValue").ToString()));
+                        configuration.SelectToken("VNExpress.articleDetails.relatedTag.attribute").ToString(), "")
+                    .Contains(configuration.SelectToken("VNExpress.articleDetails.relatedTag.attributeValue").ToString()));
 
                 if (related.Count() > 0)
                 {
@@ -283,6 +290,15 @@ namespace CapstoneAPI.Services.Crawler
             _uow.ArticleRepository.InsertRange(articles);
             await _uow.CommitAsync();
             return articles.Count();
+        }
+
+        private void UpdateNewSrcInImgTag(IEnumerable<HtmlNode> imgUrls)
+        {
+            foreach (var img in imgUrls)
+            {
+                var dataSrcValue = img.GetAttributeValue("data-src", "");
+                img.SetAttributeValue("src", dataSrcValue);
+            }
         }
 
     }
