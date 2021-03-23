@@ -11,7 +11,7 @@ namespace CapstoneAPI.Models
         {
             MajorDetails = new HashSet<MajorDetail>();
             Tests = new HashSet<Test>();
-            UniversityAdmissionInformations = new HashSet<UniversityAdmissionInformation>();
+            UniversityArticles = new HashSet<UniversityArticle>();
             UserUniversities = new HashSet<UserUniversity>();
         }
 
@@ -28,10 +28,11 @@ namespace CapstoneAPI.Models
         public int? TuitionTo { get; set; }
         public int? Rating { get; set; }
         public int Status { get; set; }
+        public DateTime? UpdatedDate { get; set; }
 
         public virtual ICollection<MajorDetail> MajorDetails { get; set; }
         public virtual ICollection<Test> Tests { get; set; }
-        public virtual ICollection<UniversityAdmissionInformation> UniversityAdmissionInformations { get; set; }
+        public virtual ICollection<UniversityArticle> UniversityArticles { get; set; }
         public virtual ICollection<UserUniversity> UserUniversities { get; set; }
     }
 }
