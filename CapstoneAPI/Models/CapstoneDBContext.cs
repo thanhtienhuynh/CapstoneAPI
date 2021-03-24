@@ -58,6 +58,10 @@ namespace CapstoneAPI.Models
 
                 entity.Property(e => e.PostedDate).HasColumnType("datetime");
 
+                entity.Property(e => e.PublicFromDate).HasColumnType("datetime");
+
+                entity.Property(e => e.PublicToDate).HasColumnType("datetime");
+
                 entity.Property(e => e.PublishedPage).HasMaxLength(100);
 
                 entity.Property(e => e.Title).HasMaxLength(200);
@@ -377,6 +381,10 @@ namespace CapstoneAPI.Models
                     .IsRequired()
                     .HasMaxLength(50)
                     .IsUnicode(false);
+
+                entity.Property(e => e.Latitude).HasColumnType("decimal(12, 9)");
+
+                entity.Property(e => e.Longitude).HasColumnType("decimal(12, 9)");
 
                 entity.Property(e => e.Name)
                     .IsRequired()

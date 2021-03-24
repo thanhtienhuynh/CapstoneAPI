@@ -29,6 +29,8 @@ namespace CapstoneAPI.Models
         public int? Rating { get; set; }
         public int Status { get; set; }
         public DateTime? UpdatedDate { get; set; }
+        public decimal? Longitude { get; set; }
+        public decimal? Latitude { get; set; }
 
         public virtual ICollection<MajorDetail> MajorDetails { get; set; }
         public virtual ICollection<Test> Tests { get; set; }
