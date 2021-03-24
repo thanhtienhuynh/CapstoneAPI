@@ -94,6 +94,7 @@ namespace CapstoneAPI.Repositories
         public IGenericRepository<Article> ArticleRepository
         {
             get { return _articleRepository ??= new GenericRepository<Article>(_context); }
+        }
 
         public IGenericRepository<QuestionSubmisstion> QuestionSubmisstionRepository
         {
