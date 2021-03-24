@@ -17,5 +17,6 @@ namespace CapstoneAPI.Repositories
         void Insert(T entity);
         void Update(T entity);
         void Delete(object id);
+        void InsertRange(IEnumerable<T> list);
     }
 }
