@@ -28,5 +28,28 @@ namespace CapstoneAPI.Controllers
             }
             return Ok(majors);
         }
+
+        [HttpPost]
+        public async Task<ActionResult<ResultOfCreateMajorDataSet>> CreateAMajor([FromBody] CreateMajorDataSet createMajorDataSet)
+        {
+            ResultOfCreateMajorDataSet newMajor = await _service.CreateAMajor(createMajorDataSet);
+
+            if(newMajor == null)
+            {
+                return BadRequest();
+            }
+            return Ok(newMajor);
+        }
+        [HttpPut]
+        public async Task<ActionResult<ResultOfCreateMajorDataSet>> UpdateMajor([FromBody] ResultOfCreateMajorDataSet updateMajorDataSet)
+        {
+            ResultOfCreateMajorDataSet updatedMajor = await _service.UpdateAMajor(updateMajorDataSet);
+
+            if (updatedMajor == null)
+            {
+                return BadRequest();
+            }
+            return Ok(updatedMajor);
+        }
     }
 }

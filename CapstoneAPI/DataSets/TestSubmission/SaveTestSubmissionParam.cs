@@ -5,16 +5,13 @@ using System.Threading.Tasks;
 
 namespace CapstoneAPI.DataSets.TestSubmission
 {
-    public class TestSubmissionParam
+    public class SaveTestSubmissionParam
     {
         public int? TestId { get; set; }
         public int? SpentTime { get; set; }
-        public List<QuestionParam> Questions { get; set; }
-    }
+        public double Mark { get; set; }
+        public int NumberOfRightAnswers { get; set; }
 
-    public class QuestionParam
-    {
-        public int Id { get; set; }
-        public string Options { get; set; }
+        public List<QuestionParam> Questions { get; set; }
     }
 }
