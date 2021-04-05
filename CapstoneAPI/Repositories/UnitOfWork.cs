@@ -22,6 +22,7 @@ namespace CapstoneAPI.Repositories
         private IGenericRepository<User> _userRepository;
         private IGenericRepository<Role> _roleRepository;
         private IGenericRepository<MajorDetail> _majorDetailRepository;
+        private IGenericRepository<QuestionSubmisstion> _questionSubmisstionRepository;
 
         public IGenericRepository<SubjectGroup> SubjectGroupRepository
         {
@@ -87,6 +88,11 @@ namespace CapstoneAPI.Repositories
         public IGenericRepository<MajorDetail> MajorDetailRepository
         {
             get { return _majorDetailRepository ??= new GenericRepository<MajorDetail>(_context); }
+        }
+
+        public IGenericRepository<QuestionSubmisstion> QuestionSubmisstionRepository
+        {
+            get { return _questionSubmisstionRepository ??= new GenericRepository<QuestionSubmisstion>(_context); }
         }
 
         public UnitOfWork(CapstoneDBContext context)

@@ -7,12 +7,25 @@ namespace CapstoneAPI.Models
 {
     public partial class Article
     {
-        public int Id { get; set; }
-        public string ArticleContent { get; set; }
-        public DateTime PublishedDate { get; set; }
-        public int Status { get; set; }
-        public int UserId { get; set; }
+        public Article()
+        {
+            UniversityArticles = new HashSet<UniversityArticle>();
+        }
 
-        public virtual User User { get; set; }
+        public int Id { get; set; }
+        public string Title { get; set; }
+        public string HeaderConfig { get; set; }
+        public string Content { get; set; }
+        public string PublishedPage { get; set; }
+        public string RootUrl { get; set; }
+        public DateTime? PostedDate { get; set; }
+        public DateTime? CrawlerDate { get; set; }
+        public int? ImportantLevel { get; set; }
+        public int? Censor { get; set; }
+        public int? Status { get; set; }
+        public string ShortDescription { get; set; }
+        public string PostImageUrl { get; set; }
+
+        public virtual ICollection<UniversityArticle> UniversityArticles { get; set; }
     }
 }
