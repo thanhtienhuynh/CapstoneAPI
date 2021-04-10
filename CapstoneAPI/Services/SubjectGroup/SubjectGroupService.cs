@@ -33,7 +33,10 @@ namespace CapstoneAPI.Services.SubjectGroup
             foreach (Models.SubjectGroup subjectGroup in subjectGroups)
             {
                 double totalMark = CalculateSubjectGroupMark(subjectGroupParam, subjectGroup.SubjectGroupDetails.ToList());
-                subjectGroupDataSets.Add(new SubjectGroupDataSet { TotalMark = totalMark, Name = subjectGroup.GroupCode, Id = subjectGroup.Id });
+                if (totalMark > 0)
+                {
+                    subjectGroupDataSets.Add(new SubjectGroupDataSet { TotalMark = totalMark, Name = subjectGroup.GroupCode, Id = subjectGroup.Id });
+                }
             }
 
             if (!subjectGroupParam.IsSuggest)
@@ -41,31 +44,52 @@ namespace CapstoneAPI.Services.SubjectGroup
                 return subjectGroupDataSets.OrderByDescending(o => o.TotalMark).ToList();
             }
 
-            IEnumerable<SubjectGroupDataSet> suggestedSubjectGroups = subjectGroupDataSets.OrderByDescending(o => o.TotalMark).Take(Consts.NUMBER_OF_SUGGESTED_GROUP).ToList();
+            if (!subjectGroupDataSets.Any())
+            {
+                return null;
+            }
+            
+            //Lọc những khối không có ngành phù hợp
+            foreach(SubjectGroupDataSet subjectGroupDataSet in subjectGroupDataSets.ToList())
+            {
+                bool isValid = (await _uow.EntryMarkRepository.Get(filter: e => e.SubjectGroupId == subjectGroupDataSet.Id
+                                                            && e.Year == Consts.NEAREST_YEAR
+                                                            && e.Mark >= subjectGroupDataSet.TotalMark)).Any();
+                if(!isValid)
+                {
+                    subjectGroupDataSets.Remove(subjectGroupDataSet);
+                }
+            }
+
+            IEnumerable<SubjectGroupDataSet> suggestedSubjectGroups = subjectGroupDataSets
+                .OrderByDescending(o => o.TotalMark).Take(Consts.NUMBER_OF_SUGGESTED_GROUP).ToList();
 
             foreach (SubjectGroupDataSet suggestGroup in suggestedSubjectGroups)
             {
                 List<int> majorIds = (await _uow.WeightNumberRepository.
-                                                            Get(filter: weightNumbers => weightNumbers.SubjectGroupId == suggestGroup.Id))
+                                                            Get(filter: weightNumbers => weightNumbers.SubjectGroupId == suggestGroup.Id, includeProperties: "Major"))
+                                                            .Where(w => w.Major.Status == Consts.STATUS_ACTIVE)
                                                             .Select(w => w.MajorId).Distinct().ToList();
+ 
+
                 //Lọc những id ngành không có trường phù hợp vì thấp hơn điểm chuẩn
                 await FilterMajorsWithEntryMark(majorIds, suggestGroup);
 
                 //Tính trọng số từng ngành
-                
-                suggestGroup.SuggestedMajors = (await GenerateListMajors(subjectGroupParam, suggestGroup, majorIds)).OrderByDescending(o => o.WeightMark).Take(5).ToList();
+                suggestGroup.SuggestedMajors = await GenerateListMajors(subjectGroupParam, suggestGroup, majorIds);
             }
 
-            return suggestedSubjectGroups;
+            return suggestedSubjectGroups.Where(s => s.SuggestedMajors.Count() > 0);
         }
 
+        //Lọc ra các ngành không phù hợp vì tổng điểm của khối thấp hơn điểm chuẩn
         private async Task FilterMajorsWithEntryMark(List<int> majorIds, SubjectGroupDataSet subjectGroup)
         {
             List<MajorDataSet> filteredMajors = new List<MajorDataSet>();
             foreach (int majorId in majorIds.ToList())
             {
                 List<int> majorDetailIds = (await _uow.MajorDetailRepository.Get(filter: m => m.MajorId == majorId)).Select(m => m.Id).ToList();
-                bool isSuitable = (await _uow.EntryMarkRepository.Get(filter: (e => majorDetailIds.Contains(e.MajorDetailId) && e.Mark <= subjectGroup.TotalMark))).Any();
+                bool isSuitable = (await _uow.EntryMarkRepository.Get(filter: e => majorDetailIds.Contains(e.MajorDetailId) && e.Mark > 0 && e.Mark <= subjectGroup.TotalMark)).Any();
                 if (!isSuitable)
                 {
                     majorIds.Remove(majorId);
@@ -73,17 +97,49 @@ namespace CapstoneAPI.Services.SubjectGroup
             }
         }
 
-        private async Task<List<MajorDataSet>> GenerateListMajors(SubjectGroupParam subjectGroupParam, SubjectGroupDataSet suggestGroup, List<int> majorIds)
+        private async Task<List<MajorDataSet>> GenerateListMajors(SubjectGroupParam subjectGroupParam, 
+            SubjectGroupDataSet suggestGroup, List<int> majorIds)
         {
             List<MajorDataSet> majorDataSets = new List<MajorDataSet>();
+            List<MajorDataSet> majorDataSetsBaseOnEntryMark = new List<MajorDataSet>();
             foreach (int majorId in majorIds)
             {
-                IEnumerable<WeightNumber> weightNumbers = await _uow.WeightNumberRepository.Get(w => w.MajorId == majorId && w.SubjectGroupId == suggestGroup.Id);
+                IEnumerable<WeightNumber> weightNumbers = await _uow.WeightNumberRepository
+                    .Get(w => w.MajorId == majorId && w.SubjectGroupId == suggestGroup.Id);
                 MajorDataSet major = _mapper.Map<MajorDataSet>(await _uow.MajorRepository.GetById(majorId));
                 major.WeightMark = CalculateTotalWeightMark(subjectGroupParam, weightNumbers);
                 majorDataSets.Add(major);
             }
-            return majorDataSets;
+
+            IEnumerable<IGrouping<double, MajorDataSet>> topMajorDataSetsGroups = majorDataSets.GroupBy(m => m.WeightMark)
+                                                                                    .OrderByDescending(g => g.Key);
+            foreach (IGrouping<double, MajorDataSet> topMajorDataSetsGroup in topMajorDataSetsGroups)
+            {
+                if (majorDataSetsBaseOnEntryMark.Count() < Consts.NUMBER_OF_SUGGESTED_MAJOR)
+                {
+                    majorDataSetsBaseOnEntryMark.AddRange(topMajorDataSetsGroup.AsEnumerable());
+                } else
+                {
+                    break;
+                }
+            }
+
+            foreach(MajorDataSet majorDataSet in majorDataSetsBaseOnEntryMark)
+            {
+                //Lấy điểm chuẩn cao nhất của năm gần nhất của ngành đó của các trường
+                List<EntryMark> entryMarks = (await _uow.MajorDetailRepository.Get(filter: m => m.MajorId == majorDataSet.Id, includeProperties: "EntryMarks"))
+                                                     .Select(m => m.EntryMarks.OrderByDescending(e => e.Mark).Where(e => e.Year == Consts.NEAREST_YEAR && e.SubjectGroupId == suggestGroup.Id).FirstOrDefault())
+                                                     .Where(e => e != null).ToList();
+                majorDataSet.HighestEntryMark = entryMarks.OrderByDescending(e => e.Mark ?? default(double)).First().Mark ?? default(double);
+            }
+            majorDataSetsBaseOnEntryMark = majorDataSetsBaseOnEntryMark.OrderByDescending(m => m.HighestEntryMark).ToList();
+            
+            if (majorDataSetsBaseOnEntryMark.Count() > Consts.NUMBER_OF_SUGGESTED_MAJOR)
+            {
+                double baseEntryMark = majorDataSetsBaseOnEntryMark[Consts.NUMBER_OF_SUGGESTED_MAJOR - 1].HighestEntryMark;
+                majorDataSetsBaseOnEntryMark = majorDataSetsBaseOnEntryMark.Where(m => m.HighestEntryMark >= baseEntryMark).ToList();
+            }
+            return majorDataSetsBaseOnEntryMark;
         }
 
         public async Task<IEnumerable<AdminSubjectGroupDataSet>> GetListSubjectGroups()
@@ -102,7 +158,7 @@ namespace CapstoneAPI.Services.SubjectGroup
                 totalWeight += weightNumber.Weight == null ? 1.0 : (double) weightNumber.Weight;
             }
 
-            return totalMark / totalWeight;
+            return Math.Round(totalMark / totalWeight, 2);
         }
 
         private double CalculateWeightMark(SubjectGroupParam subjectGroupParam, WeightNumber weightNumber)
@@ -127,19 +183,23 @@ namespace CapstoneAPI.Services.SubjectGroup
             return 0;
         }
 
+        //Tính tổng điểm tổ hợp hôn
         private double CalculateSubjectGroupMark(SubjectGroupParam subjectGroupParam, List<SubjectGroupDetail> subjectGroupDetails)
         {
             double totalMark = 0;
-            if (subjectGroupDetails.Count > 3)
+            if (subjectGroupDetails.Count != 3)
             {
                 return 0;
             }
             foreach(SubjectGroupDetail subjectGroupDetail in subjectGroupDetails)
             {
                 MarkParam markParam =  subjectGroupParam.Marks.FirstOrDefault(m => m.SubjectId == subjectGroupDetail.SubjectId);
-                if (markParam != null)
+                if (markParam != null && markParam.Mark > 0 )
                 {
                     totalMark += markParam.Mark;
+                } else
+                {
+                    return 0;
                 }
             } 
             return totalMark;

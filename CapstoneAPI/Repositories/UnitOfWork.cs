@@ -24,6 +24,9 @@ namespace CapstoneAPI.Repositories
         private IGenericRepository<MajorDetail> _majorDetailRepository;
         private IGenericRepository<Article> _articleRepository;
         private IGenericRepository<QuestionSubmisstion> _questionSubmisstionRepository;
+        private IGenericRepository<UserMajor> _userMajorRepository;
+        private IGenericRepository<UserUniversity> _userUniversityRepository;
+        private IGenericRepository<TrainingProgram> _trainingProgramRepository;
 
         public IGenericRepository<SubjectGroup> SubjectGroupRepository
         {
@@ -99,6 +102,20 @@ namespace CapstoneAPI.Repositories
         public IGenericRepository<QuestionSubmisstion> QuestionSubmisstionRepository
         {
             get { return _questionSubmisstionRepository ??= new GenericRepository<QuestionSubmisstion>(_context); }
+        }
+
+        public IGenericRepository<UserMajor> UserMajorRepository
+        {
+            get { return _userMajorRepository ??= new GenericRepository<UserMajor>(_context); }
+        }
+
+        public IGenericRepository<UserUniversity> UserUniversityRepository
+        {
+            get { return _userUniversityRepository ??= new GenericRepository<UserUniversity>(_context); }
+        }
+        public IGenericRepository<TrainingProgram> TrainingProgramRepository
+        {
+            get { return _trainingProgramRepository ??= new GenericRepository<TrainingProgram>(_context); }
         }
 
         public UnitOfWork(CapstoneDBContext context)

@@ -23,6 +23,10 @@ namespace CapstoneAPI.Controllers
         public async Task<ActionResult<IEnumerable<SubjectGroupDataSet>>> SuggestTopSubjectGroup(SubjectGroupParam subjectGroupParam)
         {
             IEnumerable<SubjectGroupDataSet> subjectGroups = await _service.GetCaculatedSubjectGroup(subjectGroupParam);
+            if (subjectGroups == null || !subjectGroups.Any())
+            {
+                return NotFound();
+            }
             return Ok(subjectGroups);
         }
         [HttpGet()]

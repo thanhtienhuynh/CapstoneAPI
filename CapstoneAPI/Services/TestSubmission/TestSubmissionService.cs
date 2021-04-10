@@ -80,6 +80,29 @@
             if (userIdString != null && userIdString.Length > 0)
             {
                 int userId = Int32.Parse(userIdString);
+                bool isMajorCared = (await _uow.UserMajorRepository
+                    .GetFirst(filter: u => u.MajorId == saveTestSubmissionParam.MajorId && u.UserId == userId)) != null;
+                if (!isMajorCared)
+                {
+                    _uow.UserMajorRepository.Insert(new UserMajor()
+                    {
+                        MajorId = saveTestSubmissionParam.MajorId,
+                        UserId = userId
+                    });
+                }
+
+                bool isUniversityCared = (await _uow.UserUniversityRepository
+                    .GetFirst(filter: u => u.UniversityId == saveTestSubmissionParam.UniversityId && u.UserId == userId)) != null;
+
+                if (!isUniversityCared)
+                {
+                    _uow.UserUniversityRepository.Insert(new UserUniversity()
+                    {
+                        UniversityId = saveTestSubmissionParam.UniversityId,
+                        UserId = userId
+                    });
+                }
+
                 testSubmission.UserId = userId;
                 _uow.TestSubmissionRepository.Insert(testSubmission);
                 if ((await _uow.CommitAsync()) > 0)

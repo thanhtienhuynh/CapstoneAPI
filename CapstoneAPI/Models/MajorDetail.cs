@@ -17,8 +17,10 @@ namespace CapstoneAPI.Models
         public int? MajorId { get; set; }
         public int? NumberOfStudents { get; set; }
         public string MajorCode { get; set; }
+        public int? TrainingProgramId { get; set; }
 
         public virtual Major Major { get; set; }
+        public virtual TrainingProgram TrainingProgram { get; set; }
         public virtual University University { get; set; }
         public virtual ICollection<EntryMark> EntryMarks { get; set; }
     }

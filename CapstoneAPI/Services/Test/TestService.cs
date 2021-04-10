@@ -30,7 +30,7 @@
                 subjectIds = (await _uow.SubjecGroupDetailRepository.Get(filter: s => s.SubjectGroupId == testParam.SubjectGroupId))
                                                                                 .Select(s => s.SubjectId);
             }
-            IEnumerable<Models.Test> tests = await _uow.TestRepository.Get(filter: test => test.Status == Consts.STATUS_ACTIVE);
+            IEnumerable<Models.Test> tests = await _uow.TestRepository.Get(filter: test => test.Status == Consts.STATUS_ACTIVE && test.TestTypeId == Consts.TEST_HT_TYPE_ID);
             if (subjectIds != null && subjectIds.Any())
             {
                 foreach (int subjectId in subjectIds)
