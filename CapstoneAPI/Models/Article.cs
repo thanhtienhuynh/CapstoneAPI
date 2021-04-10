@@ -22,9 +22,11 @@ namespace CapstoneAPI.Models
         public DateTime? CrawlerDate { get; set; }
         public int? ImportantLevel { get; set; }
         public int? Censor { get; set; }
-        public int? Status { get; set; }
         public string ShortDescription { get; set; }
         public string PostImageUrl { get; set; }
+        public DateTime? PublicFromDate { get; set; }
+        public DateTime? PublicToDate { get; set; }
+        public int? Status { get; set; }
 
         public virtual ICollection<UniversityArticle> UniversityArticles { get; set; }
     }

@@ -42,10 +42,6 @@ namespace CapstoneAPI.Models
         public virtual DbSet<UserUniversity> UserUniversities { get; set; }
         public virtual DbSet<WeightNumber> WeightNumbers { get; set; }
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-        }
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.HasAnnotation("Relational:Collation", "SQL_Latin1_General_CP1_CI_AS");
@@ -57,6 +53,10 @@ namespace CapstoneAPI.Models
                 entity.Property(e => e.CrawlerDate).HasColumnType("datetime");
 
                 entity.Property(e => e.PostedDate).HasColumnType("datetime");
+
+                entity.Property(e => e.PublicFromDate).HasColumnType("datetime");
+
+                entity.Property(e => e.PublicToDate).HasColumnType("datetime");
 
                 entity.Property(e => e.PublishedPage).HasMaxLength(100);
 
@@ -377,6 +377,10 @@ namespace CapstoneAPI.Models
                     .IsRequired()
                     .HasMaxLength(50)
                     .IsUnicode(false);
+
+                entity.Property(e => e.Latitude).HasColumnType("decimal(12, 9)");
+
+                entity.Property(e => e.Longitude).HasColumnType("decimal(12, 9)");
 
                 entity.Property(e => e.Name)
                     .IsRequired()
