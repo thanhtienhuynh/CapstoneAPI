@@ -36,7 +36,7 @@ namespace CapstoneAPI.Controllers
             return Ok(subjectGroups);
         }
         [HttpPost]
-        public async Task<ActionResult<CreateSubjectGroupDataset>> CreateASubjectGroup(CreateSubjectGroupParam createSubjectGroupParam)
+        public async Task<ActionResult<CreateSubjectGroupDataset>> CreateASubjectGroup([FromBody]CreateSubjectGroupParam createSubjectGroupParam)
         {
             CreateSubjectGroupDataset createSubjectGroupDataset = await _service.CreateNewSubjectGroup(createSubjectGroupParam);
            if(createSubjectGroupDataset == null)
@@ -44,6 +44,16 @@ namespace CapstoneAPI.Controllers
                 return BadRequest();
             }
             return Ok(createSubjectGroupDataset);
+        }
+        [HttpPut]
+        public async Task<ActionResult<CreateSubjectGroupDataset>> UpdateASubjectGroup([FromBody]UpdateSubjectGroupParam updateSubjectGroupParam)
+        {
+            CreateSubjectGroupDataset resultDataset = await _service.UpdateSubjectGroup(updateSubjectGroupParam);
+            if(resultDataset == null)
+            {
+                return BadRequest();
+            }
+            return Ok(resultDataset);
         }
     }
 }

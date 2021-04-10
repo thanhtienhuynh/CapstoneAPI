@@ -214,5 +214,93 @@ namespace CapstoneAPI.Services.SubjectGroup
             return createSubjectGroupDataset;
 
         }
+
+        public async Task<CreateSubjectGroupDataset> UpdateSubjectGroup(UpdateSubjectGroupParam updateSubjectGroupParam)
+        {
+            int id = updateSubjectGroupParam.Id;
+            List<int> listOfSubjectId = updateSubjectGroupParam.ListOfSubjectId;
+            if( updateSubjectGroupParam.Id < 1)
+            {
+                return null;
+            }
+            if (updateSubjectGroupParam.ListOfSubjectId.Count != updateSubjectGroupParam.ListOfSubjectId.Distinct().Count())
+            {
+                return null;
+            }
+            if (listOfSubjectId == null || listOfSubjectId.Count < 3)
+            {
+                return null;
+            }
+            if (updateSubjectGroupParam.GroupCode == null || updateSubjectGroupParam.GroupCode.Equals(""))
+            {
+                return null;
+            }
+            Models.SubjectGroup existSubjectGroupByCode = await _uow.SubjectGroupRepository.GetFirst(filter: e => e.GroupCode.Equals(updateSubjectGroupParam.GroupCode));
+            if (existSubjectGroupByCode != null && existSubjectGroupByCode.Id != updateSubjectGroupParam.Id)
+            {
+                return null;
+            }
+
+            IEnumerable<int> foundedSubjectGroupIds = (await _uow.SubjecGroupDetailRepository.Get(filter: s => listOfSubjectId.Contains(s.SubjectId)))
+                .GroupBy(s => s.SubjectGroupId).Where(g => g.Count() == listOfSubjectId.Count()).Select(g => g.Key);
+            foreach (int aid in foundedSubjectGroupIds)
+            {
+                bool isExisted = (await _uow.SubjecGroupDetailRepository.Get(filter: s => s.SubjectGroupId == aid)).Count() == listOfSubjectId.Count;
+                if (isExisted && aid != updateSubjectGroupParam.Id)
+                {
+                    return null;
+                }
+            }
+
+            Models.SubjectGroup updateSubjectGroupModel = await _uow.SubjectGroupRepository.GetById(id);
+
+            updateSubjectGroupModel.GroupCode = updateSubjectGroupParam.GroupCode;
+            updateSubjectGroupModel.Status = updateSubjectGroupParam.Status;
+
+             _uow.SubjectGroupRepository.Update(updateSubjectGroupModel);
+            int result = await _uow.CommitAsync();
+            if (result <= 0)
+            {
+                return null;
+            }
+
+            IEnumerable<int> oldSubjectIds = (await _uow.SubjecGroupDetailRepository.Get(filter: s => s.SubjectGroupId == updateSubjectGroupModel.Id))
+                .Select(s => s.SubjectId);
+            foreach (int oldSubjectId in oldSubjectIds)
+            {
+                _uow.SubjecGroupDetailRepository.DeleteComposite(filter: s => s.SubjectId == oldSubjectId && s.SubjectGroupId == updateSubjectGroupModel.Id);
+            }
+           
+            await _uow.CommitAsync();
+
+            foreach (int subjectId in listOfSubjectId)
+            {
+                Models.SubjectGroupDetail insertSubjectGroupDetailModel = new SubjectGroupDetail
+                {
+                    SubjectGroupId = id,
+                    SubjectId = subjectId,
+                };
+                _uow.SubjecGroupDetailRepository.Insert(insertSubjectGroupDetailModel);
+                result = await _uow.CommitAsync();
+                if (result <= 0)
+                {
+                    return null;
+                }
+            }
+            List<Models.Subject> subjects = (await _uow.SubjectRepository.Get(filter: s => listOfSubjectId.Contains(s.Id))).ToList();
+            List<SubjectDataSet> subjectDatas = new List<SubjectDataSet>();
+            foreach (Models.Subject subject in subjects)
+            {
+                subjectDatas.Add(_mapper.Map<SubjectDataSet>(subject));
+            }
+            CreateSubjectGroupDataset updateSubjectGroupDataset = new CreateSubjectGroupDataset
+            {
+                Id = updateSubjectGroupParam.Id,
+                GroupCode = updateSubjectGroupParam.GroupCode,
+                ListOfSubject = subjectDatas,
+                Status = updateSubjectGroupParam.Status
+            };
+            return updateSubjectGroupDataset;
+        }
     }
 }

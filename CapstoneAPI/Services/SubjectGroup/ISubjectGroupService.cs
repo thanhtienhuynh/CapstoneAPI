@@ -11,5 +11,7 @@ namespace CapstoneAPI.Services.SubjectGroup
         Task<IEnumerable<SubjectGroupDataSet>> GetCaculatedSubjectGroup(SubjectGroupParam subjectGroupParam);
         Task<IEnumerable<AdminSubjectGroupDataSet>> GetListSubjectGroups();
         Task<CreateSubjectGroupDataset> CreateNewSubjectGroup(CreateSubjectGroupParam createSubjectGroupParam);
+        Task<CreateSubjectGroupDataset> UpdateSubjectGroup(UpdateSubjectGroupParam updateSubjectGroupParam);
+
     }
 }
