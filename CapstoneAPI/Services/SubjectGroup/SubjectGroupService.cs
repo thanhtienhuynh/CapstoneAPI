@@ -227,7 +227,7 @@ namespace CapstoneAPI.Services.SubjectGroup
             {
                 return null;
             }
-            if (listOfSubjectId == null || listOfSubjectId.Count < 3)
+            if (listOfSubjectId == null || listOfSubjectId.Count < Consts.REQUIRED_NUMBER_SUBJECTS)
             {
                 return null;
             }

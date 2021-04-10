@@ -18,5 +18,6 @@ namespace CapstoneAPI.Helpers
         public static int YEAR_2019 = 2019;
         public static int YEAR_2020 = 2020;
         public static int TOKEN_EXPIRED_TIME = 60 * 60;
+        public static int REQUIRED_NUMBER_SUBJECTS = 3;
     }                                             
 }
