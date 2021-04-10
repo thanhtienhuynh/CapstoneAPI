@@ -20,43 +20,60 @@ namespace CapstoneAPI.Services.University
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<UniversityDataSet>> GetUniversityBySubjectGroupAndMajor(UniversityParam universityParam)
+        public async Task<IEnumerable<UniversityDataSetBaseOnTrainingProgram>> GetUniversityBySubjectGroupAndMajor(UniversityParam universityParam)
         {
             //Lấy ra tất cả các trường có ngành đã chọn
-            List<MajorDetail> majorDetails = (await _uow.MajorDetailRepository.Get(filter: w => w.MajorId == universityParam.MajorId, includeProperties: "University")).ToList();
+            List<MajorDetail> majorDetails = (await _uow.MajorDetailRepository.Get(filter: w => w.MajorId == universityParam.MajorId, includeProperties: "University,TrainingProgram")).ToList();
             if (majorDetails == null || !majorDetails.Any())
             {
                 return null;
             }
 
-            List<UniversityDataSet> universityDataSets = new List<UniversityDataSet>();
+            List<UniversityDataSetBaseOnTrainingProgram> universityDataSetsBaseOnTrainingProgram = new List<UniversityDataSetBaseOnTrainingProgram>();
 
-            foreach(MajorDetail majorDetail in majorDetails.ToList())
+            IEnumerable<IGrouping<int, MajorDetail>> majorDetailsBasedOnTrainingProgram = majorDetails
+                                                                                            .GroupBy(m => m.TrainingProgramId);
+            foreach (IGrouping<int, MajorDetail> majorDetailBasedOnTrainingProgram in majorDetailsBasedOnTrainingProgram)
             {
-                EntryMark entryMark = await _uow.EntryMarkRepository.
-                    GetFirst(filter: e => e.SubjectGroupId == universityParam.SubjectGroupId && e.MajorDetailId == majorDetail.Id && e.Year == Consts.NEAREST_YEAR);
-                if (entryMark == null)
+                List<UniversityDataSet> universityDataSets = new List<UniversityDataSet>();
+                foreach (MajorDetail majorDetail in majorDetailBasedOnTrainingProgram.ToList())
                 {
-                    majorDetails.Remove(majorDetail);
-                    continue;
-                }
+                    EntryMark entryMark = await _uow.EntryMarkRepository.
+                        GetFirst(filter: e => e.SubjectGroupId == universityParam.SubjectGroupId && e.MajorDetailId == majorDetail.Id && e.Year == Consts.NEAREST_YEAR);
+                    if (entryMark == null)
+                    {
+                        majorDetails.Remove(majorDetail);
+                        continue;
+                    }
 
-                if (entryMark.Mark > universityParam.TotalMark)
+                    if (entryMark.Mark > universityParam.TotalMark)
+                    {
+                        majorDetails.Remove(majorDetail);
+                        continue;
+                    }
+                    else
+                    {
+                        UniversityDataSet universityDataSet = _mapper.Map<UniversityDataSet>(majorDetail.University);
+                        universityDataSet.NearestYearEntryMark = (double)entryMark.Mark;
+                        universityDataSet.NumberOfStudents = majorDetail.NumberOfStudents;
+                        List<int> majorCaringUserIds = (await _uow.UserMajorRepository.Get(u => u.MajorId == universityParam.MajorId)).Select(m => m.UserId).ToList();
+                        List<int> universityCaringUserIds = (await _uow.UserUniversityRepository.Get(u => u.UniversityId == universityDataSet.Id)).Select(m => m.UserId).ToList();
+                        universityDataSet.NumberOfCaring = majorCaringUserIds.Intersect(universityCaringUserIds).Count();
+                        universityDataSets.Add(universityDataSet);
+                    }
+                }
+                if (universityDataSets.Any())
                 {
-                    majorDetails.Remove(majorDetail);
-                    continue;
-                } else
-                {
-                    UniversityDataSet universityDataSet = _mapper.Map<UniversityDataSet>(majorDetail.University);
-                    universityDataSet.NearestYearEntryMark = (double) entryMark.Mark;
-                    universityDataSet.NumberOfStudents = majorDetail.NumberOfStudents;
-                    List<int> majorCaringUserIds = (await _uow.UserMajorRepository.Get(u => u.MajorId == universityParam.MajorId)).Select(m => m.UserId).ToList();
-                    List<int> universityCaringUserIds = (await _uow.UserUniversityRepository.Get(u => u.UniversityId == universityDataSet.Id)).Select(m => m.UserId).ToList();
-                    universityDataSet.NumberOfCaring = majorCaringUserIds.Intersect(universityCaringUserIds).Count();
-                    universityDataSets.Add(universityDataSet);
+                    universityDataSetsBaseOnTrainingProgram.Add(new UniversityDataSetBaseOnTrainingProgram()
+                    {
+                        Id = majorDetailBasedOnTrainingProgram.Key,
+                        Name = (await _uow.TrainingProgramRepository.GetById(majorDetailBasedOnTrainingProgram.Key)).Name,
+                        Universities = universityDataSets.OrderByDescending(u => u.NearestYearEntryMark).ToList()
+                    });
                 }
             }
-            return universityDataSets.OrderByDescending(u => u.NearestYearEntryMark);
+            
+            return universityDataSetsBaseOnTrainingProgram;
         }
 
         public async Task<IEnumerable<AdminUniversityDataSet>> GetUniversities()
@@ -77,7 +94,7 @@ namespace CapstoneAPI.Services.University
                 Models.Major major = await _uow.MajorRepository.GetById(majorDetail.MajorId);
                 UniMajorDataSet uniMajorDataSet = _mapper.Map<UniMajorDataSet>(major);
                 uniMajorDataSet.NumberOfStudents = majorDetail.NumberOfStudents;
-                uniMajorDataSet.MajorCode = majorDetail.MajorCode;
+                uniMajorDataSet.Code = majorDetail.MajorCode;
                 uniMajorDataSet.TrainingProgramName = (await _uow.TrainingProgramRepository.GetById(majorDetail.TrainingProgramId)).Name;
                 uniMajorDataSets.Add(uniMajorDataSet);
             }
@@ -194,7 +211,7 @@ namespace CapstoneAPI.Services.University
                     return null;
                 }
 
-                    majorDetail = new MajorDetail() { 
+                majorDetail = new MajorDetail() { 
                     MajorId = newMajor.Id,
                     NumberOfStudents = addingMajorUniversityParam.NumberOfStudents,
                     UniversityId = addingMajorUniversityParam.UniversityId

@@ -28,7 +28,7 @@ namespace CapstoneAPI.DataSets.University
     {
         public int Id { get; set; }
         public string Name { get; set; }
-        public string MajorCode { get; set; }
+        public string Code { get; set; }
         public int? Status { get; set; }
         public int? NumberOfStudents { get; set; }
         public int TrainingProgramId { get; set; }

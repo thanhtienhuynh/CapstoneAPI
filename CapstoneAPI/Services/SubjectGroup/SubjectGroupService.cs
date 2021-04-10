@@ -239,7 +239,7 @@ namespace CapstoneAPI.Services.SubjectGroup
                 Status = Consts.STATUS_ACTIVE
             };
              _uow.SubjectGroupRepository.Insert(insertSubjectGroupModels);
-          int result =  await _uow.CommitAsync();
+            int result =  await _uow.CommitAsync();
             if (result <= 0)
             {
                 return null;

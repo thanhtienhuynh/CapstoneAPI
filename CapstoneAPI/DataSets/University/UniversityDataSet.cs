@@ -24,4 +24,11 @@ namespace CapstoneAPI.DataSets.University
 
         public int? NumberOfCaring { get; set; }
     }
+
+    public class UniversityDataSetBaseOnTrainingProgram
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public List<UniversityDataSet> Universities { get; set; }
+    }
 }

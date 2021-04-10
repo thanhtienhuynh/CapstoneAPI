@@ -14,7 +14,7 @@ namespace CapstoneAPI.Models
 
         public int Id { get; set; }
         public string Name { get; set; }
-        public bool Status { get; set; }
+        public int Status { get; set; }
 
         public virtual ICollection<MajorDetail> MajorDetails { get; set; }
     }

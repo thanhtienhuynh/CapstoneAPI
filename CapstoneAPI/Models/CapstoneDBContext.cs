@@ -33,6 +33,7 @@ namespace CapstoneAPI.Models
         public virtual DbSet<Test> Tests { get; set; }
         public virtual DbSet<TestSubmission> TestSubmissions { get; set; }
         public virtual DbSet<TestType> TestTypes { get; set; }
+        public virtual DbSet<TrainingProgram> TrainingPrograms { get; set; }
         public virtual DbSet<Transcript> Transcripts { get; set; }
         public virtual DbSet<TranscriptType> TranscriptTypes { get; set; }
         public virtual DbSet<University> Universities { get; set; }
@@ -41,6 +42,10 @@ namespace CapstoneAPI.Models
         public virtual DbSet<UserMajor> UserMajors { get; set; }
         public virtual DbSet<UserUniversity> UserUniversities { get; set; }
         public virtual DbSet<WeightNumber> WeightNumbers { get; set; }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -136,12 +141,20 @@ namespace CapstoneAPI.Models
 
                 entity.Property(e => e.MajorId).HasColumnName("Major_Id");
 
+                entity.Property(e => e.TrainingProgramId).HasColumnName("Training_Program_Id");
+
                 entity.Property(e => e.UniversityId).HasColumnName("University_Id");
 
                 entity.HasOne(d => d.Major)
                     .WithMany(p => p.MajorDetails)
                     .HasForeignKey(d => d.MajorId)
                     .HasConstraintName("FK_Tution_Major");
+
+                entity.HasOne(d => d.TrainingProgram)
+                    .WithMany(p => p.MajorDetails)
+                    .HasForeignKey(d => d.TrainingProgramId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_MajorDetail_TrainingProgram");
 
                 entity.HasOne(d => d.University)
                     .WithMany(p => p.MajorDetails)
@@ -328,6 +341,13 @@ namespace CapstoneAPI.Models
                 entity.Property(e => e.Type)
                     .IsRequired()
                     .HasMaxLength(50);
+            });
+
+            modelBuilder.Entity<TrainingProgram>(entity =>
+            {
+                entity.ToTable("TrainingProgram");
+
+                entity.Property(e => e.Name).IsRequired();
             });
 
             modelBuilder.Entity<Transcript>(entity =>
