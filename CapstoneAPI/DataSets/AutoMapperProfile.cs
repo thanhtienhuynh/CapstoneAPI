@@ -7,6 +7,7 @@ using CapstoneAPI.DataSets.Subject;
 using CapstoneAPI.DataSets.SubjectGroup;
 using CapstoneAPI.DataSets.Test;
 using CapstoneAPI.DataSets.TestSubmission;
+using CapstoneAPI.DataSets.TrainingProgram;
 using CapstoneAPI.DataSets.University;
 using CapstoneAPI.DataSets.User;
 using System;
@@ -41,6 +42,7 @@ namespace CapstoneAPI.DataSets
             CreateMap<CreateMajorDataSet, Models.Major>();
             CreateMap<Models.Major, ResultOfCreateMajorDataSet>();
             CreateMap<Models.QuestionSubmisstion, QuestionSubmissionDataSet>();
+            CreateMap<Models.TrainingProgram, AdminTrainingProgramDataSet>();
         }
     }
 }

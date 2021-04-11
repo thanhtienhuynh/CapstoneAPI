@@ -95,6 +95,7 @@ namespace CapstoneAPI.Services.University
                 UniMajorDataSet uniMajorDataSet = _mapper.Map<UniMajorDataSet>(major);
                 uniMajorDataSet.NumberOfStudents = majorDetail.NumberOfStudents;
                 uniMajorDataSet.Code = majorDetail.MajorCode;
+                uniMajorDataSet.TrainingProgramId = majorDetail.TrainingProgramId;
                 uniMajorDataSet.TrainingProgramName = (await _uow.TrainingProgramRepository.GetById(majorDetail.TrainingProgramId)).Name;
                 uniMajorDataSets.Add(uniMajorDataSet);
             }
@@ -102,7 +103,9 @@ namespace CapstoneAPI.Services.University
             foreach(UniMajorDataSet uniMajorDataSet in uniMajorDataSets)
             {
                 MajorDetail majorDetail = await _uow.MajorDetailRepository.GetFirst(
-                                                filter: m => m.MajorId == uniMajorDataSet.Id && m.UniversityId == universityDataSet.Id);
+                                                filter: m => m.MajorId == uniMajorDataSet.Id 
+                                                && m.UniversityId == universityDataSet.Id
+                                                && m.TrainingProgramId == uniMajorDataSet.TrainingProgramId);
                 List<int> subjectGroupIds = (await _uow.EntryMarkRepository.Get(
                                                 filter: e => e.MajorDetailId == majorDetail.Id, includeProperties: "SubjectGroup"))
                                                 .Select(e => e.SubjectGroupId).Distinct().ToList();
@@ -215,7 +218,8 @@ namespace CapstoneAPI.Services.University
                     MajorId = newMajor.Id,
                     NumberOfStudents = addingMajorUniversityParam.NumberOfStudents,
                     UniversityId = addingMajorUniversityParam.UniversityId,
-                    TrainingProgramId = addingMajorUniversityParam.TrainingProgramId
+                    TrainingProgramId = addingMajorUniversityParam.TrainingProgramId,
+                    MajorCode = addingMajorUniversityParam.MajorCode,
                 };
             }
             else
@@ -233,7 +237,8 @@ namespace CapstoneAPI.Services.University
                     MajorId = addingMajorUniversityParam.MajorId,
                     NumberOfStudents = addingMajorUniversityParam.NumberOfStudents,
                     UniversityId = addingMajorUniversityParam.UniversityId,
-                    TrainingProgramId = addingMajorUniversityParam.TrainingProgramId
+                    TrainingProgramId = addingMajorUniversityParam.TrainingProgramId,
+                    MajorCode = addingMajorUniversityParam.MajorCode,                  
                 };
             }
 
@@ -299,7 +304,7 @@ namespace CapstoneAPI.Services.University
             MajorDetail majorDetail = await _uow.MajorDetailRepository
                 .GetFirst(filter: m => m.MajorId == updatingMajorUniversityParam.MajorId 
                 && m.UniversityId == updatingMajorUniversityParam.UniversityId 
-                && m.TrainingProgramId == updatingMajorUniversityParam.TrainingProgramId);
+                && m.TrainingProgramId == updatingMajorUniversityParam.OldTrainingProgramId);
             if (majorDetail == null)
             {
                 return null;
@@ -311,7 +316,8 @@ namespace CapstoneAPI.Services.University
             }
 
             majorDetail.NumberOfStudents = updatingMajorUniversityParam.NumberOfStudents;
-            majorDetail.TrainingProgramId = updatingMajorUniversityParam.TrainingProgramId;
+            majorDetail.TrainingProgramId = updatingMajorUniversityParam.NewTrainingProgramId;
+            majorDetail.MajorCode = updatingMajorUniversityParam.MajorCode;
             _uow.MajorDetailRepository.Update(majorDetail);
 
             foreach (UpdatingUniSubjectGroupDataSet updatingUniSubjectGroupDataSet in updatingMajorUniversityParam.SubjectGroups)

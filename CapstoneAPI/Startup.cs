@@ -8,6 +8,7 @@ using CapstoneAPI.Services.Subject;
 using CapstoneAPI.Services.SubjectGroup;
 using CapstoneAPI.Services.Test;
 using CapstoneAPI.Services.TestSubmission;
+using CapstoneAPI.Services.TrainingProgram;
 using CapstoneAPI.Services.University;
 using CapstoneAPI.Services.User;
 using FirebaseAdmin;
@@ -99,6 +100,7 @@ namespace CapstoneAPI
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IMajorService, MajorService>();
             services.AddScoped<IArticleCrawlerService, ArticleCrawlerService>();
+            services.AddScoped<ITrainingProgramService, TrainingProgramService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
