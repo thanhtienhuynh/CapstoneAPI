@@ -54,7 +54,7 @@ namespace CapstoneAPI.Services.SubjectGroup
             {
                 bool isValid = (await _uow.EntryMarkRepository.Get(filter: e => e.SubjectGroupId == subjectGroupDataSet.Id
                                                             && e.Year == Consts.NEAREST_YEAR
-                                                            && e.Mark >= subjectGroupDataSet.TotalMark)).Any();
+                                                            && e.Mark <= subjectGroupDataSet.TotalMark && e.Mark > 0)).Any();
                 if(!isValid)
                 {
                     subjectGroupDataSets.Remove(subjectGroupDataSet);
@@ -89,7 +89,11 @@ namespace CapstoneAPI.Services.SubjectGroup
             foreach (int majorId in majorIds.ToList())
             {
                 List<int> majorDetailIds = (await _uow.MajorDetailRepository.Get(filter: m => m.MajorId == majorId)).Select(m => m.Id).ToList();
-                bool isSuitable = (await _uow.EntryMarkRepository.Get(filter: e => majorDetailIds.Contains(e.MajorDetailId) && e.Mark > 0 && e.Mark <= subjectGroup.TotalMark)).Any();
+                bool isSuitable = (await _uow.EntryMarkRepository
+                                    .Get(filter: e => majorDetailIds.Contains(e.MajorDetailId) 
+                                                && e.Mark > 0 && e.Mark <= subjectGroup.TotalMark 
+                                                && e.Year == Consts.NEAREST_YEAR))
+                                                .Any();
                 if (!isSuitable)
                 {
                     majorIds.Remove(majorId);

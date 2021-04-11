@@ -39,7 +39,10 @@ namespace CapstoneAPI.Services.University
                 foreach (MajorDetail majorDetail in majorDetailBasedOnTrainingProgram.ToList())
                 {
                     EntryMark entryMark = await _uow.EntryMarkRepository.
-                        GetFirst(filter: e => e.SubjectGroupId == universityParam.SubjectGroupId && e.MajorDetailId == majorDetail.Id && e.Year == Consts.NEAREST_YEAR);
+                        GetFirst(filter: e => e.SubjectGroupId == universityParam.SubjectGroupId 
+                                        && e.MajorDetailId == majorDetail.Id 
+                                        && e.Mark > 0
+                                        && e.Year == Consts.NEAREST_YEAR);
                     if (entryMark == null)
                     {
                         majorDetails.Remove(majorDetail);
