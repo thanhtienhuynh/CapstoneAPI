@@ -58,6 +58,7 @@ namespace CapstoneAPI.DataSets.University
         public string MajorName { get; set; }
         public string MajorCode { get; set; }
         public int NumberOfStudents { get; set; }
+        public int TrainingProgramId { get; set; }
         public List<UniSubjectGroupDataSet> SubjectGroups { get; set; }
     }
 
@@ -66,6 +67,7 @@ namespace CapstoneAPI.DataSets.University
         public int UniversityId { get; set; }
         public int MajorId { get; set; }
         public int NumberOfStudents { get; set; }
+        public int TrainingProgramId { get; set; }
         public List<UpdatingUniSubjectGroupDataSet> SubjectGroups { get; set; }
     }
 

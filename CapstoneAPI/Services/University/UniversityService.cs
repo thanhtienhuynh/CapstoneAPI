@@ -214,13 +214,16 @@ namespace CapstoneAPI.Services.University
                 majorDetail = new MajorDetail() { 
                     MajorId = newMajor.Id,
                     NumberOfStudents = addingMajorUniversityParam.NumberOfStudents,
-                    UniversityId = addingMajorUniversityParam.UniversityId
+                    UniversityId = addingMajorUniversityParam.UniversityId,
+                    TrainingProgramId = addingMajorUniversityParam.TrainingProgramId
                 };
             }
             else
             {
                 MajorDetail existedMajorDetail = await _uow.MajorDetailRepository
-                        .GetFirst(m => m.MajorId == addingMajorUniversityParam.MajorId && m.UniversityId == addingMajorUniversityParam.UniversityId);
+                        .GetFirst(m => m.MajorId == addingMajorUniversityParam.MajorId 
+                        && m.UniversityId == addingMajorUniversityParam.UniversityId
+                        && m.TrainingProgramId == addingMajorUniversityParam.TrainingProgramId);
                 if (existedMajorDetail != null)
                 {
                     return null;
@@ -229,7 +232,8 @@ namespace CapstoneAPI.Services.University
                 {
                     MajorId = addingMajorUniversityParam.MajorId,
                     NumberOfStudents = addingMajorUniversityParam.NumberOfStudents,
-                    UniversityId = addingMajorUniversityParam.UniversityId
+                    UniversityId = addingMajorUniversityParam.UniversityId,
+                    TrainingProgramId = addingMajorUniversityParam.TrainingProgramId
                 };
             }
 
@@ -293,7 +297,9 @@ namespace CapstoneAPI.Services.University
             }
 
             MajorDetail majorDetail = await _uow.MajorDetailRepository
-                .GetFirst(filter: m => m.MajorId == updatingMajorUniversityParam.MajorId && m.UniversityId == updatingMajorUniversityParam.UniversityId);
+                .GetFirst(filter: m => m.MajorId == updatingMajorUniversityParam.MajorId 
+                && m.UniversityId == updatingMajorUniversityParam.UniversityId 
+                && m.TrainingProgramId == updatingMajorUniversityParam.TrainingProgramId);
             if (majorDetail == null)
             {
                 return null;
@@ -305,6 +311,7 @@ namespace CapstoneAPI.Services.University
             }
 
             majorDetail.NumberOfStudents = updatingMajorUniversityParam.NumberOfStudents;
+            majorDetail.TrainingProgramId = updatingMajorUniversityParam.TrainingProgramId;
             _uow.MajorDetailRepository.Update(majorDetail);
 
             foreach (UpdatingUniSubjectGroupDataSet updatingUniSubjectGroupDataSet in updatingMajorUniversityParam.SubjectGroups)
