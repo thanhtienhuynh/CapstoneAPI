@@ -17,6 +17,7 @@ namespace CapstoneAPI.Models
         {
         }
 
+        public virtual DbSet<AdmissionCriterion> AdmissionCriteria { get; set; }
         public virtual DbSet<Article> Articles { get; set; }
         public virtual DbSet<Career> Careers { get; set; }
         public virtual DbSet<EntryMark> EntryMarks { get; set; }
@@ -50,6 +51,18 @@ namespace CapstoneAPI.Models
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.HasAnnotation("Relational:Collation", "SQL_Latin1_General_CP1_CI_AS");
+
+            modelBuilder.Entity<AdmissionCriterion>(entity =>
+            {
+                entity.ToTable("AdmissionCriterion");
+
+                entity.Property(e => e.MajorDetailId).HasColumnName("MajorDetail_Id");
+
+                entity.HasOne(d => d.MajorDetail)
+                    .WithMany(p => p.AdmissionCriteria)
+                    .HasForeignKey(d => d.MajorDetailId)
+                    .HasConstraintName("FK_AdmissionCriteria_MajorDetail");
+            });
 
             modelBuilder.Entity<Article>(entity =>
             {

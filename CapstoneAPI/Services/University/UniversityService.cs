@@ -23,7 +23,7 @@ namespace CapstoneAPI.Services.University
         public async Task<IEnumerable<UniversityDataSetBaseOnTrainingProgram>> GetUniversityBySubjectGroupAndMajor(UniversityParam universityParam)
         {
             //Lấy ra tất cả các trường có ngành đã chọn
-            List<MajorDetail> majorDetails = (await _uow.MajorDetailRepository.Get(filter: w => w.MajorId == universityParam.MajorId, includeProperties: "University,TrainingProgram")).ToList();
+            List<MajorDetail> majorDetails = (await _uow.MajorDetailRepository.Get(filter: w => w.MajorId == universityParam.MajorId, includeProperties: "University,TrainingProgram,AdmissionCriteria")).ToList();
             if (majorDetails == null || !majorDetails.Any())
             {
                 return null;
@@ -58,7 +58,9 @@ namespace CapstoneAPI.Services.University
                     {
                         UniversityDataSet universityDataSet = _mapper.Map<UniversityDataSet>(majorDetail.University);
                         universityDataSet.NearestYearEntryMark = (double)entryMark.Mark;
-                        universityDataSet.NumberOfStudents = majorDetail.NumberOfStudents;
+                        universityDataSet.NumberOfStudents = majorDetail.AdmissionCriteria
+                                    .FirstOrDefault(a => a.Year == 2020) != null ? 
+                                    majorDetail.AdmissionCriteria.FirstOrDefault(a => a.Year == 2020).Quantity : null;
                         List<int> majorCaringUserIds = (await _uow.UserMajorRepository.Get(u => u.MajorId == universityParam.MajorId)).Select(m => m.UserId).ToList();
                         List<int> universityCaringUserIds = (await _uow.UserUniversityRepository.Get(u => u.UniversityId == universityDataSet.Id)).Select(m => m.UserId).ToList();
                         universityDataSet.NumberOfCaring = majorCaringUserIds.Intersect(universityCaringUserIds).Count();
@@ -96,7 +98,9 @@ namespace CapstoneAPI.Services.University
             {
                 Models.Major major = await _uow.MajorRepository.GetById(majorDetail.MajorId);
                 UniMajorDataSet uniMajorDataSet = _mapper.Map<UniMajorDataSet>(major);
-                uniMajorDataSet.NumberOfStudents = majorDetail.NumberOfStudents;
+                uniMajorDataSet.NumberOfStudents = 
+                    majorDetail.AdmissionCriteria.FirstOrDefault(a => a.Year == 2021) != null ?
+                                    majorDetail.AdmissionCriteria.FirstOrDefault(a => a.Year == 2021).Quantity : null; ;
                 uniMajorDataSet.Code = majorDetail.MajorCode;
                 uniMajorDataSet.TrainingProgramId = majorDetail.TrainingProgramId;
                 uniMajorDataSet.TrainingProgramName = (await _uow.TrainingProgramRepository.GetById(majorDetail.TrainingProgramId)).Name;
@@ -190,62 +194,38 @@ namespace CapstoneAPI.Services.University
         public async Task<DetailUniversityDataSet> AddMajorToUniversity(AddingMajorUniversityParam addingMajorUniversityParam)
         {
             MajorDetail majorDetail = null;
-            if (addingMajorUniversityParam.MajorId < 0)
+
+            MajorDetail existedMajorDetail = await _uow.MajorDetailRepository
+                       .GetFirst(m => m.MajorId == addingMajorUniversityParam.MajorId
+                       && m.UniversityId == addingMajorUniversityParam.UniversityId
+                       && m.TrainingProgramId == addingMajorUniversityParam.TrainingProgramId);
+            if (existedMajorDetail != null)
             {
-                if (addingMajorUniversityParam.MajorCode == null || addingMajorUniversityParam.MajorCode.Equals(""))
-                {
-                    return null;
-                }
-
-                bool isMajorExisted = (await _uow.MajorRepository.Get(filter: m => m.Code.Equals(m.Code.Trim()))).Any();
-
-                if (isMajorExisted)
-                {
-                    return null;
-                }
-
-                Models.Major newMajor = new Models.Major()
-                {
-                    Code = addingMajorUniversityParam.MajorCode,
-                    Name = addingMajorUniversityParam.MajorName,
-                    Status = Consts.STATUS_ACTIVE
-                };
-
-                _uow.MajorRepository.Insert(newMajor);
-
-                if ((await _uow.CommitAsync()) <= 0) {
-                    return null;
-                }
-
-                majorDetail = new MajorDetail() { 
-                    MajorId = newMajor.Id,
-                    NumberOfStudents = addingMajorUniversityParam.NumberOfStudents,
-                    UniversityId = addingMajorUniversityParam.UniversityId,
-                    TrainingProgramId = addingMajorUniversityParam.TrainingProgramId,
-                    MajorCode = addingMajorUniversityParam.MajorCode,
-                };
+                return null;
             }
-            else
+            majorDetail = new MajorDetail()
             {
-                MajorDetail existedMajorDetail = await _uow.MajorDetailRepository
-                        .GetFirst(m => m.MajorId == addingMajorUniversityParam.MajorId 
-                        && m.UniversityId == addingMajorUniversityParam.UniversityId
-                        && m.TrainingProgramId == addingMajorUniversityParam.TrainingProgramId);
-                if (existedMajorDetail != null)
-                {
-                    return null;
-                }
-                majorDetail = new MajorDetail()
-                {
-                    MajorId = addingMajorUniversityParam.MajorId,
-                    NumberOfStudents = addingMajorUniversityParam.NumberOfStudents,
-                    UniversityId = addingMajorUniversityParam.UniversityId,
-                    TrainingProgramId = addingMajorUniversityParam.TrainingProgramId,
-                    MajorCode = addingMajorUniversityParam.MajorCode,                  
-                };
-            }
+                MajorId = addingMajorUniversityParam.MajorId,
+                UniversityId = addingMajorUniversityParam.UniversityId,
+                TrainingProgramId = addingMajorUniversityParam.TrainingProgramId,
+                MajorCode = addingMajorUniversityParam.MajorCode,
+            };
 
             _uow.MajorDetailRepository.Insert(majorDetail);
+
+            if ((await _uow.CommitAsync()) <= 0)
+            {
+                return null;
+            }
+
+            AdmissionCriterion admissionCriterion = new AdmissionCriterion()
+            {
+                MajorDetailId = majorDetail.Id,
+                Quantity = addingMajorUniversityParam.NumberOfStudents,
+                Year = 2021
+            };
+
+            _uow.AdmissionCriterionRepository.Insert(admissionCriterion);
 
             if ((await _uow.CommitAsync()) <= 0)
             {
@@ -313,15 +293,33 @@ namespace CapstoneAPI.Services.University
                 return null;
             }
 
-            if (updatingMajorUniversityParam.NumberOfStudents <= 0)
-            {
-                return null;
-            }
-
-            majorDetail.NumberOfStudents = updatingMajorUniversityParam.NumberOfStudents;
             majorDetail.TrainingProgramId = updatingMajorUniversityParam.NewTrainingProgramId;
             majorDetail.MajorCode = updatingMajorUniversityParam.MajorCode;
             _uow.MajorDetailRepository.Update(majorDetail);
+
+            AdmissionCriterion admissionCriterion = (await _uow.AdmissionCriterionRepository
+                .Get(filter: a => a.MajorDetailId == majorDetail.Id && a.Year == 2021)).FirstOrDefault();
+
+            if (admissionCriterion != null)
+            {
+                admissionCriterion.Quantity = updatingMajorUniversityParam.NumberOfStudents;
+                _uow.AdmissionCriterionRepository.Update(admissionCriterion);
+            } else
+            {
+                admissionCriterion = new AdmissionCriterion()
+                {
+                    MajorDetailId = majorDetail.Id,
+                    Year = 2021,
+                    Quantity = updatingMajorUniversityParam.NumberOfStudents
+                };
+                _uow.AdmissionCriterionRepository.Insert(admissionCriterion);
+            }
+
+
+            if ((await _uow.CommitAsync()) <= 0)
+            {
+                return null;
+            }
 
             foreach (UpdatingUniSubjectGroupDataSet updatingUniSubjectGroupDataSet in updatingMajorUniversityParam.SubjectGroups)
             {

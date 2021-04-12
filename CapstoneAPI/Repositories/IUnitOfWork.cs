@@ -27,6 +27,7 @@ namespace CapstoneAPI.Repositories
         IGenericRepository<UserMajor> UserMajorRepository { get; }
         IGenericRepository<UserUniversity> UserUniversityRepository { get; }
         IGenericRepository<TrainingProgram> TrainingProgramRepository { get; }
+        IGenericRepository<AdmissionCriterion> AdmissionCriterionRepository { get; }
         Task<int> CommitAsync();
     }
 }
