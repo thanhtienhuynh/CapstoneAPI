@@ -25,6 +25,8 @@ using Quartz;
 using Quartz.Impl;
 using Quartz.Spi;
 using System;
+using System.IO;
+using System.Reflection;
 using System.Text;
 
 namespace CapstoneAPI
@@ -34,6 +36,11 @@ namespace CapstoneAPI
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
+
+            string path = Path.Combine(Path
+                .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"FirebaseKey\unilinks-41d0e-firebase-adminsdk-th8o0-c0b4d125e8.json");
+            Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", path);
+
             FirebaseApp.Create(new AppOptions()
             {
                 Credential = GoogleCredential.GetApplicationDefault(),

@@ -44,10 +44,6 @@ namespace CapstoneAPI.Models
         public virtual DbSet<UserUniversity> UserUniversities { get; set; }
         public virtual DbSet<WeightNumber> WeightNumbers { get; set; }
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-        }
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.HasAnnotation("Relational:Collation", "SQL_Latin1_General_CP1_CI_AS");
