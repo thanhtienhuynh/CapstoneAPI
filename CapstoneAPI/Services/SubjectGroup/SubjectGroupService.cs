@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using CapstoneAPI.DataSets.Major;
+using CapstoneAPI.DataSets.Subject;
 using CapstoneAPI.DataSets.SubjectGroup;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
@@ -142,6 +143,76 @@ namespace CapstoneAPI.Services.SubjectGroup
                 }
             } 
             return totalMark;
+        }
+
+        public async Task<CreateSubjectGroupDataset> CreateNewSubjectGroup(CreateSubjectGroupParam createSubjectGroupParam)
+        {
+            List<int> listOfSubjectId = createSubjectGroupParam.ListOfSubjectId;
+            if(listOfSubjectId == null || listOfSubjectId.Count <3)
+            {
+                return null;
+            }
+            if(createSubjectGroupParam.GroupCode == null || createSubjectGroupParam.GroupCode.Equals(""))
+            {
+                return null;
+            }
+            Models.SubjectGroup existSubjectGroup = await _uow.SubjectGroupRepository.GetFirst(filter: e => e.GroupCode.Equals(createSubjectGroupParam.GroupCode));
+            if(existSubjectGroup != null)
+            {
+                return null;
+            }
+
+            IEnumerable<int> foundedSubjectGroupIds = (await _uow.SubjecGroupDetailRepository.Get(filter: s => listOfSubjectId.Contains(s.SubjectId)))
+                .GroupBy(s => s.SubjectGroupId).Where(g => g.Count() == listOfSubjectId.Count()).Select(g => g.Key);
+
+            foreach (int id in foundedSubjectGroupIds)
+            {
+                bool isExisted = (await _uow.SubjecGroupDetailRepository.Get(filter: s => s.SubjectGroupId == id)).Count() == listOfSubjectId.Count;
+                if (isExisted)
+                {
+                    return null;
+                }
+            }
+            Models.SubjectGroup insertSubjectGroupModels = new Models.SubjectGroup
+            {
+                GroupCode = createSubjectGroupParam.GroupCode,
+                Status = Consts.STATUS_ACTIVE
+            };
+             _uow.SubjectGroupRepository.Insert(insertSubjectGroupModels);
+          int result =  await _uow.CommitAsync();
+            if (result <= 0)
+            {
+                return null;
+            }
+            foreach (int subjectId in listOfSubjectId)
+            {
+                Models.SubjectGroupDetail insertSubjectGroupDetailModel = new SubjectGroupDetail
+                {
+                    SubjectGroupId = insertSubjectGroupModels.Id,
+                    SubjectId = subjectId,
+                };
+                _uow.SubjecGroupDetailRepository.Insert(insertSubjectGroupDetailModel);
+                result = await _uow.CommitAsync();
+                if (result <= 0)
+                {
+                    return null;
+                }
+            }
+            List<Models.Subject> subjects = (await _uow.SubjectRepository.Get(filter: s => listOfSubjectId.Contains(s.Id))).ToList();
+            List<SubjectDataSet> subjectDatas = new List<SubjectDataSet>();
+            foreach (Models.Subject subject in subjects)
+            {
+                subjectDatas.Add(_mapper.Map<SubjectDataSet>(subject));
+            }
+            CreateSubjectGroupDataset createSubjectGroupDataset = new CreateSubjectGroupDataset
+            {
+                Id = insertSubjectGroupModels.Id,
+                GroupCode = createSubjectGroupParam.GroupCode,
+                ListOfSubject = subjectDatas,
+                Status = insertSubjectGroupModels.Status
+            };
+            return createSubjectGroupDataset;
+
         }
     }
 }

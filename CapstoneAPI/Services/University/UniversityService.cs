@@ -40,7 +40,7 @@ namespace CapstoneAPI.Services.University
 
         public async Task<IEnumerable<AdminUniversityDataSet>> GetUniversities()
         {
-            IEnumerable<AdminUniversityDataSet> universities = (await _uow.UniversityRepository.Get())
+            IEnumerable<AdminUniversityDataSet> universities = (await _uow.UniversityRepository.Get()).OrderBy(s => s.UpdatedDate)
                                                         .Select(u => _mapper.Map<AdminUniversityDataSet>(u));
             return universities;
         }
@@ -75,10 +75,11 @@ namespace CapstoneAPI.Services.University
                 foreach(UniSubjectGroupDataSet uniSubjectGroupDataSet in uniSubjectGroupDataSets)
                 {
                     List<UniEntryMarkDataSet> entryMarks = (await _uow.EntryMarkRepository.Get(
-                                                    filter: e => e.SubjectGroupId == uniSubjectGroupDataSet.Id && e.MajorDetailId == majorDetail.Id && (e.Year == Consts.YEAR_2019 || e.Year == Consts.YEAR_2020) ))
-                                                    .Select(e => _mapper.Map<UniEntryMarkDataSet>(e)).ToList();
+                                                    filter: e => e.SubjectGroupId == uniSubjectGroupDataSet.Id && e.MajorDetailId == majorDetail.Id && (e.Year == Consts.YEAR_2019 || e.Year == Consts.YEAR_2020)))
+                                                    .Select(e => _mapper.Map<UniEntryMarkDataSet>(e)).OrderBy(e => e.Year).ToList();
                     uniSubjectGroupDataSet.EntryMarks = entryMarks;
                 }
+                uniSubjectGroupDataSets = uniSubjectGroupDataSets.Where(s => s.EntryMarks.Any()).ToList();
                 uniMajorDataSet.SubjectGroups = uniSubjectGroupDataSets;
             }
             universityDataSet.Majors = uniMajorDataSets;
@@ -87,7 +88,7 @@ namespace CapstoneAPI.Services.University
 
         public async Task<AdminUniversityDataSet> CreateNewAnUniversity(CreateUniversityDataset createUniversityDataset)
         {
-            if (createUniversityDataset.Name.Equals("") || createUniversityDataset.Code.Equals("") || (createUniversityDataset.Status != 0 && createUniversityDataset.Status != 1))
+            if (createUniversityDataset.Name.Equals("") || createUniversityDataset.Code.Equals("") || (createUniversityDataset.Status != 0 && createUniversityDataset.Status != Consts.STATUS_ACTIVE))
                 return null;
             Models.University ExistUni = await _uow.UniversityRepository.GetFirst(filter: u => u.Code.Equals(createUniversityDataset.Code));
             if (ExistUni != null)
@@ -99,7 +100,6 @@ namespace CapstoneAPI.Services.University
             int result = await _uow.CommitAsync();
             if (result > 0)
             {
-
                 return _mapper.Map<AdminUniversityDataSet>(university);
             }
             return null;
