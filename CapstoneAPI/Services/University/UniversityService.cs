@@ -293,6 +293,19 @@ namespace CapstoneAPI.Services.University
                 return null;
             }
 
+            if (updatingMajorUniversityParam.OldTrainingProgramId != updatingMajorUniversityParam.NewTrainingProgramId)
+            {
+                MajorDetail exitedUpdateMajorDetail = await _uow.MajorDetailRepository
+                .GetFirst(filter: m => m.MajorId == updatingMajorUniversityParam.MajorId
+                && m.UniversityId == updatingMajorUniversityParam.UniversityId
+                && m.TrainingProgramId == updatingMajorUniversityParam.NewTrainingProgramId);
+
+                if (exitedUpdateMajorDetail != null)
+                {
+                    return null;
+                }
+            }
+
             majorDetail.TrainingProgramId = updatingMajorUniversityParam.NewTrainingProgramId;
             majorDetail.MajorCode = updatingMajorUniversityParam.MajorCode;
             _uow.MajorDetailRepository.Update(majorDetail);
