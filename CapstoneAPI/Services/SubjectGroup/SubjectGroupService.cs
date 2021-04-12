@@ -131,7 +131,7 @@ namespace CapstoneAPI.Services.SubjectGroup
             {
                 //Lấy điểm chuẩn cao nhất của năm gần nhất của ngành đó của các trường
                 List<EntryMark> entryMarks = (await _uow.MajorDetailRepository.Get(filter: m => m.MajorId == majorDataSet.Id, includeProperties: "EntryMarks"))
-                                                     .Select(m => m.EntryMarks.OrderByDescending(e => e.Mark).Where(e => e.Year == Consts.NEAREST_YEAR && e.SubjectGroupId == suggestGroup.Id).FirstOrDefault())
+                                                     .Select(m => m.EntryMarks.OrderByDescending(e => e.Mark).Where(e => e.Year == Consts.NEAREST_YEAR && e.Mark <= suggestGroup.TotalMark && e.SubjectGroupId == suggestGroup.Id).FirstOrDefault())
                                                      .Where(e => e != null).ToList();
                 majorDataSet.HighestEntryMark = entryMarks.OrderByDescending(e => e.Mark ?? default(double)).First().Mark ?? default(double);
             }
