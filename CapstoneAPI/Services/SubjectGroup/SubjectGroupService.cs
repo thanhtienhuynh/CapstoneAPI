@@ -28,7 +28,7 @@ namespace CapstoneAPI.Services.SubjectGroup
             List<SubjectGroupDataSet> subjectGroupDataSets = new List<SubjectGroupDataSet>();
             //Lấy danh sách khối
             IEnumerable<Models.SubjectGroup> subjectGroups = await _uow.SubjectGroupRepository.Get(includeProperties: "SubjectGroupDetails");
-            
+
             //Tính điểm mỗi khối
             foreach (Models.SubjectGroup subjectGroup in subjectGroups)
             {
@@ -48,9 +48,9 @@ namespace CapstoneAPI.Services.SubjectGroup
             {
                 return null;
             }
-            
+
             //Lọc những khối không có ngành phù hợp
-            foreach(SubjectGroupDataSet subjectGroupDataSet in subjectGroupDataSets.ToList())
+            foreach (SubjectGroupDataSet subjectGroupDataSet in subjectGroupDataSets.ToList())
             {
                 bool isValid = (await _uow.EntryMarkRepository.Get(filter: e => e.SubjectGroupId == subjectGroupDataSet.Id
                                                             && e.Year == Consts.NEAREST_YEAR
@@ -70,7 +70,6 @@ namespace CapstoneAPI.Services.SubjectGroup
                                                             Get(filter: weightNumbers => weightNumbers.SubjectGroupId == suggestGroup.Id, includeProperties: "Major"))
                                                             .Where(w => w.Major.Status == Consts.STATUS_ACTIVE)
                                                             .Select(w => w.MajorId).Distinct().ToList();
- 
 
                 //Lọc những id ngành không có trường phù hợp vì thấp hơn điểm chuẩn
                 await FilterMajorsWithEntryMark(majorIds, suggestGroup);

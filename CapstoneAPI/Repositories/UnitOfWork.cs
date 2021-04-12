@@ -27,6 +27,7 @@ namespace CapstoneAPI.Repositories
         private IGenericRepository<UserMajor> _userMajorRepository;
         private IGenericRepository<UserUniversity> _userUniversityRepository;
         private IGenericRepository<TrainingProgram> _trainingProgramRepository;
+        private IGenericRepository<AdmissionCriterion> _admissionCriterionRepository;
 
         public IGenericRepository<SubjectGroup> SubjectGroupRepository
         {
@@ -118,6 +119,11 @@ namespace CapstoneAPI.Repositories
             get { return _trainingProgramRepository ??= new GenericRepository<TrainingProgram>(_context); }
         }
 
+        public IGenericRepository<AdmissionCriterion> AdmissionCriterionRepository
+        {
+            get { return _admissionCriterionRepository ??= new GenericRepository<AdmissionCriterion>(_context); }
+        }
+        
         public UnitOfWork(CapstoneDBContext context)
         {
             _context = context;
