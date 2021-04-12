@@ -123,7 +123,7 @@ namespace CapstoneAPI.Repositories
         {
             get { return _admissionCriterionRepository ??= new GenericRepository<AdmissionCriterion>(_context); }
         }
-
+        
         public UnitOfWork(CapstoneDBContext context)
         {
             _context = context;

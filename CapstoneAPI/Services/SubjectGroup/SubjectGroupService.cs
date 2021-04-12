@@ -55,7 +55,7 @@ namespace CapstoneAPI.Services.SubjectGroup
                 bool isValid = (await _uow.EntryMarkRepository.Get(filter: e => e.SubjectGroupId == subjectGroupDataSet.Id
                                                             && e.Year == Consts.NEAREST_YEAR
                                                             && e.Mark <= subjectGroupDataSet.TotalMark && e.Mark > 0)).Any();
-                if (!isValid)
+                if(!isValid)
                 {
                     subjectGroupDataSets.Remove(subjectGroupDataSet);
                 }
@@ -70,7 +70,6 @@ namespace CapstoneAPI.Services.SubjectGroup
                                                             Get(filter: weightNumbers => weightNumbers.SubjectGroupId == suggestGroup.Id, includeProperties: "Major"))
                                                             .Where(w => w.Major.Status == Consts.STATUS_ACTIVE)
                                                             .Select(w => w.MajorId).Distinct().ToList();
-
 
                 //Lọc những id ngành không có trường phù hợp vì thấp hơn điểm chuẩn
                 await FilterMajorsWithEntryMark(majorIds, suggestGroup);

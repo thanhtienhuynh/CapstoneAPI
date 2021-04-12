@@ -315,7 +315,6 @@ namespace CapstoneAPI.Services.University
                 _uow.AdmissionCriterionRepository.Insert(admissionCriterion);
             }
 
-
             if ((await _uow.CommitAsync()) <= 0)
             {
                 return null;
