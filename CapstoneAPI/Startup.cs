@@ -20,10 +20,15 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Quartz;
 using Quartz.Impl;
 using Quartz.Spi;
 using System;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Reflection;
 using System.Text;
 
 namespace CapstoneAPI
@@ -33,6 +38,9 @@ namespace CapstoneAPI
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
+            string path = Path.Combine(Path
+                .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"FirebaseKey\capstone-7071e-firebase-adminsdk-umiw1-2c95fcab0a.json");
+            Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", path);
             FirebaseApp.Create(new AppOptions()
             {
                 Credential = GoogleCredential.GetApplicationDefault(),
@@ -72,6 +80,12 @@ namespace CapstoneAPI
                        RequireExpirationTime = false
                    };
                });
+
+            services.AddAuthentication().AddGoogle(googleOptions =>
+            {
+                googleOptions.ClientId = Configuration["Authentication:Google:ClientId"];
+                googleOptions.ClientSecret = Configuration["Authentication:Google:ClientSecret"];
+            });
 
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             AddServicesScoped(services);
@@ -114,6 +128,7 @@ namespace CapstoneAPI
             app.UseRouting();
 
             app.UseAuthorization();
+
             app.UseAuthentication();
 
             app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
