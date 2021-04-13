@@ -72,7 +72,7 @@
                 SpentTime = saveTestSubmissionParam.SpentTime,
                 SubmissionDate = DateTime.UtcNow,
                 NumberOfRightAnswers = saveTestSubmissionParam.NumberOfRightAnswers,
-                Mark = saveTestSubmissionParam.Mark,
+                Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
             };
 
 
@@ -210,6 +210,7 @@
             detailTestSubmissionDataSet.QuestionSubmissions = questionSubmissionDataSets;
             detailTestSubmissionDataSet.NumberOfQuestion = testSubmission.Test.NumberOfQuestion;
             detailTestSubmissionDataSet.TimeLimit = (int) testSubmission.Test.TimeLimit;
+            detailTestSubmissionDataSet.TestName = testSubmission.Test.Name;
 
             return detailTestSubmissionDataSet;
         }
