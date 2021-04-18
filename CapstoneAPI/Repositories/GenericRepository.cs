@@ -76,6 +76,13 @@ namespace CapstoneAPI.Repositories
             dbSet.Remove(entity);
         }
 
+        public virtual void DeleteComposite(Expression<Func<T, bool>> filter = null)
+        {
+            IEnumerable<T> entities = dbSet.Where(filter);
+            dbSet.AttachRange(entities);
+            dbSet.RemoveRange(entities);
+        }
+
         public Task<T> GetFirst(Expression<Func<T, bool>> filter = null, string includeProperties = "")
         {
             IQueryable<T> query = dbSet;
@@ -89,6 +96,12 @@ namespace CapstoneAPI.Repositories
                 query = query.Include(includeProperty);
             }
             return query.FirstOrDefaultAsync();
+        }
+
+        public virtual void InsertRange(IEnumerable<T> list)
+        {
+            if (list == null) throw new ArgumentException("list");
+            dbSet.AddRange(list);
         }
     }
 }

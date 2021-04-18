@@ -14,7 +14,6 @@ namespace CapstoneAPI.DataSets.Question
         public string Result { get; set; }
         public int Type { get; set; }
         public int TestId { get; set; }
-
         public List<OptionDataSet> Options { get; set; }
     }
 }

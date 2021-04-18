@@ -1,0 +1,84 @@
+{
+  "GDTD": {
+    "pageLink": "https://giaoducthoidai.vn",
+    "url": "https://giaoducthoidai.vn/tuyen-sinh-du-hoc.html",
+    "articlesDivId": "listArticles",
+    "articleDetailDivs": "./div[contains(@class, 'news-detail')]/ul[@id = 'timeline']/li/a",
+    "timeTag": {
+      "name": "span",
+      "attribute": "class",
+      "attibuteValue": "need-timeago"
+    },
+    "imgUrlTag": {
+      "name": "img",
+      "attribute": "src"
+    },
+    "shortDescription": {
+      "name": "p"
+    },
+    "postedDateFormat": "dd/MM/yyyy HH:mm",
+    "articleDetails": {
+      "headerTag": {
+        "name": "head"
+      },
+      "webIcon": {
+        "name": "link",
+        "attribute": "rel",
+        "attibuteValue": "icon"
+      },
+      "styleUrls": {
+        "name": "link",
+        "attribute": "href"
+      },
+      "detailTag": {
+        "name": "div",
+        "attribute": "class",
+        "attibuteValue": "bnc-detail"
+      }
+    }
+  },
+  "VNExpress": {
+    "pageLink": "https://vnexpress.net",
+    "url": "https://vnexpress.net/topic/phuong-an-tuyen-sinh-dai-hoc-nam-2021-25164",
+    "articlesDivId": "list-news",
+    "articleDetailDivs": {
+      "name": "article",
+      "attribute": "data-publishtime"
+    },
+    "titleTag": {
+      "name": "h2",
+      "attribute": "class",
+      "attributeValue": "title-news"
+    },
+    "linkTag": {
+      "name": "a",
+      "attribute": "href"
+    },
+    "shortDescription": {
+      "name": "p",
+      "attribute": "class",
+      "attributeValue": "description"
+    },
+    "imgUrlTag": {
+      "name": "img",
+      "containAttribute": "itemprop",
+      "containAttributeValue": "contentUrl",
+      "attribute": "data-src"
+    },
+    "articleDetails": {
+      "headerTag": {
+        "name": "head"
+      },
+      "detailTag": {
+        "name": "article",
+        "attribute": "class",
+        "attributeValue": "fck_detail"
+      },
+      "relatedTag": {
+        "name": "ul",
+        "attribute": "data-campaign",
+        "attributeValue": "Box-Related"
+      }
+    }
+  }
+}

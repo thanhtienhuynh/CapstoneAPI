@@ -7,7 +7,6 @@ namespace CapstoneAPI.DataSets.TestSubmission
 {
     public class TestSubmissionParam
     {
-        public int? UserId { get; set; }
         public int? TestId { get; set; }
         public int? SpentTime { get; set; }
         public List<QuestionParam> Questions { get; set; }

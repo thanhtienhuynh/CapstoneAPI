@@ -3,9 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using CapstoneAPI.Models;
 using CapstoneAPI.Services.SubjectGroup;
 using CapstoneAPI.DataSets.SubjectGroup;
 
@@ -26,6 +23,10 @@ namespace CapstoneAPI.Controllers
         public async Task<ActionResult<IEnumerable<SubjectGroupDataSet>>> SuggestTopSubjectGroup(SubjectGroupParam subjectGroupParam)
         {
             IEnumerable<SubjectGroupDataSet> subjectGroups = await _service.GetCaculatedSubjectGroup(subjectGroupParam);
+            if (subjectGroups == null || !subjectGroups.Any())
+            {
+                return NotFound();
+            }
             return Ok(subjectGroups);
         }
         [HttpGet()]
@@ -38,6 +39,25 @@ namespace CapstoneAPI.Controllers
             }
             return Ok(subjectGroups);
         }
-
+        [HttpPost]
+        public async Task<ActionResult<CreateSubjectGroupDataset>> CreateASubjectGroup([FromBody]CreateSubjectGroupParam createSubjectGroupParam)
+        {
+            CreateSubjectGroupDataset createSubjectGroupDataset = await _service.CreateNewSubjectGroup(createSubjectGroupParam);
+           if(createSubjectGroupDataset == null)
+            {
+                return BadRequest();
+            }
+            return Ok(createSubjectGroupDataset);
+        }
+        [HttpPut]
+        public async Task<ActionResult<CreateSubjectGroupDataset>> UpdateASubjectGroup([FromBody]UpdateSubjectGroupParam updateSubjectGroupParam)
+        {
+            CreateSubjectGroupDataset resultDataset = await _service.UpdateSubjectGroup(updateSubjectGroupParam);
+            if(resultDataset == null)
+            {
+                return BadRequest();
+            }
+            return Ok(resultDataset);
+        }
     }
 }
