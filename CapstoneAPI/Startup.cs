@@ -74,6 +74,7 @@ namespace CapstoneAPI
             AddServicesScoped(services);
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddCors();
+            services.AddSwaggerGen();
         }
 
         private void AddServicesScoped(IServiceCollection services)
@@ -93,6 +94,12 @@ namespace CapstoneAPI
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
+                app.UseSwagger();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "MOHS API");
+                    c.RoutePrefix = string.Empty;
+                });
             }
 
             app.UseHttpsRedirection();
