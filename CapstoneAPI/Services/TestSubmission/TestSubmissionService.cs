@@ -80,28 +80,29 @@
             if (userIdString != null && userIdString.Length > 0)
             {
                 int userId = Int32.Parse(userIdString);
-                bool isMajorCared = (await _uow.UserMajorRepository
-                    .GetFirst(filter: u => u.MajorId == saveTestSubmissionParam.MajorId && u.UserId == userId)) != null;
-                if (!isMajorCared)
+                MajorDetail majorDetail = await _uow.MajorDetailRepository
+                                        .GetFirst(filter: m => m.MajorId == saveTestSubmissionParam.MajorId
+                                                && m.TrainingProgramId == saveTestSubmissionParam.TrainingProgramId
+                                                && m.UniversityId == saveTestSubmissionParam.UniversityId);
+
+                if (majorDetail != null)
                 {
-                    _uow.UserMajorRepository.Insert(new UserMajor()
+                    UserMajorDetail userMajorDetail = await _uow.UserMajorDetailRepository
+                                                            .GetFirst(filter: u => u.UserId == userId
+                                                                        && u.MajorDetailId == majorDetail.Id);
+                    if (userMajorDetail == null)
                     {
-                        MajorId = saveTestSubmissionParam.MajorId,
-                        UserId = userId
-                    });
+                        userMajorDetail = new UserMajorDetail()
+                        {
+                            MajorDetailId = majorDetail.Id,
+                            UserId = userId,
+                            Status = Consts.STATUS_ACTIVE
+                        };
+                        _uow.UserMajorDetailRepository.Insert(userMajorDetail);
+                    }
                 }
 
-                bool isUniversityCared = (await _uow.UserUniversityRepository
-                    .GetFirst(filter: u => u.UniversityId == saveTestSubmissionParam.UniversityId && u.UserId == userId)) != null;
-
-                if (!isUniversityCared)
-                {
-                    _uow.UserUniversityRepository.Insert(new UserUniversity()
-                    {
-                        UniversityId = saveTestSubmissionParam.UniversityId,
-                        UserId = userId
-                    });
-                }
+                
 
                 testSubmission.UserId = userId;
                 _uow.TestSubmissionRepository.Insert(testSubmission);

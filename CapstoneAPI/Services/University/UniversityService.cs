@@ -71,9 +71,9 @@ namespace CapstoneAPI.Services.University
                         universityDataSet.NumberOfStudents = majorDetail.AdmissionCriteria
                                     .FirstOrDefault(a => a.Year == 2020) != null ? 
                                     majorDetail.AdmissionCriteria.FirstOrDefault(a => a.Year == 2020).Quantity : null;
-                        List<int> majorCaringUserIds = (await _uow.UserMajorRepository.Get(u => u.MajorId == universityParam.MajorId)).Select(m => m.UserId).ToList();
-                        List<int> universityCaringUserIds = (await _uow.UserUniversityRepository.Get(u => u.UniversityId == universityDataSet.Id)).Select(m => m.UserId).ToList();
-                        universityDataSet.NumberOfCaring = majorCaringUserIds.Intersect(universityCaringUserIds).Count();
+                        List<int> majorUniCaringUserIds = (await _uow.UserMajorDetailRepository.Get(u => u.MajorDetailId == majorDetail.Id))
+                                                            .Select(m => m.UserId).Distinct().ToList();
+                        universityDataSet.NumberOfCaring = majorUniCaringUserIds.Count();
 
                         universityDataSet.IsCared = userId > 0 ? await IsCared(userId, majorDetail.Id, majorDetail.MajorId, majorDetail.UniversityId)
                                                                 : false;
@@ -108,22 +108,6 @@ namespace CapstoneAPI.Services.University
                 return true;
             }
 
-            UserUniversity userUniversity = (await _uow.UserUniversityRepository
-                                                        .Get(filter: u => u.UniversityId == universityId
-                                                            && u.UserId == userId)).FirstOrDefault();
-            if (userUniversity != null)
-            {
-                return true;
-            }
-
-            UserMajor userMajor = (await _uow.UserMajorRepository
-                                                        .Get(filter: u => u.MajorId == majorId
-                                                            && u.UserId == userId)).FirstOrDefault();
-
-            if (userMajor != null)
-            {
-                return true;
-            }
             return false;
         }
 

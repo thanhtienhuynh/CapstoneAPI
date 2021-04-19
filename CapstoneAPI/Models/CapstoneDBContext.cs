@@ -27,6 +27,8 @@ namespace CapstoneAPI.Models
         public virtual DbSet<Option> Options { get; set; }
         public virtual DbSet<Question> Questions { get; set; }
         public virtual DbSet<QuestionSubmisstion> QuestionSubmisstions { get; set; }
+        public virtual DbSet<Rank> Ranks { get; set; }
+        public virtual DbSet<RankType> RankTypes { get; set; }
         public virtual DbSet<Role> Roles { get; set; }
         public virtual DbSet<Subject> Subjects { get; set; }
         public virtual DbSet<SubjectGroup> SubjectGroups { get; set; }
@@ -40,9 +42,7 @@ namespace CapstoneAPI.Models
         public virtual DbSet<University> Universities { get; set; }
         public virtual DbSet<UniversityArticle> UniversityArticles { get; set; }
         public virtual DbSet<User> Users { get; set; }
-        public virtual DbSet<UserMajor> UserMajors { get; set; }
         public virtual DbSet<UserMajorDetail> UserMajorDetails { get; set; }
-        public virtual DbSet<UserUniversity> UserUniversities { get; set; }
         public virtual DbSet<WeightNumber> WeightNumbers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -119,13 +119,11 @@ namespace CapstoneAPI.Models
 
             modelBuilder.Entity<MajorCareer>(entity =>
             {
-                entity.HasKey(e => new { e.MajorId, e.CareerId });
-
                 entity.ToTable("MajorCareer");
 
-                entity.Property(e => e.MajorId).HasColumnName("Major_Id");
-
                 entity.Property(e => e.CareerId).HasColumnName("Career_Id");
+
+                entity.Property(e => e.MajorId).HasColumnName("Major_Id");
 
                 entity.HasOne(d => d.Career)
                     .WithMany(p => p.MajorCareers)
@@ -231,6 +229,36 @@ namespace CapstoneAPI.Models
                     .HasConstraintName("FK_QuestionSubmisstion_TestSubmission");
             });
 
+            modelBuilder.Entity<Rank>(entity =>
+            {
+                entity.ToTable("Rank");
+
+                entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+                entity.Property(e => e.UserMajorDetailId).HasColumnName("User_MajorDetail_Id");
+
+                entity.HasOne(d => d.RankType)
+                    .WithMany(p => p.Ranks)
+                    .HasForeignKey(d => d.RankTypeId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_Rank_RankType");
+
+                entity.HasOne(d => d.UserMajorDetail)
+                    .WithMany(p => p.Ranks)
+                    .HasForeignKey(d => d.UserMajorDetailId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_Rank_User_MajorDetail");
+            });
+
+            modelBuilder.Entity<RankType>(entity =>
+            {
+                entity.ToTable("RankType");
+
+                entity.Property(e => e.Name)
+                    .IsRequired()
+                    .HasMaxLength(50);
+            });
+
             modelBuilder.Entity<Role>(entity =>
             {
                 entity.ToTable("Role");
@@ -259,11 +287,9 @@ namespace CapstoneAPI.Models
 
             modelBuilder.Entity<SubjectGroupDetail>(entity =>
             {
-                entity.HasKey(e => new { e.SubjectId, e.SubjectGroupId });
+                entity.Property(e => e.SubjectGroupId).HasColumnName("SubjectGroup_Id");
 
                 entity.Property(e => e.SubjectId).HasColumnName("Subject_Id");
-
-                entity.Property(e => e.SubjectGroupId).HasColumnName("SubjectGroup_Id");
 
                 entity.HasOne(d => d.SubjectGroup)
                     .WithMany(p => p.SubjectGroupDetails)
@@ -425,26 +451,23 @@ namespace CapstoneAPI.Models
 
             modelBuilder.Entity<UniversityArticle>(entity =>
             {
-                entity.HasKey(e => new { e.UniversityId, e.ArticleId })
-                    .HasName("PK_University_AdmissionInformation");
-
                 entity.ToTable("University_Article");
 
-                entity.Property(e => e.UniversityId).HasColumnName("University_Id");
-
                 entity.Property(e => e.ArticleId).HasColumnName("Article_Id");
+
+                entity.Property(e => e.UniversityId).HasColumnName("University_Id");
 
                 entity.HasOne(d => d.Article)
                     .WithMany(p => p.UniversityArticles)
                     .HasForeignKey(d => d.ArticleId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_University_AdmissionInformation_AdmissionInformation");
+                    .HasConstraintName("FK_Article_University_Article");
 
                 entity.HasOne(d => d.University)
                     .WithMany(p => p.UniversityArticles)
                     .HasForeignKey(d => d.UniversityId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_University_AdmissionInformation_University");
+                    .HasConstraintName("FK_University_University_Article");
             });
 
             modelBuilder.Entity<User>(entity =>
@@ -477,40 +500,15 @@ namespace CapstoneAPI.Models
                     .HasConstraintName("FK_User_Role");
             });
 
-            modelBuilder.Entity<UserMajor>(entity =>
-            {
-                entity.HasKey(e => new { e.UserId, e.MajorId });
-
-                entity.ToTable("User_Major");
-
-                entity.Property(e => e.UserId).HasColumnName("User_Id");
-
-                entity.Property(e => e.MajorId).HasColumnName("Major_Id");
-
-                entity.HasOne(d => d.Major)
-                    .WithMany(p => p.UserMajors)
-                    .HasForeignKey(d => d.MajorId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_User_Major_Major");
-
-                entity.HasOne(d => d.User)
-                    .WithMany(p => p.UserMajors)
-                    .HasForeignKey(d => d.UserId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_User_Major_User");
-            });
-
             modelBuilder.Entity<UserMajorDetail>(entity =>
             {
-                entity.HasKey(e => new { e.UserId, e.MajorDetailId });
-
                 entity.ToTable("User_MajorDetail");
 
                 entity.HasIndex(e => e.UserId, "IX_User_MajorDetail");
 
-                entity.Property(e => e.UserId).HasColumnName("User_Id");
-
                 entity.Property(e => e.MajorDetailId).HasColumnName("MajorDetail_Id");
+
+                entity.Property(e => e.UserId).HasColumnName("User_Id");
 
                 entity.HasOne(d => d.MajorDetail)
                     .WithMany(p => p.UserMajorDetails)
@@ -523,29 +521,6 @@ namespace CapstoneAPI.Models
                     .HasForeignKey(d => d.UserId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_User_MajorDetail_User");
-            });
-
-            modelBuilder.Entity<UserUniversity>(entity =>
-            {
-                entity.HasKey(e => new { e.UserId, e.UniversityId });
-
-                entity.ToTable("User_University");
-
-                entity.Property(e => e.UserId).HasColumnName("User_Id");
-
-                entity.Property(e => e.UniversityId).HasColumnName("University_Id");
-
-                entity.HasOne(d => d.University)
-                    .WithMany(p => p.UserUniversities)
-                    .HasForeignKey(d => d.UniversityId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_User_University_University");
-
-                entity.HasOne(d => d.User)
-                    .WithMany(p => p.UserUniversities)
-                    .HasForeignKey(d => d.UserId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_User_University_User");
             });
 
             modelBuilder.Entity<WeightNumber>(entity =>

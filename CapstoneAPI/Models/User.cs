@@ -13,8 +13,6 @@ namespace CapstoneAPI.Models
             Tests = new HashSet<Test>();
             Transcripts = new HashSet<Transcript>();
             UserMajorDetails = new HashSet<UserMajorDetail>();
-            UserMajors = new HashSet<UserMajor>();
-            UserUniversities = new HashSet<UserUniversity>();
         }
 
         public int Id { get; set; }
@@ -32,7 +30,5 @@ namespace CapstoneAPI.Models
         public virtual ICollection<Test> Tests { get; set; }
         public virtual ICollection<Transcript> Transcripts { get; set; }
         public virtual ICollection<UserMajorDetail> UserMajorDetails { get; set; }
-        public virtual ICollection<UserMajor> UserMajors { get; set; }
-        public virtual ICollection<UserUniversity> UserUniversities { get; set; }
     }
 }
