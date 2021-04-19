@@ -97,10 +97,10 @@ namespace CapstoneAPI.Services.University
             foreach (MajorDetail majorDetail in university.MajorDetails)
             {
                 Models.Major major = await _uow.MajorRepository.GetById(majorDetail.MajorId);
+                AdmissionCriterion admissionCriterion = await _uow.AdmissionCriterionRepository
+                                                                .GetFirst(a => a.Year == 2021 && a.MajorDetailId == majorDetail.Id);
                 UniMajorDataSet uniMajorDataSet = _mapper.Map<UniMajorDataSet>(major);
-                uniMajorDataSet.NumberOfStudents = 
-                    majorDetail.AdmissionCriteria.FirstOrDefault(a => a.Year == 2021) != null ?
-                                    majorDetail.AdmissionCriteria.FirstOrDefault(a => a.Year == 2021).Quantity : null; ;
+                uniMajorDataSet.NumberOfStudents = admissionCriterion != null ? admissionCriterion.Quantity : null;
                 uniMajorDataSet.Code = majorDetail.MajorCode;
                 uniMajorDataSet.TrainingProgramId = majorDetail.TrainingProgramId;
                 uniMajorDataSet.TrainingProgramName = (await _uow.TrainingProgramRepository.GetById(majorDetail.TrainingProgramId)).Name;
