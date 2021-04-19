@@ -24,10 +24,10 @@ namespace CapstoneAPI.Repositories
         IGenericRepository<MajorDetail> MajorDetailRepository { get; }
         IGenericRepository<Article> ArticleRepository { get; }
         IGenericRepository<QuestionSubmisstion> QuestionSubmisstionRepository { get; }
-        IGenericRepository<UserMajor> UserMajorRepository { get; }
-        IGenericRepository<UserUniversity> UserUniversityRepository { get; }
         IGenericRepository<TrainingProgram> TrainingProgramRepository { get; }
         IGenericRepository<AdmissionCriterion> AdmissionCriterionRepository { get; }
+        IGenericRepository<UserMajorDetail> UserMajorDetailRepository { get; }
+        IGenericRepository<Transcript> TranscriptRepository { get; }
         Task<int> CommitAsync();
     }
 }

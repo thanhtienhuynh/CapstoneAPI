@@ -11,6 +11,7 @@ using CapstoneAPI.Services.TestSubmission;
 using CapstoneAPI.Services.TrainingProgram;
 using CapstoneAPI.Services.University;
 using CapstoneAPI.Services.User;
+using CapstoneAPI.Services.UserMajorDetail;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -95,6 +96,7 @@ namespace CapstoneAPI
                 jobType: typeof(ArticleCrawlerCronJob),
                 cronExpression: "0 */30 * ? * *"));
             services.AddHostedService<QuartzHostedService>();
+            services.AddSwaggerGen();
         }
 
         private void AddServicesScoped(IServiceCollection services)
@@ -108,6 +110,7 @@ namespace CapstoneAPI
             services.AddScoped<IMajorService, MajorService>();
             services.AddScoped<IArticleCrawlerService, ArticleCrawlerService>();
             services.AddScoped<ITrainingProgramService, TrainingProgramService>();
+            services.AddScoped<IUserMajorDetailService, UserMajorDetailService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -116,6 +119,12 @@ namespace CapstoneAPI
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
+                app.UseSwagger();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "MOHS API");
+                    c.RoutePrefix = string.Empty;
+                });
             }
 
             app.UseHttpsRedirection();

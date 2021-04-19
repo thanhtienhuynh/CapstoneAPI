@@ -26,7 +26,8 @@ namespace CapstoneAPI.Controllers
         [HttpGet("suggestion")]
         public async Task<ActionResult<IEnumerable<UniversityDataSetBaseOnTrainingProgram>>> GetUniversityBySubjectGroupAndMajor([FromQuery] UniversityParam universityParam)
         {
-            IEnumerable<UniversityDataSetBaseOnTrainingProgram> result = await _service.GetUniversityBySubjectGroupAndMajor(universityParam);
+            string token = Request.Headers["Authorization"];
+            IEnumerable<UniversityDataSetBaseOnTrainingProgram> result = await _service.GetUniversityBySubjectGroupAndMajor(universityParam, token);
             if (result == null || !result.Any())
             {
                 return NotFound();

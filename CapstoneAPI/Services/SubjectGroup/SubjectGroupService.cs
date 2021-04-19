@@ -39,11 +39,6 @@ namespace CapstoneAPI.Services.SubjectGroup
                 }
             }
 
-            if (!subjectGroupParam.IsSuggest)
-            {
-                return subjectGroupDataSets.OrderByDescending(o => o.TotalMark).ToList();
-            }
-
             if (!subjectGroupDataSets.Any())
             {
                 return null;
@@ -127,12 +122,20 @@ namespace CapstoneAPI.Services.SubjectGroup
                 }
             }
 
-            foreach(MajorDataSet majorDataSet in majorDataSetsBaseOnEntryMark)
+            foreach(MajorDataSet majorDataSet in majorDataSetsBaseOnEntryMark.ToList())
             {
                 //Lấy điểm chuẩn cao nhất của năm gần nhất của ngành đó của các trường
                 List<EntryMark> entryMarks = (await _uow.MajorDetailRepository.Get(filter: m => m.MajorId == majorDataSet.Id, includeProperties: "EntryMarks"))
-                                                     .Select(m => m.EntryMarks.OrderByDescending(e => e.Mark).Where(e => e.Year == Consts.NEAREST_YEAR && e.Mark <= suggestGroup.TotalMark && e.SubjectGroupId == suggestGroup.Id).FirstOrDefault())
+                                                     .Select(m => m.EntryMarks.OrderByDescending(e => e.Mark)
+                                                     .Where(e => e.Year == Consts.NEAREST_YEAR 
+                                                            && e.Mark <= suggestGroup.TotalMark 
+                                                            && e.SubjectGroupId == suggestGroup.Id).FirstOrDefault())
                                                      .Where(e => e != null).ToList();
+                if (!entryMarks.Any())
+                {
+                    majorDataSetsBaseOnEntryMark.Remove(majorDataSet);
+                    continue;
+                }
                 majorDataSet.HighestEntryMark = entryMarks.OrderByDescending(e => e.Mark ?? default(double)).First().Mark ?? default(double);
             }
             majorDataSetsBaseOnEntryMark = majorDataSetsBaseOnEntryMark.OrderByDescending(m => m.HighestEntryMark).ToList();

@@ -13,6 +13,7 @@ namespace CapstoneAPI.DataSets.TestSubmission
         public int NumberOfRightAnswers { get; set; }
         public int MajorId { get; set; }
         public int UniversityId { get; set; }
+        public int TrainingProgramId { get; set; }
 
         public List<QuestionParam> Questions { get; set; }
     }

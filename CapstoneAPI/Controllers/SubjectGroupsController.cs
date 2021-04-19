@@ -29,6 +29,7 @@ namespace CapstoneAPI.Controllers
             }
             return Ok(subjectGroups);
         }
+
         [HttpGet()]
         public async Task<ActionResult<IEnumerable<AdminSubjectGroupDataSet>>> GetSubjectGroupsByAdmin()
         {
