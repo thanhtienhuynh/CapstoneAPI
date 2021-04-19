@@ -24,10 +24,10 @@ namespace CapstoneAPI.Repositories
         private IGenericRepository<MajorDetail> _majorDetailRepository;
         private IGenericRepository<Article> _articleRepository;
         private IGenericRepository<QuestionSubmisstion> _questionSubmisstionRepository;
-        private IGenericRepository<UserMajor> _userMajorRepository;
-        private IGenericRepository<UserUniversity> _userUniversityRepository;
         private IGenericRepository<TrainingProgram> _trainingProgramRepository;
         private IGenericRepository<AdmissionCriterion> _admissionCriterionRepository;
+        private IGenericRepository<UserMajorDetail> _userMajorDetailRepository;
+        private IGenericRepository<Transcript> _transcriptRepository;
 
         public IGenericRepository<SubjectGroup> SubjectGroupRepository
         {
@@ -105,15 +105,6 @@ namespace CapstoneAPI.Repositories
             get { return _questionSubmisstionRepository ??= new GenericRepository<QuestionSubmisstion>(_context); }
         }
 
-        public IGenericRepository<UserMajor> UserMajorRepository
-        {
-            get { return _userMajorRepository ??= new GenericRepository<UserMajor>(_context); }
-        }
-
-        public IGenericRepository<UserUniversity> UserUniversityRepository
-        {
-            get { return _userUniversityRepository ??= new GenericRepository<UserUniversity>(_context); }
-        }
         public IGenericRepository<TrainingProgram> TrainingProgramRepository
         {
             get { return _trainingProgramRepository ??= new GenericRepository<TrainingProgram>(_context); }
@@ -123,7 +114,15 @@ namespace CapstoneAPI.Repositories
         {
             get { return _admissionCriterionRepository ??= new GenericRepository<AdmissionCriterion>(_context); }
         }
-        
+        public IGenericRepository<UserMajorDetail> UserMajorDetailRepository
+        {
+            get { return _userMajorDetailRepository ??= new GenericRepository<UserMajorDetail>(_context); }
+        }
+        public IGenericRepository<Transcript> TranscriptRepository
+        {
+            get { return _transcriptRepository ??= new GenericRepository<Transcript>(_context); }
+        }
+
         public UnitOfWork(CapstoneDBContext context)
         {
             _context = context;

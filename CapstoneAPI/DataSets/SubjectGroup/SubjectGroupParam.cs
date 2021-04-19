@@ -8,7 +8,7 @@ namespace CapstoneAPI.DataSets.SubjectGroup
     public class SubjectGroupParam
     {
         public List<MarkParam> Marks { get; set; }
-        public bool IsSuggest { get; set; }
+        public int TranscriptTypeId { get; set; }
     }
 
     public class MarkParam

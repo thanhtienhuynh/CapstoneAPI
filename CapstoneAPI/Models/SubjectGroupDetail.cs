@@ -7,6 +7,7 @@ namespace CapstoneAPI.Models
 {
     public partial class SubjectGroupDetail
     {
+        public int Id { get; set; }
         public int SubjectId { get; set; }
         public int SubjectGroupId { get; set; }
 

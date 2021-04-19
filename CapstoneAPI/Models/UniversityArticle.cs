@@ -7,6 +7,7 @@ namespace CapstoneAPI.Models
 {
     public partial class UniversityArticle
     {
+        public int Id { get; set; }
         public int UniversityId { get; set; }
         public int ArticleId { get; set; }
 
