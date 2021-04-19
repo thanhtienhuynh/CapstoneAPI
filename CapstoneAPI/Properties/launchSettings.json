@@ -12,7 +12,6 @@
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,
-      "launchUrl": "api/v1/subject-group",
       "environmentVariables": {
         "GOOGLE_APPLICATION_CREDENTIALS": "FirebaseKey\\capstone-7071e-firebase-adminsdk-umiw1-2c95fcab0a.json",
         "ASPNETCORE_ENVIRONMENT": "Development"
@@ -21,7 +20,6 @@
     "CapstoneAPI": {
       "commandName": "Project",
       "launchBrowser": true,
-      "launchUrl": "api/v1/subject-group",
       "environmentVariables": {
         "GOOGLE_APPLICATION_CREDENTIALS": "FirebaseKey\\capstone-7071e-firebase-adminsdk-umiw1-2c95fcab0a.json",
         "ASPNETCORE_ENVIRONMENT": "Development"
