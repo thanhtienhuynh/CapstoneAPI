@@ -11,6 +11,7 @@ namespace CapstoneAPI.Models
         {
             AdmissionCriteria = new HashSet<AdmissionCriterion>();
             EntryMarks = new HashSet<EntryMark>();
+            UserMajorDetails = new HashSet<UserMajorDetail>();
         }
 
         public int Id { get; set; }
@@ -24,5 +25,6 @@ namespace CapstoneAPI.Models
         public virtual University University { get; set; }
         public virtual ICollection<AdmissionCriterion> AdmissionCriteria { get; set; }
         public virtual ICollection<EntryMark> EntryMarks { get; set; }
+        public virtual ICollection<UserMajorDetail> UserMajorDetails { get; set; }
     }
 }

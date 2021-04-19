@@ -11,9 +11,6 @@ namespace CapstoneAPI.DataSets.Major
         public string Name { get; set; }
         public string Code { get; set; }
         public double WeightMark { get; set; }
-        public int TrainingProgramId { get; set; }
-        public string TrainingProgramName { get; set; }
-
         public double HighestEntryMark { get; set; }
     }
 }

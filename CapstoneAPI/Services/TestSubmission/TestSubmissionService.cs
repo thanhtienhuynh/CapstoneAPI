@@ -58,9 +58,9 @@
             return testSubmissionDataSet;
         }
 
-        public async Task<BaseResponse> SaveTestSubmission(SaveTestSubmissionParam saveTestSubmissionParam, string token)
+        public async Task<BaseResponse<TestSubmission>> SaveTestSubmission(SaveTestSubmissionParam saveTestSubmissionParam, string token)
         {
-            BaseResponse response = new BaseResponse();
+            BaseResponse<TestSubmission> response = new BaseResponse<TestSubmission>();
             bool isSuccess = false;
             if (token == null || token.Trim().Length == 0)
             {
@@ -122,7 +122,7 @@
                     }
                 }
             }
-            response.isSuccess = isSuccess;
+            response.IsSuccess = isSuccess;
             return response;
         }
 

@@ -41,6 +41,7 @@ namespace CapstoneAPI.Models
         public virtual DbSet<UniversityArticle> UniversityArticles { get; set; }
         public virtual DbSet<User> Users { get; set; }
         public virtual DbSet<UserMajor> UserMajors { get; set; }
+        public virtual DbSet<UserMajorDetail> UserMajorDetails { get; set; }
         public virtual DbSet<UserUniversity> UserUniversities { get; set; }
         public virtual DbSet<WeightNumber> WeightNumbers { get; set; }
 
@@ -157,7 +158,7 @@ namespace CapstoneAPI.Models
                 entity.HasOne(d => d.Major)
                     .WithMany(p => p.MajorDetails)
                     .HasForeignKey(d => d.MajorId)
-                    .HasConstraintName("FK_Tution_Major");
+                    .HasConstraintName("FK_MajorDetail_Major");
 
                 entity.HasOne(d => d.TrainingProgram)
                     .WithMany(p => p.MajorDetails)
@@ -168,7 +169,7 @@ namespace CapstoneAPI.Models
                 entity.HasOne(d => d.University)
                     .WithMany(p => p.MajorDetails)
                     .HasForeignKey(d => d.UniversityId)
-                    .HasConstraintName("FK_Tution_University");
+                    .HasConstraintName("FK_MajorDetail_University");
             });
 
             modelBuilder.Entity<Option>(entity =>
@@ -497,6 +498,31 @@ namespace CapstoneAPI.Models
                     .HasForeignKey(d => d.UserId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_User_Major_User");
+            });
+
+            modelBuilder.Entity<UserMajorDetail>(entity =>
+            {
+                entity.HasKey(e => new { e.UserId, e.MajorDetailId });
+
+                entity.ToTable("User_MajorDetail");
+
+                entity.HasIndex(e => e.UserId, "IX_User_MajorDetail");
+
+                entity.Property(e => e.UserId).HasColumnName("User_Id");
+
+                entity.Property(e => e.MajorDetailId).HasColumnName("MajorDetail_Id");
+
+                entity.HasOne(d => d.MajorDetail)
+                    .WithMany(p => p.UserMajorDetails)
+                    .HasForeignKey(d => d.MajorDetailId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_User_MajorDetail_MajorDetail");
+
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.UserMajorDetails)
+                    .HasForeignKey(d => d.UserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_User_MajorDetail_User");
             });
 
             modelBuilder.Entity<UserUniversity>(entity =>

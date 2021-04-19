@@ -21,8 +21,8 @@ namespace CapstoneAPI.DataSets.University
         public int? Rating { get; set; }
         public double NearestYearEntryMark { get; set; }
         public int? NumberOfStudents { get; set; }
-
         public int? NumberOfCaring { get; set; }
+        public bool IsCared { get; set; }
     }
 
     public class UniversityDataSetBaseOnTrainingProgram
