@@ -202,7 +202,7 @@ namespace CapstoneAPI.Services.University
             updatedUni.Code = adminUniversityDataSet.Code;
             updatedUni.Name = adminUniversityDataSet.Name;
             updatedUni.Address = adminUniversityDataSet.Address;
-            //updatedUni.LogoUrl = adminUniversityDataSet.LogoUrl;
+            updatedUni.LogoUrl = adminUniversityDataSet.LogoUrl;
             updatedUni.Description = adminUniversityDataSet.Description;
             updatedUni.Phone = adminUniversityDataSet.Phone;
             updatedUni.WebUrl = adminUniversityDataSet.WebUrl;

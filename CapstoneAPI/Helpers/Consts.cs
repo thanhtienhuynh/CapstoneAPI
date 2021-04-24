@@ -23,5 +23,15 @@ namespace CapstoneAPI.Helpers
         public static int NEAREST_YEAR = 2020;
         public static int TOKEN_EXPIRED_TIME = 60 * 60;
         public static int REQUIRED_NUMBER_SUBJECTS = 3;
+
+        //Fibase for Logo University
+
+        public static List<string> ImageExtensions = new List<string> { ".JPG", ".JPE", ".BMP", ".GIF", ".PNG", ".JFIF" };
+        public static string LogoFolder = "abc/AvatarUniversity";
+        public static string ApiKey = "AIzaSyBHrI1bDdG56ELUdBh05f3yOkNliAy8GUY";
+        public static string Bucket = "unilinks-41d0e.appspot.com";
+        public static string AuthEmail = "storage@gmail.com";
+        public static string AuthPassword = "Matkhau123";
+
     }                                             
 }
