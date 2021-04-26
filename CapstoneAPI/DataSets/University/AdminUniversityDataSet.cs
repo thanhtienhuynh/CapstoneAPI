@@ -8,7 +8,7 @@ namespace CapstoneAPI.DataSets.University
 {
     public class AdminUniversityDataSet
     {
-        public IFormFile files { get; set; }
+        public IFormFile File { get; set; }
         public int Id { get; set; }
         public string Code { get; set; }
         public string Name { get; set; }

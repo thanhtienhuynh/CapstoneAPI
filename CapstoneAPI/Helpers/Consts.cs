@@ -26,12 +26,12 @@ namespace CapstoneAPI.Helpers
 
         //Fibase for Logo University
 
-        public static List<string> ImageExtensions = new List<string> { ".JPG", ".JPE", ".BMP", ".GIF", ".PNG", ".JFIF" };
-        public static string LogoFolder = "abc/AvatarUniversity";
-        public static string ApiKey = "AIzaSyBHrI1bDdG56ELUdBh05f3yOkNliAy8GUY";
-        public static string Bucket = "unilinks-41d0e.appspot.com";
-        public static string AuthEmail = "storage@gmail.com";
-        public static string AuthPassword = "Matkhau123";
+        public static List<string> IMAGE_EXTENSIONS = new List<string> { ".JPG", ".JPE", ".BMP", ".GIF", ".PNG", ".JFIF" };
+        public static string LOGOFOLDER = "abc/AvatarUniversity";
+        public static string APIKEY = "AIzaSyBHrI1bDdG56ELUdBh05f3yOkNliAy8GUY";
+        public static string BUCKET = "unilinks-41d0e.appspot.com";
+        public static string AUTHMAIL = "storage@gmail.com";
+        public static string AUTHPASSWORD = "Matkhau123";
 
     }                                             
 }

@@ -1,19 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using CapstoneAPI.Models;
 using CapstoneAPI.DataSets.University;
 using CapstoneAPI.Services.University;
-using System.Net.Http.Headers;
-using System.IO;
-using Firebase.Auth;
-using System.Threading;
-using Firebase.Storage;
-using CapstoneAPI.Helpers;
+
 
 namespace CapstoneAPI.Controllers
 {
@@ -74,45 +65,6 @@ namespace CapstoneAPI.Controllers
         [HttpPut]
         public async Task<ActionResult<AdminUniversityDataSet>> UpdateUniversity([FromForm] AdminUniversityDataSet adminUniversityDataSet)
         {
-            IFormFile logoImage = adminUniversityDataSet.files;
-            if (logoImage != null)
-            {
-                if (Consts.ImageExtensions.Contains(Path.GetExtension(logoImage.FileName).ToUpperInvariant()))
-                {
-
-                    using (var ms = new MemoryStream())
-                    {
-                        logoImage.CopyTo(ms);
-                        ms.Position = 0;
-                        if (ms != null && ms.Length > 0)
-                        {
-                            var auth = new FirebaseAuthProvider(new FirebaseConfig(Consts.ApiKey));
-                            var firebaseAuth = await auth.SignInWithEmailAndPasswordAsync(Consts.AuthEmail, Consts.AuthPassword);
-
-                            // you can use CancellationTokenSource to cancel the upload midway
-                            var cancellation = new CancellationTokenSource();
-
-                            var task = new FirebaseStorage(
-                                Consts.Bucket,
-                                new FirebaseStorageOptions
-                                {
-                                    ThrowOnCancel = true, // when you cancel the upload, exception is thrown. By default no exception is thrown
-                                    AuthTokenAsyncFactory = () => Task.FromResult(firebaseAuth.FirebaseToken),
-                                })
-                                .Child(Consts.LogoFolder)
-                                .Child(adminUniversityDataSet.Code + Path.GetExtension(logoImage.FileName))
-                                .PutAsync(ms, cancellation.Token);
-
-                            adminUniversityDataSet.LogoUrl = await task;
-                        }
-
-                    }
-                }
-                else
-                {
-                    return BadRequest();
-                }
-            }
             AdminUniversityDataSet result = await _service.UpdateUniversity(adminUniversityDataSet);
             if (result == null)
             {
