@@ -2,6 +2,7 @@ using CapstoneAPI.CronJobs;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
+using CapstoneAPI.Services.Article;
 using CapstoneAPI.Services.Crawler;
 using CapstoneAPI.Services.Major;
 using CapstoneAPI.Services.Subject;
@@ -10,6 +11,7 @@ using CapstoneAPI.Services.Test;
 using CapstoneAPI.Services.TestSubmission;
 using CapstoneAPI.Services.TrainingProgram;
 using CapstoneAPI.Services.University;
+using CapstoneAPI.Services.UriService;
 using CapstoneAPI.Services.User;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
@@ -102,6 +104,7 @@ namespace CapstoneAPI
             services.AddScoped<IMajorService, MajorService>();
             services.AddScoped<IArticleCrawlerService, ArticleCrawlerService>();
             services.AddScoped<ITrainingProgramService, TrainingProgramService>();
+            services.AddScoped<IArticleService, ArticleService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
