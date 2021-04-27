@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -38,5 +38,12 @@ namespace CapstoneAPI.Helpers
         public static int RANK_TYPE_THPTQG = 1;
         public static int RANK_TYPE_HT = 3;
         public static int RANK_TYPE_HB = 2;
+        //Fibase for Logo University
+        public static List<string> IMAGE_EXTENSIONS = new List<string> { ".JPG", ".JPE", ".BMP", ".GIF", ".PNG", ".JFIF" };
+        public static string LOGO_FOLDER = "abc/AvatarUniversity";
+        public static string API_KEY = "AIzaSyBHrI1bDdG56ELUdBh05f3yOkNliAy8GUY";
+        public static string BUCKET = "unilinks-41d0e.appspot.com";
+        public static string AUTH_MAIL = "storage@gmail.com";
+        public static string AUTH_PASSWORD = "Matkhau123";
     }                                             
 }
