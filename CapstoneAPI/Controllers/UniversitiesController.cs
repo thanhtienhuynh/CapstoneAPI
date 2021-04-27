@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using CapstoneAPI.Models;
 using CapstoneAPI.DataSets.University;
 using CapstoneAPI.Services.University;
+
 
 namespace CapstoneAPI.Controllers
 {
@@ -15,7 +12,6 @@ namespace CapstoneAPI.Controllers
     [ApiController]
     public class UniversitiesController : ControllerBase
     {
-
         private readonly IUniversityService _service;
 
         public UniversitiesController(IUniversityService service)
@@ -67,7 +63,7 @@ namespace CapstoneAPI.Controllers
             return Ok(result);
         }
         [HttpPut]
-        public async Task<ActionResult<AdminUniversityDataSet>> UpdateUniversity([FromBody] AdminUniversityDataSet adminUniversityDataSet)
+        public async Task<ActionResult<AdminUniversityDataSet>> UpdateUniversity([FromForm] AdminUniversityDataSet adminUniversityDataSet)
         {
             AdminUniversityDataSet result = await _service.UpdateUniversity(adminUniversityDataSet);
             if (result == null)
