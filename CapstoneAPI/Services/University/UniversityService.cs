@@ -218,8 +218,8 @@ namespace CapstoneAPI.Services.University
                         ms.Position = 0;
                         if (ms != null && ms.Length > 0)
                         {
-                            var auth = new FirebaseAuthProvider(new FirebaseConfig(Consts.APIKEY));
-                            var firebaseAuth = await auth.SignInWithEmailAndPasswordAsync(Consts.AUTHMAIL, Consts.AUTHPASSWORD);
+                            var auth = new FirebaseAuthProvider(new FirebaseConfig(Consts.API_KEY));
+                            var firebaseAuth = await auth.SignInWithEmailAndPasswordAsync(Consts.AUTH_MAIL, Consts.AUTH_PASSWORD);
 
                             // you can use CancellationTokenSource to cancel the upload midway
                             var cancellation = new CancellationTokenSource();
@@ -231,7 +231,7 @@ namespace CapstoneAPI.Services.University
                                     ThrowOnCancel = true, // when you cancel the upload, exception is thrown. By default no exception is thrown
                                     AuthTokenAsyncFactory = () => Task.FromResult(firebaseAuth.FirebaseToken),
                                 })
-                                .Child(Consts.LOGOFOLDER)
+                                .Child(Consts.LOGO_FOLDER)
                                 .Child(adminUniversityDataSet.Code + Path.GetExtension(logoImage.FileName))
                                 .PutAsync(ms, cancellation.Token);
 
