@@ -69,16 +69,21 @@ namespace CapstoneAPI.Services.University
                         UniversityDataSet universityDataSet = _mapper.Map<UniversityDataSet>(majorDetail.University);
                         universityDataSet.NearestYearEntryMark = (double)entryMark.Mark;
                         universityDataSet.NumberOfStudents = majorDetail.AdmissionCriteria
-                                    .FirstOrDefault(a => a.Year == 2020) != null ? 
+                                    .FirstOrDefault(a => a.Year == 2020) != null ?
                                     majorDetail.AdmissionCriteria.FirstOrDefault(a => a.Year == 2020).Quantity : null;
                         List<int> majorUniCaringUserIds = (await _uow.UserMajorDetailRepository.Get(u => u.MajorDetailId == majorDetail.Id))
                                                             .Select(m => m.UserId).Distinct().ToList();
                         universityDataSet.NumberOfCaring = majorUniCaringUserIds.Count();
 
-                        universityDataSet.IsCared = userId > 0 ? await IsCared(userId, majorDetail.Id, majorDetail.MajorId, majorDetail.UniversityId)
-                                                                : false;
+                        universityDataSet.IsCared = userId > 0 && await IsCared(userId, majorDetail.Id, majorDetail.MajorId, majorDetail.UniversityId);
+                        IEnumerable<Models.Rank> ranks = (await _uow.UserMajorDetailRepository
+                                                            .Get(filter: u => u.MajorDetailId == majorDetail.Id, includeProperties: "Rank"))
+                                                            .Select(u => u.Rank).Where(r => r != null);
+                        universityDataSet.Rank = _uow.RankRepository.CalculateRank(universityParam.TranscriptTypeId, universityParam.TotalMark, ranks);
                         universityDataSets.Add(universityDataSet);
+
                     }
+
                 }
                 if (universityDataSets.Any())
                 {
@@ -93,6 +98,8 @@ namespace CapstoneAPI.Services.University
             
             return universityDataSetsBaseOnTrainingProgram;
         }
+
+        
 
         public async Task<bool> IsCared(int userId, int majorDetailId, int? majorId, int? universityId)
         {

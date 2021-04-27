@@ -231,11 +231,16 @@ namespace CapstoneAPI.Models
 
             modelBuilder.Entity<Rank>(entity =>
             {
+                entity.HasKey(e => e.UserMajorDetailId)
+                    .HasName("PK_Rank_1");
+
                 entity.ToTable("Rank");
 
-                entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+                entity.Property(e => e.UserMajorDetailId)
+                    .ValueGeneratedNever()
+                    .HasColumnName("User_MajorDetail_Id");
 
-                entity.Property(e => e.UserMajorDetailId).HasColumnName("User_MajorDetail_Id");
+                entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
 
                 entity.HasOne(d => d.RankType)
                     .WithMany(p => p.Ranks)
@@ -244,8 +249,8 @@ namespace CapstoneAPI.Models
                     .HasConstraintName("FK_Rank_RankType");
 
                 entity.HasOne(d => d.UserMajorDetail)
-                    .WithMany(p => p.Ranks)
-                    .HasForeignKey(d => d.UserMajorDetailId)
+                    .WithOne(p => p.Rank)
+                    .HasForeignKey<Rank>(d => d.UserMajorDetailId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_Rank_User_MajorDetail");
             });
@@ -504,7 +509,7 @@ namespace CapstoneAPI.Models
             {
                 entity.ToTable("User_MajorDetail");
 
-                entity.HasIndex(e => e.UserId, "IX_User_MajorDetail");
+                //entity.HasIndex(e => e.UserId, "IX_User_MajorDetail");
 
                 entity.Property(e => e.MajorDetailId).HasColumnName("MajorDetail_Id");
 

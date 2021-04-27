@@ -1,4 +1,5 @@
 ﻿using CapstoneAPI.Models;
+using CapstoneAPI.Repositories.Rank;
 using System;
 using System.Threading.Tasks;
 
@@ -28,6 +29,7 @@ namespace CapstoneAPI.Repositories
         private IGenericRepository<AdmissionCriterion> _admissionCriterionRepository;
         private IGenericRepository<UserMajorDetail> _userMajorDetailRepository;
         private IGenericRepository<Transcript> _transcriptRepository;
+        private IRankRepository _rankRepository;
 
         public IGenericRepository<SubjectGroup> SubjectGroupRepository
         {
@@ -121,6 +123,10 @@ namespace CapstoneAPI.Repositories
         public IGenericRepository<Transcript> TranscriptRepository
         {
             get { return _transcriptRepository ??= new GenericRepository<Transcript>(_context); }
+        }
+        public IRankRepository RankRepository
+        {
+            get { return _rankRepository ??= new RankRepository(_context); }
         }
 
         public UnitOfWork(CapstoneDBContext context)
