@@ -28,14 +28,17 @@ namespace CapstoneAPI.Controllers
 
             PagedResponse<List<ArticleCollapseDataSet>> articles = await _service.GetListArticleForGuest(validFilter);
 
+            if (articles.Data.Count == 0)
+                return NoContent();
             return Ok(articles);
         }
 
         [HttpGet("detail/{id}")]
-        public async Task<ActionResult<ArticleDetailDataSet>> GetArticleDetailsForGuest()
+        public async Task<ActionResult<ArticleDetailDataSet>> GetArticleDetailsForGuest(int id)
         {
-            int id = 0;
             ArticleDetailDataSet article = await _service.GetArticleById(id);
+            if (article == null)
+                return NoContent();
             return Ok(article);
         }
     }
