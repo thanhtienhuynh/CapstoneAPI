@@ -21,15 +21,22 @@ namespace CapstoneAPI.Controllers
             _service = service;
         }
 
-        [HttpGet()]
+        [HttpGet("all")]
         public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListArticleForGuest([FromQuery] PaginationFilter filter)
         {
-            var route = Request.Path.Value;
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
 
-            PagedResponse<List<ArticleCollapseDataSet>> articles = await _service.GetListArticleForGuest(validFilter, route);
+            PagedResponse<List<ArticleCollapseDataSet>> articles = await _service.GetListArticleForGuest(validFilter);
 
             return Ok(articles);
+        }
+
+        [HttpGet("detail/{id}")]
+        public async Task<ActionResult<ArticleDetailDataSet>> GetArticleDetailsForGuest()
+        {
+            int id = 0;
+            ArticleDetailDataSet article = await _service.GetArticleById(id);
+            return Ok(article);
         }
     }
 }

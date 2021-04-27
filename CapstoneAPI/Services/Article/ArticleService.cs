@@ -30,7 +30,7 @@ namespace CapstoneAPI.Services.Article
             configuration = JObject.Parse(File.ReadAllText(path));
         }
         
-        public async Task<PagedResponse<List<ArticleCollapseDataSet>>> GetListArticleForGuest(PaginationFilter validFilter, string route)
+        public async Task<PagedResponse<List<ArticleCollapseDataSet>>> GetListArticleForGuest(PaginationFilter validFilter)
         {
             PagedResponse<List<ArticleCollapseDataSet>> result;
 
@@ -48,7 +48,7 @@ namespace CapstoneAPI.Services.Article
             var totalRecords = _uow.ArticleRepository
                 .Count(filter: a => a.Status == 1 && a.PublicFromDate != null && a.PublicToDate != null
                 && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0);
-            result = PaginationHelper.CreatePagedReponse(articleCollapseDataSet, validFilter, totalRecords, route);
+            result = PaginationHelper.CreatePagedReponse(articleCollapseDataSet, validFilter, totalRecords);
             return result;
         }
 

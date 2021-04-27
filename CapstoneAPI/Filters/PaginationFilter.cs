@@ -1,6 +1,9 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace CapstoneAPI.Filters
@@ -9,15 +12,30 @@ namespace CapstoneAPI.Filters
     {
         public int PageNumber { get; set; }
         public int PageSize { get; set; }
+        private static string path = Path.Combine(Path
+                .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\PagingConfiguration.json");
+        private readonly JObject configuration = JObject.Parse(File.ReadAllText(path));
+
         public PaginationFilter()
         {
-            this.PageNumber = 1;
-            this.PageSize = 10;
+            var sFirstPage = configuration.SelectToken("PaginationFilter.firstPage").ToString();
+            int firstPage = int.Parse(sFirstPage);
+
+            var sHighestQuantity = configuration.SelectToken("PaginationFilter.highestQuantity").ToString();
+            int highestQuantity = int.Parse(sHighestQuantity);
+            this.PageNumber = firstPage;
+            this.PageSize = highestQuantity;
         }
         public PaginationFilter(int pageNumber, int pageSize)
         {
-            this.PageNumber = pageNumber < 1 ? 1 : pageNumber;
-            this.PageSize = pageSize > 10 ? 10 : pageSize;
+            var sFirstPage = configuration.SelectToken("PaginationFilter.firstPage").ToString();
+            int firstPage = int.Parse(sFirstPage);
+
+            var sHighestQuantity = configuration.SelectToken("PaginationFilter.highestQuantity").ToString();
+            int highestQuantity = int.Parse(sHighestQuantity);
+
+            this.PageNumber = pageNumber < firstPage ? firstPage : pageNumber;
+            this.PageSize = pageSize > highestQuantity ? highestQuantity : pageSize;
         }
     }
 }

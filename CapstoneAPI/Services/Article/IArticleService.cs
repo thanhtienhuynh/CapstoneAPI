@@ -10,7 +10,7 @@ namespace CapstoneAPI.Services.Article
 {
     public interface IArticleService
     {
-        Task<PagedResponse<List<ArticleCollapseDataSet>>> GetListArticleForGuest(PaginationFilter validFilter, string route);
+        Task<PagedResponse<List<ArticleCollapseDataSet>>> GetListArticleForGuest(PaginationFilter validFilter);
         Task<ArticleDetailDataSet> GetArticleById(int id);
     }
 }

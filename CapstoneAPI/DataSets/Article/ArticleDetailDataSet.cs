@@ -7,5 +7,6 @@ namespace CapstoneAPI.DataSets.Article
 {
     public class ArticleDetailDataSet
     {
+
     }
 }
