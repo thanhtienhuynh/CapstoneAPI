@@ -1,9 +1,13 @@
 using CapstoneAPI.CronJobs;
+using CapstoneAPI.DataSets;
+using CapstoneAPI.DataSets.Email;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
 using CapstoneAPI.Services.Crawler;
+using CapstoneAPI.Services.Email;
 using CapstoneAPI.Services.Major;
+using CapstoneAPI.Services.Rank;
 using CapstoneAPI.Services.Subject;
 using CapstoneAPI.Services.SubjectGroup;
 using CapstoneAPI.Services.Test;
@@ -54,7 +58,7 @@ namespace CapstoneAPI
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<CapstoneDBContext>(options => options.UseSqlServer(Configuration.GetConnectionString("CapstoneDB")));
+            services.AddDbContext<CapstoneDBContext>(options => options.UseSqlServer(Configuration.GetConnectionString("CapstoneDB")).EnableSensitiveDataLogging());
             services.AddControllers();
             services.AddControllersWithViews()
                    .AddNewtonsoftJson(options =>
@@ -98,6 +102,9 @@ namespace CapstoneAPI
                 cronExpression: "0 */30 * ? * *"));
             services.AddHostedService<QuartzHostedService>();
             services.AddSwaggerGen();
+            var mailsettings = Configuration.GetSection("MailSettings");  // read config
+            services.Configure<EmailSetting>(mailsettings);
+            services.AddTransient<IEmailService, EmailService>();
         }
 
         private void AddServicesScoped(IServiceCollection services)
@@ -112,6 +119,7 @@ namespace CapstoneAPI
             services.AddScoped<IArticleCrawlerService, ArticleCrawlerService>();
             services.AddScoped<ITrainingProgramService, TrainingProgramService>();
             services.AddScoped<IUserMajorDetailService, UserMajorDetailService>();
+            services.AddScoped<IRankService, RankService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -1,4 +1,5 @@
-﻿using CapstoneAPI.DataSets.SubjectGroup;
+﻿using CapstoneAPI.DataSets.Rank;
+using CapstoneAPI.DataSets.SubjectGroup;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +12,7 @@ namespace CapstoneAPI.DataSets.UserMajorDetail
         public int UniversityId { get; set; }
         public int TrainingProgramId { get; set; }
         public int MajorId { get; set; }
+        public double TotalMark { get; set; }
         public SubjectGroupParam SubjectGroupParam { get; set; }
 
     }

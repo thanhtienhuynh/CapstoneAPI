@@ -1,4 +1,5 @@
 ﻿using CapstoneAPI.Models;
+using CapstoneAPI.Repositories.Rank;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,6 +29,7 @@ namespace CapstoneAPI.Repositories
         IGenericRepository<AdmissionCriterion> AdmissionCriterionRepository { get; }
         IGenericRepository<UserMajorDetail> UserMajorDetailRepository { get; }
         IGenericRepository<Transcript> TranscriptRepository { get; }
+        IRankRepository RankRepository { get; }
         Task<int> CommitAsync();
     }
 }

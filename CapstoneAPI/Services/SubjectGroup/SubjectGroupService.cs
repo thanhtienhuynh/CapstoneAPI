@@ -309,10 +309,10 @@ namespace CapstoneAPI.Services.SubjectGroup
 
             IEnumerable<int> foundedSubjectGroupIds = (await _uow.SubjecGroupDetailRepository.Get(filter: s => listOfSubjectId.Contains(s.SubjectId)))
                 .GroupBy(s => s.SubjectGroupId).Where(g => g.Count() == listOfSubjectId.Count()).Select(g => g.Key);
-            foreach (int aid in foundedSubjectGroupIds)
+            foreach (int subjectGroupId in foundedSubjectGroupIds)
             {
-                bool isExisted = (await _uow.SubjecGroupDetailRepository.Get(filter: s => s.SubjectGroupId == aid)).Count() == listOfSubjectId.Count;
-                if (isExisted && aid != updateSubjectGroupParam.Id)
+                bool isExisted = (await _uow.SubjecGroupDetailRepository.Get(filter: s => s.SubjectGroupId == subjectGroupId)).Count() == listOfSubjectId.Count;
+                if (isExisted && subjectGroupId != updateSubjectGroupParam.Id)
                 {
                     return null;
                 }
@@ -323,7 +323,7 @@ namespace CapstoneAPI.Services.SubjectGroup
             updateSubjectGroupModel.GroupCode = updateSubjectGroupParam.GroupCode;
             updateSubjectGroupModel.Status = updateSubjectGroupParam.Status;
 
-             _uow.SubjectGroupRepository.Update(updateSubjectGroupModel);
+            _uow.SubjectGroupRepository.Update(updateSubjectGroupModel);
             int result = await _uow.CommitAsync();
             if (result <= 0)
             {

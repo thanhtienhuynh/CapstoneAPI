@@ -82,11 +82,24 @@ namespace CapstoneAPI.Services.UserMajorDetail
                                                                     && u.MajorDetailId == majorDetail.Id);
             if (userMajorDetail == null)
             {
+                IEnumerable<Models.Rank> ranks = (await _uow.UserMajorDetailRepository
+                                                            .Get(filter: u => u.MajorDetailId == majorDetail.Id, includeProperties: "Rank"))
+                                                            .Select(u => u.Rank).Where(r => r != null);
                 userMajorDetail = new Models.UserMajorDetail()
                 {
                     MajorDetailId = majorDetail.Id,
                     UserId = userId,
-                    Status = Consts.STATUS_ACTIVE
+                    Status = Consts.STATUS_ACTIVE,
+                    Rank = new Models.Rank()
+                    {
+                        IsNew = true,
+                        IsReceiveNotification = true,
+                        RankTypeId = userMajorDetailParam.SubjectGroupParam.TranscriptTypeId,
+                        TotalMark = userMajorDetailParam.TotalMark,
+                        UpdatedDate = DateTime.UtcNow,
+                        Position = _uow.RankRepository.CalculateRank(userMajorDetailParam.SubjectGroupParam.TranscriptTypeId,
+                                                                    userMajorDetailParam.TotalMark, ranks)
+                    }
                 };
                 _uow.UserMajorDetailRepository.Insert(userMajorDetail);
                 if ((await _uow.CommitAsync()) <= 0)
@@ -145,8 +158,22 @@ namespace CapstoneAPI.Services.UserMajorDetail
                                                                     && u.MajorDetailId == majorDetail.Id);
             if (userMajorDetail != null)
             {
-                _uow.UserMajorDetailRepository.DeleteComposite(filter: u => u.UserId == Int32.Parse(userIdString)
-                                                                && u.MajorDetailId == majorDetail.Id);
+                Models.Rank rank = await _uow.RankRepository.GetById(userMajorDetail.Id);
+                if (rank != null)
+                {
+                    _uow.RankRepository.Delete(userMajorDetail.Id);
+                    if ((await _uow.CommitAsync()) <= 0)
+                    {
+                        return response = new BaseResponse<object>()
+                        {
+                            IsSuccess = false,
+                            StatusCode = 3,
+                            Message = "Lỗi hệ thống"
+                        };
+                    }
+                }
+
+                _uow.UserMajorDetailRepository.Delete(userMajorDetail.Id);
                 if ((await _uow.CommitAsync()) <= 0)
                 {
                     return response = new BaseResponse<object>()
