@@ -11,6 +11,7 @@ namespace CapstoneAPI.Models
         {
             EntryMarks = new HashSet<EntryMark>();
             SubjectGroupDetails = new HashSet<SubjectGroupDetail>();
+            UserMajorDetails = new HashSet<UserMajorDetail>();
             WeightNumbers = new HashSet<WeightNumber>();
         }
 
@@ -20,6 +21,7 @@ namespace CapstoneAPI.Models
 
         public virtual ICollection<EntryMark> EntryMarks { get; set; }
         public virtual ICollection<SubjectGroupDetail> SubjectGroupDetails { get; set; }
+        public virtual ICollection<UserMajorDetail> UserMajorDetails { get; set; }
         public virtual ICollection<WeightNumber> WeightNumbers { get; set; }
     }
 }

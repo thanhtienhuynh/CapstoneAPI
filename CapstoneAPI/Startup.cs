@@ -43,7 +43,7 @@ namespace CapstoneAPI
             Configuration = configuration;
 
             string path = Path.Combine(Path
-                .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"FirebaseKey\capstone-7071e-firebase-adminsdk-umiw1-2c95fcab0a.json");
+                .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"FirebaseKey\unilinks-41d0e-firebase-adminsdk-th8o0-c0b4d125e8.json");
             Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", path);
 
             FirebaseApp.Create(new AppOptions()

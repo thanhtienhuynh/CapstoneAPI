@@ -509,9 +509,11 @@ namespace CapstoneAPI.Models
             {
                 entity.ToTable("User_MajorDetail");
 
-                //entity.HasIndex(e => e.UserId, "IX_User_MajorDetail");
+                entity.HasIndex(e => e.UserId, "IX_User_MajorDetail");
 
                 entity.Property(e => e.MajorDetailId).HasColumnName("MajorDetail_Id");
+
+                entity.Property(e => e.SubjectGroupId).HasColumnName("SubjectGroup_Id");
 
                 entity.Property(e => e.UserId).HasColumnName("User_Id");
 
@@ -520,6 +522,12 @@ namespace CapstoneAPI.Models
                     .HasForeignKey(d => d.MajorDetailId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_User_MajorDetail_MajorDetail");
+
+                entity.HasOne(d => d.SubjectGroup)
+                    .WithMany(p => p.UserMajorDetails)
+                    .HasForeignKey(d => d.SubjectGroupId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_User_MajorDetail_SubjectGroup");
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.UserMajorDetails)
