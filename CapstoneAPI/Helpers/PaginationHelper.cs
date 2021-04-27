@@ -1,5 +1,4 @@
 ﻿using CapstoneAPI.Filters;
-using CapstoneAPI.Services.UriService;
 using CapstoneAPI.Wrappers;
 using System;
 using System.Collections.Generic;

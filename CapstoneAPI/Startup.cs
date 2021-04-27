@@ -11,7 +11,6 @@ using CapstoneAPI.Services.Test;
 using CapstoneAPI.Services.TestSubmission;
 using CapstoneAPI.Services.TrainingProgram;
 using CapstoneAPI.Services.University;
-using CapstoneAPI.Services.UriService;
 using CapstoneAPI.Services.User;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;

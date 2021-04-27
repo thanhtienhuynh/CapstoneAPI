@@ -3,7 +3,6 @@ using CapstoneAPI.DataSets.Article;
 using CapstoneAPI.Filters;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Repositories;
-using CapstoneAPI.Services.UriService;
 using CapstoneAPI.Wrappers;
 using Newtonsoft.Json.Linq;
 using System;
