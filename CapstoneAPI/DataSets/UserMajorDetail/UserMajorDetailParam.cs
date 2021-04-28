@@ -12,6 +12,7 @@ namespace CapstoneAPI.DataSets.UserMajorDetail
         public int UniversityId { get; set; }
         public int TrainingProgramId { get; set; }
         public int MajorId { get; set; }
+        public int SubjectGroupId { get; set; }
         public double TotalMark { get; set; }
         public SubjectGroupParam SubjectGroupParam { get; set; }
 

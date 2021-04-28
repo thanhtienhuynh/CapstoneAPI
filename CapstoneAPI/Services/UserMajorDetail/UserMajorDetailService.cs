@@ -89,6 +89,7 @@ namespace CapstoneAPI.Services.UserMajorDetail
                 {
                     MajorDetailId = majorDetail.Id,
                     UserId = userId,
+                    SubjectGroupId = userMajorDetailParam.SubjectGroupId,
                     Status = Consts.STATUS_ACTIVE,
                     Rank = new Models.Rank()
                     {
