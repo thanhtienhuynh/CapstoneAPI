@@ -7,6 +7,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CapstoneAPI.Helpers;
+using Microsoft.AspNetCore.Http;
+using System.IO;
+using Firebase.Auth;
+using System.Threading;
+using Firebase.Storage;
 
 namespace CapstoneAPI.Services.University
 {
@@ -206,10 +211,53 @@ namespace CapstoneAPI.Services.University
             {
                 return null;
             }
+            //Upload logo to Firebase block
+
+            IFormFile logoImage = adminUniversityDataSet.File;
+            if (logoImage != null)
+            {
+                if (Consts.IMAGE_EXTENSIONS.Contains(Path.GetExtension(logoImage.FileName).ToUpperInvariant()))
+                {
+
+                    using (var ms = new MemoryStream())
+                    {
+                        logoImage.CopyTo(ms);
+                        ms.Position = 0;
+                        if (ms != null && ms.Length > 0)
+                        {
+                            var auth = new FirebaseAuthProvider(new FirebaseConfig(Consts.API_KEY));
+                            var firebaseAuth = await auth.SignInWithEmailAndPasswordAsync(Consts.AUTH_MAIL, Consts.AUTH_PASSWORD);
+
+                            // you can use CancellationTokenSource to cancel the upload midway
+                            var cancellation = new CancellationTokenSource();
+
+                            var task = new FirebaseStorage(
+                                Consts.BUCKET,
+                                new FirebaseStorageOptions
+                                {
+                                    ThrowOnCancel = true, // when you cancel the upload, exception is thrown. By default no exception is thrown
+                                    AuthTokenAsyncFactory = () => Task.FromResult(firebaseAuth.FirebaseToken),
+                                })
+                                .Child(Consts.LOGO_FOLDER)
+                                .Child(adminUniversityDataSet.Code + Path.GetExtension(logoImage.FileName))
+                                .PutAsync(ms, cancellation.Token);
+
+                            adminUniversityDataSet.LogoUrl = await task;
+                        }
+
+                    }
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+
             updatedUni.Code = adminUniversityDataSet.Code;
             updatedUni.Name = adminUniversityDataSet.Name;
             updatedUni.Address = adminUniversityDataSet.Address;
-            //updatedUni.LogoUrl = adminUniversityDataSet.LogoUrl;
+            updatedUni.LogoUrl = adminUniversityDataSet.LogoUrl;
             updatedUni.Description = adminUniversityDataSet.Description;
             updatedUni.Phone = adminUniversityDataSet.Phone;
             updatedUni.WebUrl = adminUniversityDataSet.WebUrl;
