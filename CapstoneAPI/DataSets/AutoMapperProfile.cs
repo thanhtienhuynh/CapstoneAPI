@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CapstoneAPI.DataSets.Article;
 using CapstoneAPI.DataSets.Major;
 using CapstoneAPI.DataSets.Option;
 using CapstoneAPI.DataSets.Question;
@@ -45,6 +46,8 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.Major, ResultOfCreateMajorDataSet>();
             CreateMap<Models.QuestionSubmisstion, QuestionSubmissionDataSet>();
             CreateMap<Models.TrainingProgram, AdminTrainingProgramDataSet>();
+            CreateMap<Models.Article, ArticleCollapseDataSet>();
+            CreateMap<Models.Article, ArticleDetailDataSet>();
             CreateMap<Models.Rank, RankDataSet>();
             CreateMap<Models.UserMajorDetail, UserMajorDetailDataSet>();
         }

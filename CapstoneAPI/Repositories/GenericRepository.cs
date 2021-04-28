@@ -34,19 +34,20 @@ namespace CapstoneAPI.Repositories
                 query = orderBy(query);
             }
 
-            if (first > 0)
+            if (offset > 0)
             {
-                query = query.Take(first);
+                query = query.Skip(offset);
             }
+
             foreach (var includeProperty in includeProperties.Split
                 (new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
             {
                 query = query.Include(includeProperty);
             }
 
-            if (offset > 0)
+            if (first > 0)
             {
-                return await query.Skip(offset).ToListAsync();
+                return await query.Take(first).ToListAsync();
             }
             else
             {
@@ -102,6 +103,16 @@ namespace CapstoneAPI.Repositories
         {
             if (list == null) throw new ArgumentException("list");
             dbSet.AddRange(list);
+        }
+
+        public int Count(Expression<Func<T, bool>> filter = null)
+        {
+            IQueryable<T> query = dbSet;
+            if (filter != null)
+            {
+                return query.Count(filter);
+            }
+            return query.Count();
         }
     }
 }

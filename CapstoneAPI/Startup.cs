@@ -4,6 +4,7 @@ using CapstoneAPI.DataSets.Email;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
+using CapstoneAPI.Services.Article;
 using CapstoneAPI.Services.Crawler;
 using CapstoneAPI.Services.Email;
 using CapstoneAPI.Services.Major;
@@ -118,6 +119,7 @@ namespace CapstoneAPI
             services.AddScoped<IMajorService, MajorService>();
             services.AddScoped<IArticleCrawlerService, ArticleCrawlerService>();
             services.AddScoped<ITrainingProgramService, TrainingProgramService>();
+            services.AddScoped<IArticleService, ArticleService>();
             services.AddScoped<IUserMajorDetailService, UserMajorDetailService>();
             services.AddScoped<IRankService, RankService>();
         }
