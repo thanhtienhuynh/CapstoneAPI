@@ -4,6 +4,7 @@ using CapstoneAPI.DataSets.Major;
 using CapstoneAPI.DataSets.Option;
 using CapstoneAPI.DataSets.Question;
 using CapstoneAPI.DataSets.QuestionSubmission;
+using CapstoneAPI.DataSets.Rank;
 using CapstoneAPI.DataSets.Subject;
 using CapstoneAPI.DataSets.SubjectGroup;
 using CapstoneAPI.DataSets.Test;
@@ -11,6 +12,7 @@ using CapstoneAPI.DataSets.TestSubmission;
 using CapstoneAPI.DataSets.TrainingProgram;
 using CapstoneAPI.DataSets.University;
 using CapstoneAPI.DataSets.User;
+using CapstoneAPI.DataSets.UserMajorDetail;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -46,6 +48,8 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.TrainingProgram, AdminTrainingProgramDataSet>();
             CreateMap<Models.Article, ArticleCollapseDataSet>();
             CreateMap<Models.Article, ArticleDetailDataSet>();
+            CreateMap<Models.Rank, RankDataSet>();
+            CreateMap<Models.UserMajorDetail, UserMajorDetailDataSet>();
         }
     }
 }

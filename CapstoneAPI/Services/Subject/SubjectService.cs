@@ -3,6 +3,7 @@ using CapstoneAPI.DataSets.Subject;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
+using CapstoneAPI.Services.Major;
 using System;
 using System.Collections.Generic;
 using System.Linq;

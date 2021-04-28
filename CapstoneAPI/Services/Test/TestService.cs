@@ -30,7 +30,9 @@
                 subjectIds = (await _uow.SubjecGroupDetailRepository.Get(filter: s => s.SubjectGroupId == testParam.SubjectGroupId))
                                                                                 .Select(s => s.SubjectId);
             }
-            IEnumerable<Models.Test> tests = await _uow.TestRepository.Get(filter: test => test.Status == Consts.STATUS_ACTIVE && test.TestTypeId == Consts.TEST_HT_TYPE_ID);
+            IEnumerable<Models.Test> tests = await _uow.TestRepository
+                                                .Get(filter: test => test.Status == Consts.STATUS_ACTIVE 
+                                                    && test.TestTypeId == Consts.TEST_HT_TYPE_ID);
             if (subjectIds != null && subjectIds.Any())
             {
                 foreach (int subjectId in subjectIds)
@@ -50,21 +52,6 @@
                 }
             }
 
-            if (testParam.UniversityId > 0)
-            {
-                tests = tests.Where(t => t.UniversityId == testParam.UniversityId);
-                if (tests.Any())
-                {
-                    testsReponse.Add(new SubjectBasedTestDataSet()
-                    {
-                        SubjectId = null,
-                        Tests = tests.Select(t => _mapper.Map<TestDataSet>(t)).ToList(),
-                        UniversityId = testParam.UniversityId
-                    }
-                    );
-                }
-
-            }
             return testsReponse;
         }
 

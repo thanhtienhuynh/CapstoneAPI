@@ -7,6 +7,7 @@ namespace CapstoneAPI.Models
 {
     public partial class MajorCareer
     {
+        public int Id { get; set; }
         public int MajorId { get; set; }
         public int CareerId { get; set; }
 

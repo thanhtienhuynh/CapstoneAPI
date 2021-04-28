@@ -1,10 +1,14 @@
 using CapstoneAPI.CronJobs;
+using CapstoneAPI.DataSets;
+using CapstoneAPI.DataSets.Email;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
 using CapstoneAPI.Services.Article;
 using CapstoneAPI.Services.Crawler;
+using CapstoneAPI.Services.Email;
 using CapstoneAPI.Services.Major;
+using CapstoneAPI.Services.Rank;
 using CapstoneAPI.Services.Subject;
 using CapstoneAPI.Services.SubjectGroup;
 using CapstoneAPI.Services.Test;
@@ -12,11 +16,13 @@ using CapstoneAPI.Services.TestSubmission;
 using CapstoneAPI.Services.TrainingProgram;
 using CapstoneAPI.Services.University;
 using CapstoneAPI.Services.User;
+using CapstoneAPI.Services.UserMajorDetail;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +32,8 @@ using Quartz;
 using Quartz.Impl;
 using Quartz.Spi;
 using System;
+using System.IO;
+using System.Reflection;
 using System.Text;
 
 namespace CapstoneAPI
@@ -35,6 +43,11 @@ namespace CapstoneAPI
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
+
+            string path = Path.Combine(Path
+                .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"FirebaseKey\unilinks-41d0e-firebase-adminsdk-th8o0-c0b4d125e8.json");
+            Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", path);
+
             FirebaseApp.Create(new AppOptions()
             {
                 Credential = GoogleCredential.GetApplicationDefault(),
@@ -46,7 +59,7 @@ namespace CapstoneAPI
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<CapstoneDBContext>(options => options.UseSqlServer(Configuration.GetConnectionString("CapstoneDB")));
+            services.AddDbContext<CapstoneDBContext>(options => options.UseSqlServer(Configuration.GetConnectionString("CapstoneDB")).EnableSensitiveDataLogging());
             services.AddControllers();
             services.AddControllersWithViews()
                    .AddNewtonsoftJson(options =>
@@ -90,6 +103,9 @@ namespace CapstoneAPI
                 cronExpression: "0 */30 * ? * *"));
             services.AddHostedService<QuartzHostedService>();
             services.AddSwaggerGen();
+            var mailsettings = Configuration.GetSection("MailSettings");  // read config
+            services.Configure<EmailSetting>(mailsettings);
+            services.AddTransient<IEmailService, EmailService>();
         }
 
         private void AddServicesScoped(IServiceCollection services)
@@ -104,6 +120,8 @@ namespace CapstoneAPI
             services.AddScoped<IArticleCrawlerService, ArticleCrawlerService>();
             services.AddScoped<ITrainingProgramService, TrainingProgramService>();
             services.AddScoped<IArticleService, ArticleService>();
+            services.AddScoped<IUserMajorDetailService, UserMajorDetailService>();
+            services.AddScoped<IRankService, RankService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

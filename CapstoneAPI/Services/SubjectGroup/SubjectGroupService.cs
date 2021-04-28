@@ -39,11 +39,6 @@ namespace CapstoneAPI.Services.SubjectGroup
                 }
             }
 
-            if (!subjectGroupParam.IsSuggest)
-            {
-                return subjectGroupDataSets.OrderByDescending(o => o.TotalMark).ToList();
-            }
-
             if (!subjectGroupDataSets.Any())
             {
                 return null;
@@ -127,12 +122,20 @@ namespace CapstoneAPI.Services.SubjectGroup
                 }
             }
 
-            foreach(MajorDataSet majorDataSet in majorDataSetsBaseOnEntryMark)
+            foreach(MajorDataSet majorDataSet in majorDataSetsBaseOnEntryMark.ToList())
             {
                 //Lấy điểm chuẩn cao nhất của năm gần nhất của ngành đó của các trường
                 List<EntryMark> entryMarks = (await _uow.MajorDetailRepository.Get(filter: m => m.MajorId == majorDataSet.Id, includeProperties: "EntryMarks"))
-                                                     .Select(m => m.EntryMarks.OrderByDescending(e => e.Mark).Where(e => e.Year == Consts.NEAREST_YEAR && e.Mark <= suggestGroup.TotalMark && e.SubjectGroupId == suggestGroup.Id).FirstOrDefault())
+                                                     .Select(m => m.EntryMarks.OrderByDescending(e => e.Mark)
+                                                     .Where(e => e.Year == Consts.NEAREST_YEAR 
+                                                            && e.Mark <= suggestGroup.TotalMark 
+                                                            && e.SubjectGroupId == suggestGroup.Id).FirstOrDefault())
                                                      .Where(e => e != null).ToList();
+                if (!entryMarks.Any())
+                {
+                    majorDataSetsBaseOnEntryMark.Remove(majorDataSet);
+                    continue;
+                }
                 majorDataSet.HighestEntryMark = entryMarks.OrderByDescending(e => e.Mark ?? default(double)).First().Mark ?? default(double);
             }
             majorDataSetsBaseOnEntryMark = majorDataSetsBaseOnEntryMark.OrderByDescending(m => m.HighestEntryMark).ToList();
@@ -306,10 +309,10 @@ namespace CapstoneAPI.Services.SubjectGroup
 
             IEnumerable<int> foundedSubjectGroupIds = (await _uow.SubjecGroupDetailRepository.Get(filter: s => listOfSubjectId.Contains(s.SubjectId)))
                 .GroupBy(s => s.SubjectGroupId).Where(g => g.Count() == listOfSubjectId.Count()).Select(g => g.Key);
-            foreach (int aid in foundedSubjectGroupIds)
+            foreach (int subjectGroupId in foundedSubjectGroupIds)
             {
-                bool isExisted = (await _uow.SubjecGroupDetailRepository.Get(filter: s => s.SubjectGroupId == aid)).Count() == listOfSubjectId.Count;
-                if (isExisted && aid != updateSubjectGroupParam.Id)
+                bool isExisted = (await _uow.SubjecGroupDetailRepository.Get(filter: s => s.SubjectGroupId == subjectGroupId)).Count() == listOfSubjectId.Count;
+                if (isExisted && subjectGroupId != updateSubjectGroupParam.Id)
                 {
                     return null;
                 }
@@ -320,7 +323,7 @@ namespace CapstoneAPI.Services.SubjectGroup
             updateSubjectGroupModel.GroupCode = updateSubjectGroupParam.GroupCode;
             updateSubjectGroupModel.Status = updateSubjectGroupParam.Status;
 
-             _uow.SubjectGroupRepository.Update(updateSubjectGroupModel);
+            _uow.SubjectGroupRepository.Update(updateSubjectGroupModel);
             int result = await _uow.CommitAsync();
             if (result <= 0)
             {
