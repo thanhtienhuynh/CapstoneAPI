@@ -78,14 +78,17 @@ namespace CapstoneAPI.Services.Article
             return _mapper.Map<ArticleDetailDataSet>(article);
         }
 
-        public async Task<AdminArticleDetailDataSet> AdminGetArticleById(int id)
+        public async Task<Response<AdminArticleDetailDataSet>> AdminGetArticleById(int id)
         {
+            Response<AdminArticleDetailDataSet> result = new Response<AdminArticleDetailDataSet>();
             var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
             DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
 
             Models.Article article = await _uow.ArticleRepository.GetFirst(filter: a => a.Id == id);
 
-            return _mapper.Map<AdminArticleDetailDataSet>(article);
+            result.Data = _mapper.Map<AdminArticleDetailDataSet>(article);
+            result.Succeeded = true;
+            return result;
         }
     }
 }
