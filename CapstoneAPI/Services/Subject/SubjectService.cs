@@ -4,6 +4,7 @@ using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
 using CapstoneAPI.Services.Major;
+using CapstoneAPI.Wrappers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,10 +22,21 @@ namespace CapstoneAPI.Services.Subject
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<SubjectDataSet>> GetAllSubjects()
+        public async Task<Response<IEnumerable<SubjectDataSet>>> GetAllSubjects()
         {
+            Response<IEnumerable<SubjectDataSet>> response = new Response<IEnumerable<SubjectDataSet>>();
             IEnumerable<SubjectDataSet> subjects = (await _uow.SubjectRepository.Get(filter: s => s.Status == Consts.STATUS_ACTIVE)).Select(s => _mapper.Map<SubjectDataSet>(s));
-            return subjects;
+            if (!subjects.Any())
+            {
+                response.Succeeded = false;
+                response.Errors.Add("Không có môn học nào thỏa mãn!");
+            } else
+            {
+                response.Data = subjects;
+                response.Message = "Thành công!";
+                response.Succeeded = true;
+            }
+            return response;
         }
     }
 }

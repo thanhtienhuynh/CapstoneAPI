@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using CapstoneAPI.Services.SubjectGroup;
 using CapstoneAPI.DataSets.SubjectGroup;
+using CapstoneAPI.Wrappers;
 
 namespace CapstoneAPI.Controllers
 {
@@ -20,14 +21,9 @@ namespace CapstoneAPI.Controllers
         }
 
         [HttpPost("top-subject-group")]
-        public async Task<ActionResult<IEnumerable<SubjectGroupDataSet>>> SuggestTopSubjectGroup(SubjectGroupParam subjectGroupParam)
+        public async Task<ActionResult<Response<IEnumerable<SubjectGroupDataSet>>>> SuggestTopSubjectGroup(SubjectGroupParam subjectGroupParam)
         {
-            IEnumerable<SubjectGroupDataSet> subjectGroups = await _service.GetCaculatedSubjectGroup(subjectGroupParam);
-            if (subjectGroups == null || !subjectGroups.Any())
-            {
-                return NotFound();
-            }
-            return Ok(subjectGroups);
+            return Ok(await _service.GetCaculatedSubjectGroup(subjectGroupParam));
         }
 
         [HttpGet()]

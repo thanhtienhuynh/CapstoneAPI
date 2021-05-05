@@ -12,6 +12,7 @@ using System.IO;
 using Firebase.Auth;
 using System.Threading;
 using Firebase.Storage;
+using CapstoneAPI.Wrappers;
 
 namespace CapstoneAPI.Services.University
 {
@@ -25,8 +26,9 @@ namespace CapstoneAPI.Services.University
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<UniversityDataSetBaseOnTrainingProgram>> GetUniversityBySubjectGroupAndMajor(UniversityParam universityParam, string token)
+        public async Task<Response<IEnumerable<UniversityDataSetBaseOnTrainingProgram>>> GetUniversityBySubjectGroupAndMajor(UniversityParam universityParam, string token)
         {
+            Response<IEnumerable<UniversityDataSetBaseOnTrainingProgram>> response = new Response<IEnumerable<UniversityDataSetBaseOnTrainingProgram>>();
             int userId = 0;
             if (token != null && token.Trim().Length > 0)
             {
@@ -41,7 +43,9 @@ namespace CapstoneAPI.Services.University
             List<MajorDetail> majorDetails = (await _uow.MajorDetailRepository.Get(filter: w => w.MajorId == universityParam.MajorId, includeProperties: "University,TrainingProgram,AdmissionCriteria")).ToList();
             if (majorDetails == null || !majorDetails.Any())
             {
-                return null;
+                response.Succeeded = false;
+                response.Errors.Add("Hiện tại không có trường nào dạy ngành này!");
+                return response;
             }
 
             List<UniversityDataSetBaseOnTrainingProgram> universityDataSetsBaseOnTrainingProgram = new List<UniversityDataSetBaseOnTrainingProgram>();
@@ -100,8 +104,18 @@ namespace CapstoneAPI.Services.University
                     });
                 }
             }
-            
-            return universityDataSetsBaseOnTrainingProgram;
+
+            if (universityDataSetsBaseOnTrainingProgram.Any())
+            {
+                response.Succeeded = true;
+                response.Data = universityDataSetsBaseOnTrainingProgram;
+            } else
+            {
+                response.Succeeded = false;
+                response.Errors.Add("Không có trường phù hợp!");
+            }
+
+            return response; ;
         }
 
         

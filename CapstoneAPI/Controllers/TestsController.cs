@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using CapstoneAPI.Models;
 using CapstoneAPI.Services.Test;
 using CapstoneAPI.DataSets.Test;
+using CapstoneAPI.Wrappers;
 
 namespace CapstoneAPI.Controllers
 {
@@ -23,17 +24,15 @@ namespace CapstoneAPI.Controllers
         }
 
         [HttpGet("recommendation")]
-        public async Task<ActionResult<List<SubjectBasedTestDataSet>>> GetFilteredTests([FromQuery]TestParam testParam )
+        public async Task<ActionResult<Response<List<SubjectBasedTestDataSet>>>> GetFilteredTests([FromQuery]TestParam testParam )
         {
-            List<SubjectBasedTestDataSet> results = await _service.GetFilteredTests(testParam);
-            return Ok(results);
+            return Ok(await _service.GetFilteredTests(testParam));
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<TestDataSet>> GetTestById(int id)
+        public async Task<ActionResult<Response<TestDataSet>>> GetTestById(int id)
         {
-            TestDataSet result = await _service.GetTestById(id);
-            return Ok(result);
+            return Ok(await _service.GetTestById(id));
         }
 
     }

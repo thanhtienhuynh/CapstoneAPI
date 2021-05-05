@@ -9,6 +9,7 @@
     using CapstoneAPI.Helpers;
     using CapstoneAPI.Models;
     using CapstoneAPI.Repositories;
+    using CapstoneAPI.Wrappers;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -26,13 +27,16 @@
             _mapper = mapper;
         }
 
-        public async Task<TestSubmissionDataSet> ScoringTest(TestSubmissionParam testSubmissionParam)
+        public async Task<Response<TestSubmissionDataSet>> ScoringTest(TestSubmissionParam testSubmissionParam)
         {
+            Response<TestSubmissionDataSet> response = new Response<TestSubmissionDataSet>();
             int correctAnswer = 0;
             Models.Test loadedTest = await _uow.TestRepository.GetById(testSubmissionParam.TestId);
             if (loadedTest == null)
             {
-                return null;
+                response.Succeeded = false;
+                response.Errors.Add("Bài thi không tồn tại!");
+                return response;
             }
             foreach (QuestionParam submitQuestion in testSubmissionParam.Questions)
             {
@@ -55,16 +59,19 @@
                 SubmissionDate = DateTime.UtcNow,
                 NumberOfQuestion = loadedTest.NumberOfQuestion
             };
-            return testSubmissionDataSet;
+            response.Succeeded = true;
+            response.Data = testSubmissionDataSet;
+            return response;
         }
 
-        public async Task<BaseResponse<TestSubmission>> SaveTestSubmission(SaveTestSubmissionParam saveTestSubmissionParam, string token)
+        public async Task<Response<TestSubmission>> SaveTestSubmission(SaveTestSubmissionParam saveTestSubmissionParam, string token)
         {
-            BaseResponse<TestSubmission> response = new BaseResponse<TestSubmission>();
-            bool isSuccess = false;
+            Response<TestSubmission> response = new Response<TestSubmission>();
             if (token == null || token.Trim().Length == 0)
             {
-                isSuccess = false;
+                response.Succeeded = false;
+                response.Errors.Add("Bạn chưa đăng nhập!");
+                return response;
             }
             Models.TestSubmission testSubmission = new Models.TestSubmission()
             {
@@ -80,30 +87,6 @@
             if (userIdString != null && userIdString.Length > 0)
             {
                 int userId = Int32.Parse(userIdString);
-                MajorDetail majorDetail = await _uow.MajorDetailRepository
-                                        .GetFirst(filter: m => m.MajorId == saveTestSubmissionParam.MajorId
-                                                && m.TrainingProgramId == saveTestSubmissionParam.TrainingProgramId
-                                                && m.UniversityId == saveTestSubmissionParam.UniversityId);
-
-                if (majorDetail != null)
-                {
-                    UserMajorDetail userMajorDetail = await _uow.UserMajorDetailRepository
-                                                            .GetFirst(filter: u => u.UserId == userId
-                                                                        && u.MajorDetailId == majorDetail.Id);
-                    if (userMajorDetail == null)
-                    {
-                        userMajorDetail = new UserMajorDetail()
-                        {
-                            MajorDetailId = majorDetail.Id,
-                            UserId = userId,
-                            Status = Consts.STATUS_ACTIVE
-                        };
-                        _uow.UserMajorDetailRepository.Insert(userMajorDetail);
-                    }
-                }
-
-                
-
                 testSubmission.UserId = userId;
                 _uow.TestSubmissionRepository.Insert(testSubmission);
                 if ((await _uow.CommitAsync()) > 0)
@@ -119,19 +102,37 @@
                     }
                     if ((await _uow.CommitAsync()) > 0)
                     {
-                        isSuccess = true;
+                        response.Succeeded = true;
+                        response.Data = testSubmission;
+                        return response;
+                    } else
+                    {
+                        response.Succeeded = false;
+                        response.Errors.Add("Lưu không thành công, lỗi hệ thống!");
+                        return response;
                     }
+                } else
+                {
+                    response.Succeeded = false;
+                    response.Errors.Add("Lưu không thành công, lỗi hệ thống!");
+                    return response;
                 }
+            } else
+            {
+                response.Succeeded = false;
+                response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                return response;
             }
-            response.IsSuccess = isSuccess;
-            return response;
         }
 
-        public async Task<List<UserTestSubmissionDataSet>> GetTestSubmissionsByUser(string token)
+        public async Task<Response<List<UserTestSubmissionDataSet>>> GetTestSubmissionsByUser(string token)
         {
+            Response<List<UserTestSubmissionDataSet>> response = new Response<List<UserTestSubmissionDataSet>>();
             if (token == null || token.Trim().Length == 0)
             {
-                return null;
+                response.Succeeded = false;
+                response.Errors.Add("Bạn chưa đăng nhập!");
+                return response;
             }
             
             string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
@@ -144,7 +145,9 @@
                         orderBy: t => t.OrderBy(t => t.SpentTime))).GroupBy(t => t.TestId).Select(g => g.Last());
                 if (!testSubmissionDataSets.Any())
                 {
-                    return null;
+                    response.Succeeded = false;
+                    response.Errors.Add("Bạn chưa làm bài test nào!");
+                    return response;
                 }
                 List<UserTestSubmissionDataSet> userTestSubmissionDataSets = new List<UserTestSubmissionDataSet>();
                 foreach(TestSubmission testSubmission in testSubmissionDataSets)
@@ -157,24 +160,43 @@
                     userTestSubmissionDataSet.TestName = testSubmission.Test.Name;
                     userTestSubmissionDataSets.Add(userTestSubmissionDataSet);
                 }
-                return userTestSubmissionDataSets;
-            }
 
-            return null;
+                if (userTestSubmissionDataSets.Any())
+                {
+                    response.Succeeded = true;
+                    response.Data = userTestSubmissionDataSets;
+                } else
+                {
+                    response.Succeeded = false;
+                    response.Errors.Add("Bạn chưa làm bài thi nào!");
+                }
+
+                return response;
+            } else
+            {
+                response.Succeeded = false;
+                response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                return response;
+            }
         }
 
-        public async Task<DetailTestSubmissionDataSet> GetDetailTestSubmissionByUser(int testSubmissionId, string token)
+        public async Task<Response<DetailTestSubmissionDataSet>> GetDetailTestSubmissionByUser(int testSubmissionId, string token)
         {
+            Response<DetailTestSubmissionDataSet> response = new Response<DetailTestSubmissionDataSet>();
             if (token == null || token.Trim().Length == 0)
             {
-                return null;
+                response.Succeeded = false;
+                response.Errors.Add("Bạn chưa đăng nhập!");
+                return response;
             }
 
             string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
 
             if (userIdString == null || userIdString.Trim().Length <= 0)
             {
-                return null;
+                response.Succeeded = false;
+                response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                return response;
             }
             int userId = Int32.Parse(userIdString);
             TestSubmission testSubmission = await _uow.TestSubmissionRepository
@@ -183,7 +205,9 @@
 
             if (testSubmission == null)
             {
-                return null;
+                response.Succeeded = false;
+                response.Errors.Add("Bài thi không tồn tại trong hệ thống!");
+                return response;
             }
 
             List<QuestionSubmissionDataSet> questionSubmissionDataSets = new List<QuestionSubmissionDataSet>();
@@ -213,7 +237,9 @@
             detailTestSubmissionDataSet.TimeLimit = (int) testSubmission.Test.TimeLimit;
             detailTestSubmissionDataSet.TestName = testSubmission.Test.Name;
 
-            return detailTestSubmissionDataSet;
+            response.Succeeded = true;
+            response.Data = detailTestSubmissionDataSet;
+            return response;
         }
 
         public async Task<IEnumerable<QuestionDataSet>> ScoringTest1()
