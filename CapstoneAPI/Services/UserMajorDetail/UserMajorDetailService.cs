@@ -193,5 +193,78 @@ namespace CapstoneAPI.Services.UserMajorDetail
                 Message = "Bỏ quan tâm thành công"
             };
         }
+
+        public async Task<IEnumerable<UserMajorDetailGroupByMajorDataSet>> GetUserMajorDetailGroupByMajorDataSets(string token)
+        {
+            
+
+            if (token == null || token.Trim().Length == 0)
+            {
+                return null;
+            }
+
+            string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
+
+            if (userIdString == null || userIdString.Length <= 0)
+            {
+                return null;
+            }
+            
+
+            int userId = Int32.Parse(userIdString);
+
+            IEnumerable<Models.UserMajorDetail> userMajorDetails = await _uow.UserMajorDetailRepository.
+                                Get(filter: u => u.UserId == userId,
+                                includeProperties: "MajorDetail,Rank,MajorDetail.Major,MajorDetail.University,SubjectGroup,MajorDetail.AdmissionCriteria,MajorDetail.EntryMarks");
+            IEnumerable<IGrouping<Models.Major, Models.UserMajorDetail>> userMajorDetailGroups = userMajorDetails.GroupBy(u => u.MajorDetail.Major);
+
+            List<UserMajorDetailGroupByMajorDataSet> result = new List<UserMajorDetailGroupByMajorDataSet>();
+            foreach (IGrouping<Models.Major,Models.UserMajorDetail> userMajorDetailGroup in userMajorDetailGroups)
+            {                
+                List<UserMajorDetailToReturn> detailOfDataSets = new List<UserMajorDetailToReturn>();
+                foreach (Models.UserMajorDetail item in userMajorDetailGroup)
+                {
+                    UserMajorDetailToReturn userMajorDetailToReturn = new UserMajorDetailToReturn
+                    {
+                        PositionOfUser = item.Rank.Position,
+                        TotalUserCared = _uow.UserMajorDetailRepository.Count(filter: u => u.MajorDetailId == item.MajorDetailId),
+
+                        UniversityId = item.MajorDetail.University.Id,
+                        UniversityName = item.MajorDetail.University.Name,
+                        UniversityCode = item.MajorDetail.University.Code,
+                        UniversityAddress = item.MajorDetail.University.Address,
+                        UniversityPhone = item.MajorDetail.University.Phone,
+                        UniversityWebUrl = item.MajorDetail.University.WebUrl,
+                        Rating = item.MajorDetail.University.Rating,
+                        TuitionType = item.MajorDetail.University.TuitionType,
+                        TuitionFrom = item.MajorDetail.University.TuitionFrom,
+                        TuitionTo = item.MajorDetail.University.TuitionTo,
+                        UniversityLogo = item.MajorDetail.University.LogoUrl,
+                        UniversityDescription = item.MajorDetail.University.Description,
+                        UniversityMajorCode = item.MajorDetail.MajorCode,
+
+                        
+                        NumberOfStudent = item.MajorDetail.AdmissionCriteria.FirstOrDefault(u => u.MajorDetailId == item.MajorDetailId
+                        && u.Year == Consts.NEAREST_YEAR).Quantity,
+                        NewestEntryMark = item.MajorDetail.EntryMarks.FirstOrDefault(n => n.MajorDetailId == item.MajorDetailId
+                        && n.Year == Consts.NEAREST_YEAR).Mark,
+                        YearOfEntryMark = Consts.NEAREST_YEAR,
+
+                        SubjectGroupId = item.SubjectGroup.Id,
+                        SubjectGroupCode = item.SubjectGroup.GroupCode,
+                    };
+                    detailOfDataSets.Add(userMajorDetailToReturn);
+                }
+                UserMajorDetailGroupByMajorDataSet userMajorDetailDataSet = new UserMajorDetailGroupByMajorDataSet
+                {
+                    MajorId = userMajorDetailGroup.Key.Id,
+                    MajorName = userMajorDetailGroup.Key.Name,
+                    DetailOfDataSets = detailOfDataSets
+                };
+                result.Add(userMajorDetailDataSet);
+            }
+
+            return result;
+        }
     }
 }

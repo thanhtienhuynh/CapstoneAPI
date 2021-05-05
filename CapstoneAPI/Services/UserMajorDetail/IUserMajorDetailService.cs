@@ -11,5 +11,6 @@ namespace CapstoneAPI.Services.UserMajorDetail
     {
         Task<Models.UserMajorDetail> AddUserMajorDetail(AddUserMajorDetailParam userMajorDetailParam, string token);
         Task<BaseResponse<Object>> RemoveUserMajorDetail(UpdateUserMajorDetailParam userMajorDetailParam, string token);
+        Task<IEnumerable<UserMajorDetailGroupByMajorDataSet>> GetUserMajorDetailGroupByMajorDataSets(string token);
     }
 }
