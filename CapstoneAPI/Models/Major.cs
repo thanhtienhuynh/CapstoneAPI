@@ -11,7 +11,6 @@ namespace CapstoneAPI.Models
         {
             MajorCareers = new HashSet<MajorCareer>();
             MajorDetails = new HashSet<MajorDetail>();
-            UserMajors = new HashSet<UserMajor>();
             WeightNumbers = new HashSet<WeightNumber>();
         }
 
@@ -22,7 +21,6 @@ namespace CapstoneAPI.Models
 
         public virtual ICollection<MajorCareer> MajorCareers { get; set; }
         public virtual ICollection<MajorDetail> MajorDetails { get; set; }
-        public virtual ICollection<UserMajor> UserMajors { get; set; }
         public virtual ICollection<WeightNumber> WeightNumbers { get; set; }
     }
 }

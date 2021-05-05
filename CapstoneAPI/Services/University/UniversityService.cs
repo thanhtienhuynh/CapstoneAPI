@@ -7,6 +7,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CapstoneAPI.Helpers;
+using Microsoft.AspNetCore.Http;
+using System.IO;
+using Firebase.Auth;
+using System.Threading;
+using Firebase.Storage;
 
 namespace CapstoneAPI.Services.University
 {
@@ -20,8 +25,18 @@ namespace CapstoneAPI.Services.University
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<UniversityDataSetBaseOnTrainingProgram>> GetUniversityBySubjectGroupAndMajor(UniversityParam universityParam)
+        public async Task<IEnumerable<UniversityDataSetBaseOnTrainingProgram>> GetUniversityBySubjectGroupAndMajor(UniversityParam universityParam, string token)
         {
+            int userId = 0;
+            if (token != null && token.Trim().Length > 0)
+            {
+                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
+                if (userIdString != null && userIdString.Length > 0)
+                {
+                    userId = Int32.Parse(userIdString);
+                }
+            }
+
             //Lấy ra tất cả các trường có ngành đã chọn
             List<MajorDetail> majorDetails = (await _uow.MajorDetailRepository.Get(filter: w => w.MajorId == universityParam.MajorId, includeProperties: "University,TrainingProgram,AdmissionCriteria")).ToList();
             if (majorDetails == null || !majorDetails.Any())
@@ -59,13 +74,21 @@ namespace CapstoneAPI.Services.University
                         UniversityDataSet universityDataSet = _mapper.Map<UniversityDataSet>(majorDetail.University);
                         universityDataSet.NearestYearEntryMark = (double)entryMark.Mark;
                         universityDataSet.NumberOfStudents = majorDetail.AdmissionCriteria
-                                    .FirstOrDefault(a => a.Year == 2020) != null ? 
+                                    .FirstOrDefault(a => a.Year == 2020) != null ?
                                     majorDetail.AdmissionCriteria.FirstOrDefault(a => a.Year == 2020).Quantity : null;
-                        List<int> majorCaringUserIds = (await _uow.UserMajorRepository.Get(u => u.MajorId == universityParam.MajorId)).Select(m => m.UserId).ToList();
-                        List<int> universityCaringUserIds = (await _uow.UserUniversityRepository.Get(u => u.UniversityId == universityDataSet.Id)).Select(m => m.UserId).ToList();
-                        universityDataSet.NumberOfCaring = majorCaringUserIds.Intersect(universityCaringUserIds).Count();
+                        List<int> majorUniCaringUserIds = (await _uow.UserMajorDetailRepository.Get(u => u.MajorDetailId == majorDetail.Id))
+                                                            .Select(m => m.UserId).Distinct().ToList();
+                        universityDataSet.NumberOfCaring = majorUniCaringUserIds.Count();
+
+                        universityDataSet.IsCared = userId > 0 && await IsCared(userId, majorDetail.Id, majorDetail.MajorId, majorDetail.UniversityId);
+                        IEnumerable<Models.Rank> ranks = (await _uow.UserMajorDetailRepository
+                                                            .Get(filter: u => u.MajorDetailId == majorDetail.Id, includeProperties: "Rank"))
+                                                            .Select(u => u.Rank).Where(r => r != null);
+                        universityDataSet.Rank = _uow.RankRepository.CalculateRank(universityParam.TranscriptTypeId, universityParam.TotalMark, ranks);
                         universityDataSets.Add(universityDataSet);
+
                     }
+
                 }
                 if (universityDataSets.Any())
                 {
@@ -79,6 +102,25 @@ namespace CapstoneAPI.Services.University
             }
             
             return universityDataSetsBaseOnTrainingProgram;
+        }
+
+        
+
+        public async Task<bool> IsCared(int userId, int majorDetailId, int? majorId, int? universityId)
+        {
+            if (majorId == null || universityId == null)
+            {
+                return false;
+            }
+            Models.UserMajorDetail userMajorDetail = (await _uow.UserMajorDetailRepository
+                                                        .Get(filter: u => u.MajorDetailId == majorDetailId
+                                                            && u.UserId == userId)).FirstOrDefault();
+            if (userMajorDetail != null)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         public async Task<IEnumerable<AdminUniversityDataSet>> GetUniversities()
@@ -97,10 +139,10 @@ namespace CapstoneAPI.Services.University
             foreach (MajorDetail majorDetail in university.MajorDetails)
             {
                 Models.Major major = await _uow.MajorRepository.GetById(majorDetail.MajorId);
+                AdmissionCriterion admissionCriterion = await _uow.AdmissionCriterionRepository
+                                                                .GetFirst(a => a.Year == 2021 && a.MajorDetailId == majorDetail.Id);
                 UniMajorDataSet uniMajorDataSet = _mapper.Map<UniMajorDataSet>(major);
-                uniMajorDataSet.NumberOfStudents = 
-                    majorDetail.AdmissionCriteria.FirstOrDefault(a => a.Year == 2021) != null ?
-                                    majorDetail.AdmissionCriteria.FirstOrDefault(a => a.Year == 2021).Quantity : null; ;
+                uniMajorDataSet.NumberOfStudents = admissionCriterion != null ? admissionCriterion.Quantity : null;
                 uniMajorDataSet.Code = majorDetail.MajorCode;
                 uniMajorDataSet.TrainingProgramId = majorDetail.TrainingProgramId;
                 uniMajorDataSet.TrainingProgramName = (await _uow.TrainingProgramRepository.GetById(majorDetail.TrainingProgramId)).Name;
@@ -169,6 +211,49 @@ namespace CapstoneAPI.Services.University
             {
                 return null;
             }
+            //Upload logo to Firebase block
+
+            IFormFile logoImage = adminUniversityDataSet.File;
+            if (logoImage != null)
+            {
+                if (Consts.IMAGE_EXTENSIONS.Contains(Path.GetExtension(logoImage.FileName).ToUpperInvariant()))
+                {
+
+                    using (var ms = new MemoryStream())
+                    {
+                        logoImage.CopyTo(ms);
+                        ms.Position = 0;
+                        if (ms != null && ms.Length > 0)
+                        {
+                            var auth = new FirebaseAuthProvider(new FirebaseConfig(Consts.API_KEY));
+                            var firebaseAuth = await auth.SignInWithEmailAndPasswordAsync(Consts.AUTH_MAIL, Consts.AUTH_PASSWORD);
+
+                            // you can use CancellationTokenSource to cancel the upload midway
+                            var cancellation = new CancellationTokenSource();
+
+                            var task = new FirebaseStorage(
+                                Consts.BUCKET,
+                                new FirebaseStorageOptions
+                                {
+                                    ThrowOnCancel = true, // when you cancel the upload, exception is thrown. By default no exception is thrown
+                                    AuthTokenAsyncFactory = () => Task.FromResult(firebaseAuth.FirebaseToken),
+                                })
+                                .Child(Consts.LOGO_FOLDER)
+                                .Child(adminUniversityDataSet.Code + Path.GetExtension(logoImage.FileName))
+                                .PutAsync(ms, cancellation.Token);
+
+                            adminUniversityDataSet.LogoUrl = await task;
+                        }
+
+                    }
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+
             updatedUni.Code = adminUniversityDataSet.Code;
             updatedUni.Name = adminUniversityDataSet.Name;
             updatedUni.Address = adminUniversityDataSet.Address;

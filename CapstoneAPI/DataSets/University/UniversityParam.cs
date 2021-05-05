@@ -10,5 +10,6 @@ namespace CapstoneAPI.DataSets.University
         public int SubjectGroupId { get; set; }
         public int MajorId { get; set; }
         public double TotalMark { get; set; }
+        public int TranscriptTypeId { get; set; }
     }
 }

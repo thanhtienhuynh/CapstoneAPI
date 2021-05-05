@@ -8,7 +8,7 @@ namespace CapstoneAPI.Services.University
 {
     public interface IUniversityService
     {
-        Task<IEnumerable<UniversityDataSetBaseOnTrainingProgram>> GetUniversityBySubjectGroupAndMajor(UniversityParam universityParam);
+        Task<IEnumerable<UniversityDataSetBaseOnTrainingProgram>> GetUniversityBySubjectGroupAndMajor(UniversityParam universityParam, string token);
         Task<IEnumerable<AdminUniversityDataSet>> GetUniversities();
         Task<DetailUniversityDataSet> GetDetailUniversity(int universityId);
         Task<AdminUniversityDataSet> CreateNewAnUniversity(CreateUniversityDataset createUniversityDataset);

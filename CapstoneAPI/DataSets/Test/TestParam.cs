@@ -8,6 +8,5 @@ namespace CapstoneAPI.DataSets.Test
     public class TestParam
     {
         public int SubjectGroupId { get; set; }
-        public int UniversityId { get; set; }
     }
 }
