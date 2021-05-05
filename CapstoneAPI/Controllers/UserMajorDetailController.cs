@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using CapstoneAPI.DataSets;
 using CapstoneAPI.DataSets.UserMajorDetail;
@@ -35,15 +36,17 @@ namespace CapstoneAPI.Controllers
         }
 
         [HttpGet("group-by-major")]
-        public async Task<ActionResult<IEnumerable<UserMajorDetailGroupByMajorDataSet>>> GetUserMajorDetailGroupByMajor()
+        public async Task<ActionResult<Response<IEnumerable<UserMajorDetailGroupByMajorDataSet>>>> GetUserMajorDetailGroupByMajor()
         {
             string token = Request.Headers["Authorization"];
-            IEnumerable<UserMajorDetailGroupByMajorDataSet> UserMajorDetailGroupByMajorDataSet = await _service.GetUserMajorDetailGroupByMajorDataSets(token);
-            if (UserMajorDetailGroupByMajorDataSet == null)
-            {
-            return BadRequest();
-            }
-            return Ok(UserMajorDetailGroupByMajorDataSet);
+            return Ok(await _service.GetUserMajorDetailGroupByMajorDataSets(token));
+        }
+
+        [HttpGet("group-by-university")]
+        public async Task<ActionResult<Response<IEnumerable<UserMajorDetailGroupByUniversityDataSet>>>> GetUserMajorDetailGroupByUniversity()
+        {
+            string token = Request.Headers["Authorization"];
+            return Ok(await _service.GetUserMajorDetailGroupByUniversityDataSets(token));
         }
     }
 }

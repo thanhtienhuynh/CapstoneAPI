@@ -186,22 +186,26 @@ namespace CapstoneAPI.Services.UserMajorDetail
             return response;
         }
 
-        public async Task<IEnumerable<UserMajorDetailGroupByMajorDataSet>> GetUserMajorDetailGroupByMajorDataSets(string token)
+        public async Task<Response<IEnumerable<UserMajorDetailGroupByMajorDataSet>>> GetUserMajorDetailGroupByMajorDataSets(string token)
         {
-            
+            Response<IEnumerable<UserMajorDetailGroupByMajorDataSet>> response = new Response<IEnumerable<UserMajorDetailGroupByMajorDataSet>>();
 
+            
             if (token == null || token.Trim().Length == 0)
             {
-                return null;
+                response.Succeeded = false;
+                response.Errors.Add("Bạn chưa đăng nhập!");
+                return response;
             }
 
             string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
 
             if (userIdString == null || userIdString.Length <= 0)
             {
-                return null;
+                response.Succeeded = false;
+                response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                return response;
             }
-            
 
             int userId = Int32.Parse(userIdString);
 
@@ -255,8 +259,102 @@ namespace CapstoneAPI.Services.UserMajorDetail
                 };
                 result.Add(userMajorDetailDataSet);
             }
+            if (result.Count<=0)
+            {
+                response.Succeeded = false;
+                response.Errors.Add("Bạn chưa có ngành quan tâm");
+                return response;
+            }
+            else
+            {
+                response.Succeeded = true;
+                response.Data = result;
+            }
+            return response;
+        }
 
-            return result;
+        public async Task<Response<IEnumerable<UserMajorDetailGroupByUniversityDataSet>>> GetUserMajorDetailGroupByUniversityDataSets(string token)
+        {
+            Response<IEnumerable<UserMajorDetailGroupByUniversityDataSet>> response = new Response<IEnumerable<UserMajorDetailGroupByUniversityDataSet>>();
+
+            
+            if (token == null || token.Trim().Length == 0)
+            {
+                response.Succeeded = false;
+                response.Errors.Add("Bạn chưa đăng nhập!");
+                return response;
+            }
+
+            string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
+
+            if (userIdString == null || userIdString.Length <= 0)
+            {
+                response.Succeeded = false;
+                response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                return response;
+            }
+
+            int userId = Int32.Parse(userIdString);
+            IEnumerable<Models.UserMajorDetail> userMajorDetails = await _uow.UserMajorDetailRepository.
+                                Get(filter: u => u.UserId == userId,
+                                includeProperties: "MajorDetail,Rank,MajorDetail.Major,MajorDetail.University,SubjectGroup,MajorDetail.AdmissionCriteria,MajorDetail.EntryMarks");
+            IEnumerable<IGrouping<Models.University, Models.UserMajorDetail>> userMajorDetailGroups = userMajorDetails.GroupBy(u => u.MajorDetail.University);
+
+            List<UserMajorDetailGroupByUniversityDataSet> result = new List<UserMajorDetailGroupByUniversityDataSet>();
+            foreach (IGrouping<Models.University, Models.UserMajorDetail> userMajorDetailGroup in userMajorDetailGroups)
+            {
+                UserMajorDetailGroupByUniversityDataSet userMajorDetailDataSet = new UserMajorDetailGroupByUniversityDataSet
+                {
+                    UniversityId = userMajorDetailGroup.Key.Id,
+                    UniversityCode = userMajorDetailGroup.Key.Code,
+                    UniversityName = userMajorDetailGroup.Key.Name,
+                    UniversityDescription = userMajorDetailGroup.Key.Description,
+                    UniversityAddress = userMajorDetailGroup.Key.Address,
+                    UniversityLogo = userMajorDetailGroup.Key.LogoUrl,
+                    UniversityPhone = userMajorDetailGroup.Key.Phone,
+                    UniversityWebUrl = userMajorDetailGroup.Key.WebUrl,
+                    TuitionTo = userMajorDetailGroup.Key.TuitionTo,
+                    TuitionFrom = userMajorDetailGroup.Key.TuitionFrom,
+                    TuitionType = userMajorDetailGroup.Key.TuitionType,
+                    Rating = userMajorDetailGroup.Key.Rating
+                };
+                List<UserMajorDetailGroupByUniversityToReturn> detailOfDataSets = new List<UserMajorDetailGroupByUniversityToReturn>();
+                foreach (Models.UserMajorDetail item in userMajorDetailGroup)
+                {
+                    UserMajorDetailGroupByUniversityToReturn detailOfDataSet = new UserMajorDetailGroupByUniversityToReturn
+                    {
+                        MajorId = (int)item.MajorDetail.MajorId,
+                        MajorName = item.MajorDetail.Major.Name,
+                        UniversityMajorCode = item.MajorDetail.MajorCode,
+                        PositionOfUser = item.Rank.Position,
+                        TotalUserCared = _uow.UserMajorDetailRepository.Count(filter: u => u.MajorDetailId == item.MajorDetailId),
+
+                        NumberOfStudent = item.MajorDetail.AdmissionCriteria.FirstOrDefault(u => u.MajorDetailId == item.MajorDetailId
+                        && u.Year == Consts.NEAREST_YEAR).Quantity,
+                        NewestEntryMark = item.MajorDetail.EntryMarks.FirstOrDefault(n => n.MajorDetailId == item.MajorDetailId
+                        && n.Year == Consts.NEAREST_YEAR).Mark,
+                        YearOfEntryMark = Consts.NEAREST_YEAR,
+                        
+                        SubjectGroupId = item.SubjectGroup.Id,
+                        SubjectGroupCode = item.SubjectGroup.GroupCode,
+                    };
+                    detailOfDataSets.Add(detailOfDataSet);
+                }
+                userMajorDetailDataSet.DetailOfDataSets = detailOfDataSets;
+                result.Add(userMajorDetailDataSet);
+            }
+            if (result.Count <= 0)
+            {
+                response.Succeeded = false;
+                response.Errors.Add("Bạn chưa có ngành quan tâm");
+                return response;
+            }
+            else
+            {
+                response.Succeeded = true;
+                response.Data = result;
+            }
+            return response;
         }
     }
 }
