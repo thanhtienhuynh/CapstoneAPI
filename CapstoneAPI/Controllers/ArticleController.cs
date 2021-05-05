@@ -32,11 +32,30 @@ namespace CapstoneAPI.Controllers
                 return NoContent();
             return Ok(articles);
         }
-
         [HttpGet("detail/{id}")]
         public async Task<ActionResult<ArticleDetailDataSet>> GetArticleDetailsForGuest(int id)
         {
             ArticleDetailDataSet article = await _service.GetArticleById(id);
+            if (article == null)
+                return NoContent();
+            return Ok(article);
+        }
+        [HttpGet("admin-all")]
+        public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListArticleForAdmin([FromQuery] PaginationFilter filter)
+        {
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+
+            PagedResponse<List<AdminArticleCollapseDataSet>> articles = await _service.GetListArticleForAdmin(validFilter);
+
+            if (articles.Data.Count == 0)
+                return NoContent();
+            return Ok(articles);
+        }
+
+        [HttpGet("admin-detail/{id}")]
+        public async Task<ActionResult<AdminArticleDetailDataSet>> GetArticleDetailsForAdmin(int id)
+        {
+            AdminArticleDetailDataSet article = await _service.AdminGetArticleById(id);
             if (article == null)
                 return NoContent();
             return Ok(article);

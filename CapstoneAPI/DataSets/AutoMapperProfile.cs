@@ -45,7 +45,9 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.QuestionSubmisstion, QuestionSubmissionDataSet>();
             CreateMap<Models.TrainingProgram, AdminTrainingProgramDataSet>();
             CreateMap<Models.Article, ArticleCollapseDataSet>();
+            CreateMap<Models.Article, AdminArticleCollapseDataSet>();
             CreateMap<Models.Article, ArticleDetailDataSet>();
+            CreateMap<Models.Article, AdminArticleDetailDataSet>();
         }
     }
 }

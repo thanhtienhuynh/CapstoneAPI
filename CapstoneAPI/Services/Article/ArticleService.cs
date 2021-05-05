@@ -50,7 +50,23 @@ namespace CapstoneAPI.Services.Article
             result = PaginationHelper.CreatePagedReponse(articleCollapseDataSet, validFilter, totalRecords);
             return result;
         }
+        public async Task<PagedResponse<List<AdminArticleCollapseDataSet>>> GetListArticleForAdmin(PaginationFilter validFilter)
+        {
+            PagedResponse<List<AdminArticleCollapseDataSet>> result;
 
+            var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
+
+            DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
+
+            IEnumerable<Models.Article> articles = await _uow.ArticleRepository
+                .Get(orderBy: o => o.OrderByDescending(a => a.PostedDate),
+                first: validFilter.PageSize, offset: (validFilter.PageNumber - 1) * validFilter.PageSize);
+
+            var articleCollapseDataSet = articles.Select(m => _mapper.Map<AdminArticleCollapseDataSet>(m)).ToList();
+            var totalRecords = _uow.ArticleRepository.Count();
+            result = PaginationHelper.CreatePagedReponse(articleCollapseDataSet, validFilter, totalRecords);
+            return result;
+        }
         public async Task<ArticleDetailDataSet> GetArticleById(int id)
         {
             var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
@@ -60,6 +76,16 @@ namespace CapstoneAPI.Services.Article
             && a.PublicFromDate != null && a.PublicToDate != null && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0);
            
             return _mapper.Map<ArticleDetailDataSet>(article);
+        }
+
+        public async Task<AdminArticleDetailDataSet> AdminGetArticleById(int id)
+        {
+            var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
+            DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
+
+            Models.Article article = await _uow.ArticleRepository.GetFirst(filter: a => a.Id == id);
+
+            return _mapper.Map<AdminArticleDetailDataSet>(article);
         }
     }
 }
