@@ -1,6 +1,7 @@
 ﻿using CapstoneAPI.DataSets;
 using CapstoneAPI.DataSets.Question;
 using CapstoneAPI.DataSets.TestSubmission;
+using CapstoneAPI.Wrappers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,10 +11,10 @@ namespace CapstoneAPI.Services.TestSubmission
 {
     public interface ITestSubmissionService
     {
-        Task<TestSubmissionDataSet> ScoringTest(TestSubmissionParam testSubmissionParam);
-        Task<BaseResponse<Models.TestSubmission>> SaveTestSubmission(SaveTestSubmissionParam saveTestSubmissionParam, string token);
-        Task<List<UserTestSubmissionDataSet>> GetTestSubmissionsByUser(string token);
-        Task<DetailTestSubmissionDataSet> GetDetailTestSubmissionByUser(int testSubmissionId, string token);
+        Task<Response<TestSubmissionDataSet>> ScoringTest(TestSubmissionParam testSubmissionParam);
+        Task<Response<Models.TestSubmission>> SaveTestSubmission(SaveTestSubmissionParam saveTestSubmissionParam, string token);
+        Task<Response<List<UserTestSubmissionDataSet>>> GetTestSubmissionsByUser(string token);
+        Task<Response<DetailTestSubmissionDataSet>> GetDetailTestSubmissionByUser(int testSubmissionId, string token);
         Task<IEnumerable<QuestionDataSet>> ScoringTest1();
     }
 }

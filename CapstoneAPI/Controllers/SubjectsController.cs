@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using CapstoneAPI.Models;
 using CapstoneAPI.Services.Subject;
 using CapstoneAPI.DataSets.Subject;
+using CapstoneAPI.Wrappers;
 
 namespace CapstoneAPI.Controllers
 {
@@ -24,7 +25,7 @@ namespace CapstoneAPI.Controllers
 
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<SubjectDataSet>>> GetSubjects()
+        public async Task<ActionResult<Response<IEnumerable<SubjectDataSet>>>> GetSubjects()
         {
             return Ok(await _service.GetAllSubjects());
         }

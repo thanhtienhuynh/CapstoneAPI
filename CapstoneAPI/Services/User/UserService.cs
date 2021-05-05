@@ -4,6 +4,7 @@
     using CapstoneAPI.DataSets.User;
     using CapstoneAPI.Helpers;
     using CapstoneAPI.Repositories;
+    using CapstoneAPI.Wrappers;
     using FirebaseAdmin.Auth;
     using Microsoft.IdentityModel.Tokens;
     using System;
@@ -25,8 +26,9 @@
             _mapper = mapper;
         }
 
-        public async Task<LoginResponse> Login(Token firebaseToken)
+        public async Task<Response<LoginResponse>> Login(Token firebaseToken)
         {
+            Response<LoginResponse> response = new Response<LoginResponse>();
             Models.User user;
             JwtSecurityToken token = null;
             FirebaseToken decodedToken = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(firebaseToken.uidToken);
@@ -45,13 +47,11 @@
                 };
                 _uow.UserRepository.Insert(user);
 
-                if (await _uow.CommitAsync() > 0)
+                if (await _uow.CommitAsync() <= 0)
                 {
-                    
-                }
-                else
-                {
-                    return null;
+                    response.Succeeded = false;
+                    response.Errors.Add("Đăng nhập vào hệ thống thất bại!");
+                    return response;
                 }
             }
             bool isAdmin = user.Role.Name.Equals(Consts.ADMIN_ROLE);
@@ -80,7 +80,9 @@
                 User = userResponse,
                 Token = new JwtSecurityTokenHandler().WriteToken(token)
             };
-            return loginResponse;
+            response.Succeeded = true;
+            response.Data = loginResponse;
+            return response;
         }
     }
 }

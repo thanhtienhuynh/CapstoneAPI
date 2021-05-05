@@ -1,8 +1,10 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using CapstoneAPI.DataSets;
 using CapstoneAPI.DataSets.UserMajorDetail;
 using CapstoneAPI.Models;
 using CapstoneAPI.Services.UserMajorDetail;
+using CapstoneAPI.Wrappers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CapstoneAPI.Controllers
@@ -19,34 +21,17 @@ namespace CapstoneAPI.Controllers
         }
 
         [HttpPost()]
-        public async Task<ActionResult<UserMajorDetail>> AddUserMajorDetail(AddUserMajorDetailParam userMajorDetailParam)
+        public async Task<ActionResult<Response<UserMajorDetail>>> AddUserMajorDetail(AddUserMajorDetailParam userMajorDetailParam)
         {
             string token = Request.Headers["Authorization"];
-            UserMajorDetail userMajorDetail = await _service.AddUserMajorDetail(userMajorDetailParam, token);
-            if (userMajorDetail == null)
-            {
-                return BadRequest();
-            }
-            return Ok();
+            return Ok(await _service.AddUserMajorDetail(userMajorDetailParam, token));
         }
 
         [HttpPost("deletion")]
-        public async Task<ActionResult<UserMajorDetail>> RemoveUserMajorDetail(UpdateUserMajorDetailParam userMajorDetailParam)
+        public async Task<ActionResult<Response<Object>>> RemoveUserMajorDetail(UpdateUserMajorDetailParam userMajorDetailParam)
         {
             string token = Request.Headers["Authorization"];
-            BaseResponse<object> reponse = await _service.RemoveUserMajorDetail(userMajorDetailParam, token);
-            switch(reponse.StatusCode)
-            {
-                case 0:
-                    return Ok(reponse);
-                case 1:
-                    return Unauthorized(reponse);
-                case 2:
-                    return NotFound(reponse);
-                case 3:
-                    return BadRequest(reponse);
-            }
-            return NoContent();
+            return Ok(await _service.RemoveUserMajorDetail(userMajorDetailParam, token));
         }
     }
 }
