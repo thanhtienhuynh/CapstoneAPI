@@ -14,12 +14,12 @@ namespace CapstoneAPI.Wrappers
         {
             Succeeded = true;
             Message = string.Empty;
-            Errors = null;
+            Errors = new List<string>();
             Data = data;
         }
         public T Data { get; set; }
         public bool Succeeded { get; set; }
-        public string[] Errors { get; set; }
+        public List<string> Errors { get; set; }
         public string Message { get; set; }
     }
 }

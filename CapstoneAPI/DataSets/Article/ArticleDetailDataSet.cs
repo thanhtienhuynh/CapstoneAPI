@@ -16,5 +16,7 @@ namespace CapstoneAPI.DataSets.Article
         public string ShortDescription { get; set; }
         public string PostImageUrl { get; set; }
         public int? Status { get; set; }
+        public string HeaderConfig { get; set; }
+
     }
 }

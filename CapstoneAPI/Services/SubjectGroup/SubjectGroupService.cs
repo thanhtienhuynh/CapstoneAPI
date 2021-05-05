@@ -5,6 +5,7 @@ using CapstoneAPI.DataSets.SubjectGroup;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
+using CapstoneAPI.Wrappers;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -23,8 +24,9 @@ namespace CapstoneAPI.Services.SubjectGroup
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<SubjectGroupDataSet>> GetCaculatedSubjectGroup(SubjectGroupParam subjectGroupParam)
+        public async Task<Response<IEnumerable<SubjectGroupDataSet>>> GetCaculatedSubjectGroup(SubjectGroupParam subjectGroupParam)
         {
+            Response<IEnumerable<SubjectGroupDataSet>> response = new Response<IEnumerable<SubjectGroupDataSet>>();
             List<SubjectGroupDataSet> subjectGroupDataSets = new List<SubjectGroupDataSet>();
             //Lấy danh sách khối
             IEnumerable<Models.SubjectGroup> subjectGroups = await _uow.SubjectGroupRepository.Get(includeProperties: "SubjectGroupDetails");
@@ -41,7 +43,9 @@ namespace CapstoneAPI.Services.SubjectGroup
 
             if (!subjectGroupDataSets.Any())
             {
-                return null;
+                response.Succeeded = false;
+                response.Errors.Add("Không có tổ hợp môn thỏa mãn!");
+                return response;
             }
 
             //Lọc những khối không có ngành phù hợp
@@ -73,7 +77,17 @@ namespace CapstoneAPI.Services.SubjectGroup
                 suggestGroup.SuggestedMajors = await GenerateListMajors(subjectGroupParam, suggestGroup, majorIds);
             }
 
-            return suggestedSubjectGroups.Where(s => s.SuggestedMajors.Count() > 0);
+            IEnumerable<SubjectGroupDataSet> results = suggestedSubjectGroups.Where(s => s.SuggestedMajors.Count() > 0);
+            if (results.Any())
+            {
+                response.Succeeded = true;
+                response.Data = suggestedSubjectGroups.Where(s => s.SuggestedMajors.Count() > 0);
+            } else
+            {
+                response.Succeeded = false;
+                response.Errors.Add("Không có khối ngành phù hợp!");
+            }
+            return response;
         }
 
         //Lọc ra các ngành không phù hợp vì tổng điểm của khối thấp hơn điểm chuẩn

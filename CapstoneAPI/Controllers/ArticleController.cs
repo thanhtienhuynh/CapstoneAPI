@@ -34,9 +34,9 @@ namespace CapstoneAPI.Controllers
         }
 
         [HttpGet("detail/{id}")]
-        public async Task<ActionResult<ArticleDetailDataSet>> GetArticleDetailsForGuest(int id)
+        public async Task<ActionResult<Response<ArticleDetailDataSet>>> GetArticleDetailsForGuest(int id)
         {
-            ArticleDetailDataSet article = await _service.GetArticleById(id);
+            Response<ArticleDetailDataSet> article = await _service.GetArticleById(id);
             if (article == null)
                 return NoContent();
             return Ok(article);

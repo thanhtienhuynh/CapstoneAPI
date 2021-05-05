@@ -1,10 +1,10 @@
 ﻿using AutoMapper;
-using CapstoneAPI.DataSets;
 using CapstoneAPI.DataSets.SubjectGroup;
 using CapstoneAPI.DataSets.UserMajorDetail;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
+using CapstoneAPI.Wrappers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,18 +23,23 @@ namespace CapstoneAPI.Services.UserMajorDetail
             _mapper = mapper;
         }
 
-        public async Task<Models.UserMajorDetail> AddUserMajorDetail(AddUserMajorDetailParam userMajorDetailParam, string token)
+        public async Task<Response<Models.UserMajorDetail>> AddUserMajorDetail(AddUserMajorDetailParam userMajorDetailParam, string token)
         {
+            Response<Models.UserMajorDetail> response = new Response<Models.UserMajorDetail>();
             if (token == null || token.Trim().Length == 0)
             {
-                return null;
+                response.Succeeded = false;
+                response.Errors.Add("Bạn chưa đăng nhập!");
+                return response;
             }
 
             string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
 
             if (userIdString == null || userIdString.Length <= 0)
             {
-                return null;
+                response.Succeeded = false;
+                response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                return response;
             }
 
             int userId = Int32.Parse(userIdString);
@@ -74,7 +79,9 @@ namespace CapstoneAPI.Services.UserMajorDetail
 
             if (majorDetail == null)
             {
-                return null;
+                response.Succeeded = false;
+                response.Errors.Add("Trường này không tồn tại!");
+                return response;
             }
 
             Models.UserMajorDetail userMajorDetail = await _uow.UserMajorDetailRepository
@@ -105,36 +112,33 @@ namespace CapstoneAPI.Services.UserMajorDetail
                 _uow.UserMajorDetailRepository.Insert(userMajorDetail);
                 if ((await _uow.CommitAsync()) <= 0)
                 {
-                    return null;
+                    response.Succeeded = false;
+                    response.Errors.Add("Quan tâm không thành công, lỗi hệ thống!");
+                    return response;
                 }
             }
-
-            return userMajorDetail;
+            response.Succeeded = true;
+            response.Data = userMajorDetail;
+            return response;
         }
 
-        public async Task<BaseResponse<Object>> RemoveUserMajorDetail(UpdateUserMajorDetailParam userMajorDetailParam, string token)
+        public async Task<Response<Object>> RemoveUserMajorDetail(UpdateUserMajorDetailParam userMajorDetailParam, string token)
         {
-            BaseResponse<Object> response;
+            Response<Object> response = new Response<Object>();
             if (token == null || token.Trim().Length == 0)
             {
-                return response = new BaseResponse<object>()
-                {
-                    IsSuccess = false,
-                    StatusCode = 1,
-                    Message = "Bạn chưa đăng nhập"
-                };
+                response.Succeeded = false;
+                response.Errors.Add("Bạn chưa đăng nhập!");
+                return response;
             }
 
             string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
 
             if (userIdString == null || userIdString.Length <= 0)
             {
-                return response = new BaseResponse<object>()
-                {
-                    IsSuccess = false,
-                    StatusCode = 1,
-                    Message = "Bạn chưa đăng nhập"
-                };
+                response.Succeeded = false;
+                response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                return response;
             }
 
             int userId = Int32.Parse(userIdString);
@@ -146,12 +150,9 @@ namespace CapstoneAPI.Services.UserMajorDetail
 
             if (majorDetail == null)
             {
-                return response = new BaseResponse<object>()
-                {
-                    IsSuccess = false,
-                    StatusCode = 2,
-                    Message = "Trường này không tồn tại"
-                };
+                response.Succeeded = false;
+                response.Errors.Add("Trường này không tồn tại!");
+                return response;
             }
 
             Models.UserMajorDetail userMajorDetail = await _uow.UserMajorDetailRepository
@@ -165,33 +166,24 @@ namespace CapstoneAPI.Services.UserMajorDetail
                     _uow.RankRepository.Delete(userMajorDetail.Id);
                     if ((await _uow.CommitAsync()) <= 0)
                     {
-                        return response = new BaseResponse<object>()
-                        {
-                            IsSuccess = false,
-                            StatusCode = 3,
-                            Message = "Lỗi hệ thống"
-                        };
+                        response.Succeeded = false;
+                        response.Errors.Add("Bỏ quan tâm không thành công, lỗi hệ thống!");
+                        return response;
                     }
                 }
 
                 _uow.UserMajorDetailRepository.Delete(userMajorDetail.Id);
                 if ((await _uow.CommitAsync()) <= 0)
                 {
-                    return response = new BaseResponse<object>()
-                    {
-                        IsSuccess = false,
-                        StatusCode = 3,
-                        Message = "Lỗi hệ thống"
-                    };
+                    response.Succeeded = false;
+                    response.Errors.Add("Bỏ quan tâm không thành công, lỗi hệ thống!");
+                    return response;
                 }
             }
 
-            return response = new BaseResponse<object>()
-            {
-                IsSuccess = true,
-                StatusCode = 0,
-                Message = "Bỏ quan tâm thành công"
-            };
+            response.Succeeded = true;
+
+            return response;
         }
 
         public async Task<IEnumerable<UserMajorDetailGroupByMajorDataSet>> GetUserMajorDetailGroupByMajorDataSets(string token)
