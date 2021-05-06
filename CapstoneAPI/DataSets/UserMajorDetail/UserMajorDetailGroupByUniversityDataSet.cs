@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CapstoneAPI.DataSets.University;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,18 +9,7 @@ namespace CapstoneAPI.DataSets.UserMajorDetail
     public class UserMajorDetailGroupByUniversityDataSet
     {
         public int UniversityId { get; set; }
-        public string UniversityName { get; set; }
-        public string UniversityLogo { get; set; }
-        public string UniversityDescription { get; set; }
-        public string UniversityCode { get; set; }
-        public string UniversityAddress { get; set; }
-        public string UniversityPhone { get; set; }
-        public string UniversityWebUrl { get; set; }
-        public int? TuitionType { get; set; }
-        public int? TuitionFrom { get; set; }
-        public int? TuitionTo { get; set; }
-        public int? Rating { get; set; }
-
+        public CreateUniversityDataset University { get; set; }
         public IEnumerable<UserMajorDetailGroupByUniversityToReturn> DetailOfDataSets { get; set; }
     }
     public class UserMajorDetailGroupByUniversityToReturn
@@ -27,6 +17,8 @@ namespace CapstoneAPI.DataSets.UserMajorDetail
         public int MajorId { get; set; }
         public string MajorName { get; set; }
         public string UniversityMajorCode { get; set; }
+        public int TrainingProgramId { get; set; }
+        public string TrainingProgramName { get; set; }
         public double? NewestEntryMark { get; set; }
         public int? NumberOfStudent { get; set; }
         public int YearOfEntryMark { get; set; }

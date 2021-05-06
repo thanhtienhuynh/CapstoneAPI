@@ -226,20 +226,23 @@ namespace CapstoneAPI.Services.UserMajorDetail
                         TotalUserCared = _uow.UserMajorDetailRepository.Count(filter: u => u.MajorDetailId == item.MajorDetailId),
 
                         UniversityId = item.MajorDetail.University.Id,
-                        UniversityName = item.MajorDetail.University.Name,
-                        UniversityCode = item.MajorDetail.University.Code,
-                        UniversityAddress = item.MajorDetail.University.Address,
-                        UniversityPhone = item.MajorDetail.University.Phone,
-                        UniversityWebUrl = item.MajorDetail.University.WebUrl,
-                        Rating = item.MajorDetail.University.Rating,
-                        TuitionType = item.MajorDetail.University.TuitionType,
-                        TuitionFrom = item.MajorDetail.University.TuitionFrom,
-                        TuitionTo = item.MajorDetail.University.TuitionTo,
-                        UniversityLogo = item.MajorDetail.University.LogoUrl,
-                        UniversityDescription = item.MajorDetail.University.Description,
+                        University = new DataSets.University.CreateUniversityDataset
+                        {
+                            Name = item.MajorDetail.University.Name,
+                            Code = item.MajorDetail.University.Code,
+                            Address = item.MajorDetail.University.Address,
+                            Phone = item.MajorDetail.University.Phone,
+                            WebUrl = item.MajorDetail.University.WebUrl,
+                            Rating = item.MajorDetail.University.Rating,
+                            TuitionType = item.MajorDetail.University.TuitionType,
+                            TuitionFrom = item.MajorDetail.University.TuitionFrom,
+                            TuitionTo = item.MajorDetail.University.TuitionTo,
+                            LogoUrl = item.MajorDetail.University.LogoUrl,
+                            Description = item.MajorDetail.University.Description,
+                        },
                         UniversityMajorCode = item.MajorDetail.MajorCode,
-
-                        
+                        TrainingProgramId = item.MajorDetail.TrainingProgram.Id,
+                        TrainingProgramName = item.MajorDetail.TrainingProgram.Name,
                         NumberOfStudent = item.MajorDetail.AdmissionCriteria.FirstOrDefault(u => u.MajorDetailId == item.MajorDetailId
                         && u.Year == Consts.NEAREST_YEAR).Quantity,
                         NewestEntryMark = item.MajorDetail.EntryMarks.FirstOrDefault(n => n.MajorDetailId == item.MajorDetailId
@@ -306,17 +309,20 @@ namespace CapstoneAPI.Services.UserMajorDetail
                 UserMajorDetailGroupByUniversityDataSet userMajorDetailDataSet = new UserMajorDetailGroupByUniversityDataSet
                 {
                     UniversityId = userMajorDetailGroup.Key.Id,
-                    UniversityCode = userMajorDetailGroup.Key.Code,
-                    UniversityName = userMajorDetailGroup.Key.Name,
-                    UniversityDescription = userMajorDetailGroup.Key.Description,
-                    UniversityAddress = userMajorDetailGroup.Key.Address,
-                    UniversityLogo = userMajorDetailGroup.Key.LogoUrl,
-                    UniversityPhone = userMajorDetailGroup.Key.Phone,
-                    UniversityWebUrl = userMajorDetailGroup.Key.WebUrl,
-                    TuitionTo = userMajorDetailGroup.Key.TuitionTo,
-                    TuitionFrom = userMajorDetailGroup.Key.TuitionFrom,
-                    TuitionType = userMajorDetailGroup.Key.TuitionType,
-                    Rating = userMajorDetailGroup.Key.Rating
+                    University = new DataSets.University.CreateUniversityDataset
+                    {
+                        Code = userMajorDetailGroup.Key.Code,
+                        Name = userMajorDetailGroup.Key.Name,
+                        Description = userMajorDetailGroup.Key.Description,
+                        Address = userMajorDetailGroup.Key.Address,
+                        LogoUrl = userMajorDetailGroup.Key.LogoUrl,
+                        Phone = userMajorDetailGroup.Key.Phone,
+                        WebUrl = userMajorDetailGroup.Key.WebUrl,
+                        TuitionTo = userMajorDetailGroup.Key.TuitionTo,
+                        TuitionFrom = userMajorDetailGroup.Key.TuitionFrom,
+                        TuitionType = userMajorDetailGroup.Key.TuitionType,
+                        Rating = userMajorDetailGroup.Key.Rating
+                    }
                 };
                 List<UserMajorDetailGroupByUniversityToReturn> detailOfDataSets = new List<UserMajorDetailGroupByUniversityToReturn>();
                 foreach (Models.UserMajorDetail item in userMajorDetailGroup)
@@ -326,6 +332,8 @@ namespace CapstoneAPI.Services.UserMajorDetail
                         MajorId = (int)item.MajorDetail.MajorId,
                         MajorName = item.MajorDetail.Major.Name,
                         UniversityMajorCode = item.MajorDetail.MajorCode,
+                        TrainingProgramId = item.MajorDetail.TrainingProgram.Id,
+                        TrainingProgramName = item.MajorDetail.TrainingProgram.Name,
                         PositionOfUser = item.Rank.Position,
                         TotalUserCared = _uow.UserMajorDetailRepository.Count(filter: u => u.MajorDetailId == item.MajorDetailId),
 
