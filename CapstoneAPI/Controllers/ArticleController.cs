@@ -28,15 +28,34 @@ namespace CapstoneAPI.Controllers
 
             PagedResponse<List<ArticleCollapseDataSet>> articles = await _service.GetListArticleForGuest(validFilter);
 
-            if (articles.Data.Count == 0)
+            if (articles == null)
                 return NoContent();
             return Ok(articles);
         }
-
         [HttpGet("detail/{id}")]
         public async Task<ActionResult<Response<ArticleDetailDataSet>>> GetArticleDetailsForGuest(int id)
         {
             Response<ArticleDetailDataSet> article = await _service.GetArticleById(id);
+            if (article == null)
+                return NoContent();
+            return Ok(article);
+        }
+        [HttpGet("admin-all")]
+        public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListArticleForAdmin([FromQuery] PaginationFilter filter)
+        {
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+
+            PagedResponse<List<AdminArticleCollapseDataSet>> articles = await _service.GetListArticleForAdmin(validFilter);
+
+            if (articles == null)
+                return NoContent();
+            return Ok(articles);
+        }
+
+        [HttpGet("admin-detail/{id}")]
+        public async Task<ActionResult<Response<AdminArticleDetailDataSet>>> GetArticleDetailsForAdmin(int id)
+        {
+            Response<AdminArticleDetailDataSet> article = await _service.AdminGetArticleById(id);
             if (article == null)
                 return NoContent();
             return Ok(article);
