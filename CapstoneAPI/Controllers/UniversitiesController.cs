@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using CapstoneAPI.DataSets.University;
 using CapstoneAPI.Services.University;
-
+using CapstoneAPI.Wrappers;
 
 namespace CapstoneAPI.Controllers
 {
@@ -20,15 +20,10 @@ namespace CapstoneAPI.Controllers
         }
 
         [HttpGet("suggestion")]
-        public async Task<ActionResult<IEnumerable<UniversityDataSetBaseOnTrainingProgram>>> GetUniversityBySubjectGroupAndMajor([FromQuery] UniversityParam universityParam)
+        public async Task<ActionResult<Response<IEnumerable<UniversityDataSetBaseOnTrainingProgram>>>> GetUniversityBySubjectGroupAndMajor([FromQuery] UniversityParam universityParam)
         {
             string token = Request.Headers["Authorization"];
-            IEnumerable<UniversityDataSetBaseOnTrainingProgram> result = await _service.GetUniversityBySubjectGroupAndMajor(universityParam, token);
-            if (result == null || !result.Any())
-            {
-                return NotFound();
-            }
-            return Ok(result);
+            return Ok(await _service.GetUniversityBySubjectGroupAndMajor(universityParam, token));
         }
 
         [HttpGet()]

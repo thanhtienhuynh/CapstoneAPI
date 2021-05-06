@@ -5,6 +5,7 @@
     using CapstoneAPI.Helpers;
     using CapstoneAPI.Models;
     using CapstoneAPI.Repositories;
+    using CapstoneAPI.Wrappers;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
@@ -21,8 +22,9 @@
             _mapper = mapper;
         }
 
-        public async Task<List<SubjectBasedTestDataSet>> GetFilteredTests(TestParam testParam)
+        public async Task<Response<List<SubjectBasedTestDataSet>>> GetFilteredTests(TestParam testParam)
         {
+            Response<List<SubjectBasedTestDataSet>> response = new Response<List<SubjectBasedTestDataSet>>();
             List<SubjectBasedTestDataSet> testsReponse = new List<SubjectBasedTestDataSet>();
             IEnumerable<int> subjectIds = null;
             if (testParam.SubjectGroupId > 0)
@@ -51,20 +53,36 @@
                     }
                 }
             }
-
-            return testsReponse;
+            if (testsReponse.Any())
+            {
+                response.Succeeded = true;
+                response.Data = testsReponse;
+            } else
+            {
+                response.Succeeded = false;
+                response.Errors.Add("Không có bài thi phù hợp");
+            }
+            return response;
         }
 
-        public async Task<TestDataSet> GetTestById(int id)
+        public async Task<Response<TestDataSet>> GetTestById(int id)
         {
+            Response<TestDataSet> response = new Response<TestDataSet>();
             Models.Test test = await _uow.TestRepository.GetFirst(filter: t => t.Id == id && t.Status == Consts.STATUS_ACTIVE,
                                                                     includeProperties: "Questions,Questions.Options");
+            if (test == null)
+            {
+                response.Succeeded = false;
+                response.Errors.Add("Bài thi không tồn tại!");
+            }
             test.Questions = test.Questions.OrderBy(s => s.Ordinal).ToList();
             foreach (Question questionDataSet in test.Questions)
             {
                 questionDataSet.Options = questionDataSet.Options.OrderBy(o => o.Ordinal).ToList();
             }
-            return _mapper.Map<TestDataSet>(test);
+            response.Succeeded = true;
+            response.Data = _mapper.Map<TestDataSet>(test);
+            return response;
         }
     }
 }

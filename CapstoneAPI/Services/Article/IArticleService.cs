@@ -14,6 +14,5 @@ namespace CapstoneAPI.Services.Article
         Task<PagedResponse<List<AdminArticleCollapseDataSet>>> GetListArticleForAdmin(PaginationFilter validFilter);
         Task<Response<ArticleDetailDataSet>> GetArticleById(int id);
         Task<Response<AdminArticleDetailDataSet>> AdminGetArticleById(int id);
-
     }
 }

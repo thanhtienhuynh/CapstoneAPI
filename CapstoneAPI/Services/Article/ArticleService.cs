@@ -82,6 +82,7 @@ namespace CapstoneAPI.Services.Article
 
             return result;
         }
+
         public async Task<Response<ArticleDetailDataSet>> GetArticleById(int id)
         {
             var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();

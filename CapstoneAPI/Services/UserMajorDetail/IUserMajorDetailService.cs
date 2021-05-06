@@ -1,5 +1,6 @@
 ﻿using CapstoneAPI.DataSets;
 using CapstoneAPI.DataSets.UserMajorDetail;
+using CapstoneAPI.Wrappers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,7 @@ namespace CapstoneAPI.Services.UserMajorDetail
 {
     public interface IUserMajorDetailService
     {
-        Task<Models.UserMajorDetail> AddUserMajorDetail(AddUserMajorDetailParam userMajorDetailParam, string token);
-        Task<BaseResponse<Object>> RemoveUserMajorDetail(UpdateUserMajorDetailParam userMajorDetailParam, string token);
+        Task<Response<Models.UserMajorDetail>> AddUserMajorDetail(AddUserMajorDetailParam userMajorDetailParam, string token);
+        Task<Response<Object>> RemoveUserMajorDetail(UpdateUserMajorDetailParam userMajorDetailParam, string token);
     }
 }
