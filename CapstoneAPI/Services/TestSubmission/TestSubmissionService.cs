@@ -35,6 +35,10 @@
             if (loadedTest == null)
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Bài thi không tồn tại!");
                 return response;
             }
@@ -70,6 +74,10 @@
             if (token == null || token.Trim().Length == 0)
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Bạn chưa đăng nhập!");
                 return response;
             }
@@ -108,18 +116,30 @@
                     } else
                     {
                         response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
                         response.Errors.Add("Lưu không thành công, lỗi hệ thống!");
                         return response;
                     }
                 } else
                 {
                     response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
                     response.Errors.Add("Lưu không thành công, lỗi hệ thống!");
                     return response;
                 }
             } else
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Tài khoản của bạn không tồn tại!");
                 return response;
             }
@@ -131,6 +151,10 @@
             if (token == null || token.Trim().Length == 0)
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Bạn chưa đăng nhập!");
                 return response;
             }
@@ -146,6 +170,10 @@
                 if (!testSubmissionDataSets.Any())
                 {
                     response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
                     response.Errors.Add("Bạn chưa làm bài test nào!");
                     return response;
                 }
@@ -168,6 +196,10 @@
                 } else
                 {
                     response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
                     response.Errors.Add("Bạn chưa làm bài thi nào!");
                 }
 
@@ -175,6 +207,10 @@
             } else
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Tài khoản của bạn không tồn tại!");
                 return response;
             }
@@ -186,6 +222,10 @@
             if (token == null || token.Trim().Length == 0)
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Bạn chưa đăng nhập!");
                 return response;
             }
@@ -195,6 +235,10 @@
             if (userIdString == null || userIdString.Trim().Length <= 0)
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Tài khoản của bạn không tồn tại!");
                 return response;
             }
@@ -206,6 +250,10 @@
             if (testSubmission == null)
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Bài thi không tồn tại trong hệ thống!");
                 return response;
             }

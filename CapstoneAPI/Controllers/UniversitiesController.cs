@@ -27,64 +27,40 @@ namespace CapstoneAPI.Controllers
         }
 
         [HttpGet()]
-        public async Task<ActionResult<IEnumerable<AdminUniversityDataSet>>> GetAllUniversities()
+        public async Task<ActionResult<Response<IEnumerable<AdminUniversityDataSet>>>> GetAllUniversities()
         {
-            IEnumerable<AdminUniversityDataSet> result = await _service.GetUniversities();
-            if (result == null || !result.Any())
-            {
-                return NotFound();
-            }
+            Response<IEnumerable<AdminUniversityDataSet>> result = await _service.GetUniversities();
             return Ok(result);
         }
 
         [HttpGet("detail/{id}")]
-        public async Task<ActionResult<DetailUniversityDataSet>> GetDetailUniversity([FromRoute] int id)
+        public async Task<ActionResult<Response<DetailUniversityDataSet>>> GetDetailUniversity([FromRoute] int id)
         {
-            DetailUniversityDataSet result = await _service.GetDetailUniversity(id);
-            if (result == null)
-            {
-                return NotFound();
-            }
+            Response<DetailUniversityDataSet> result = await _service.GetDetailUniversity(id);
             return Ok(result);
         }
         [HttpPost]
-        public async Task<ActionResult<AdminUniversityDataSet>> CreateAnUniversity([FromBody] CreateUniversityDataset createUniversityDataset)
+        public async Task<ActionResult<Response<AdminUniversityDataSet>>> CreateAnUniversity([FromBody] CreateUniversityDataset createUniversityDataset)
         {
-            AdminUniversityDataSet result = await _service.CreateNewAnUniversity(createUniversityDataset);
-            if (result == null)
-            {
-                return BadRequest();
-            }
+            Response<AdminUniversityDataSet> result = await _service.CreateNewAnUniversity(createUniversityDataset);
             return Ok(result);
         }
         [HttpPut]
-        public async Task<ActionResult<AdminUniversityDataSet>> UpdateUniversity([FromForm] AdminUniversityDataSet adminUniversityDataSet)
+        public async Task<ActionResult<Response<AdminUniversityDataSet>>> UpdateUniversity([FromForm] AdminUniversityDataSet adminUniversityDataSet)
         {
-            AdminUniversityDataSet result = await _service.UpdateUniversity(adminUniversityDataSet);
-            if (result == null)
-            {
-                return BadRequest();
-            }
+            Response<AdminUniversityDataSet> result = await _service.UpdateUniversity(adminUniversityDataSet);
             return Ok(result);
         }
         [HttpPost("major-addition")]
-        public async Task<ActionResult<DetailUniversityDataSet>> AddMajorToUniversity([FromBody] AddingMajorUniversityParam addingMajorUniversityParam)
+        public async Task<ActionResult<Response<bool>>> AddMajorToUniversity([FromBody] AddingMajorUniversityParam addingMajorUniversityParam)
         {
-            DetailUniversityDataSet result = await _service.AddMajorToUniversity(addingMajorUniversityParam);
-            if (result == null)
-            {
-                return BadRequest();
-            }
+            Response<bool> result = await _service.AddMajorToUniversity(addingMajorUniversityParam);
             return Ok(result);
         }
         [HttpPut("major-updation")]
-        public async Task<ActionResult<DetailUniversityDataSet>> UpdateMajorOfUniversity([FromBody] UpdatingMajorUniversityParam updatingMajorUniversityParam)
+        public async Task<ActionResult<Response<bool>>> UpdateMajorOfUniversity([FromBody] UpdatingMajorUniversityParam updatingMajorUniversityParam)
         {
-            DetailUniversityDataSet result = await _service.UpdateMajorOfUniversity(updatingMajorUniversityParam);
-            if (result == null)
-            {
-                return BadRequest();
-            }
+            Response<bool> result = await _service.UpdateMajorOfUniversity(updatingMajorUniversityParam);
             return Ok(result);
         }
 

@@ -44,6 +44,10 @@ namespace CapstoneAPI.Services.SubjectGroup
             if (!subjectGroupDataSets.Any())
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Không có tổ hợp môn thỏa mãn!");
                 return response;
             }
@@ -85,6 +89,10 @@ namespace CapstoneAPI.Services.SubjectGroup
             } else
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Không có khối ngành phù hợp!");
             }
             return response;
@@ -162,10 +170,25 @@ namespace CapstoneAPI.Services.SubjectGroup
             return majorDataSetsBaseOnEntryMark;
         }
 
-        public async Task<IEnumerable<AdminSubjectGroupDataSet>> GetListSubjectGroups()
+        public async Task<Response<IEnumerable<AdminSubjectGroupDataSet>>> GetListSubjectGroups()
         {
-            return (await _uow.SubjectGroupRepository.Get(filter: s => s.Status == Consts.STATUS_ACTIVE))
+            Response<IEnumerable<AdminSubjectGroupDataSet>> response = new Response<IEnumerable<AdminSubjectGroupDataSet>>();
+            IEnumerable<AdminSubjectGroupDataSet> subjectGroupDataSets = (await _uow.SubjectGroupRepository.Get(filter: s => s.Status == Consts.STATUS_ACTIVE))
                 .Select(s => _mapper.Map<AdminSubjectGroupDataSet>(s));
+            if (subjectGroupDataSets == null || !subjectGroupDataSets.Any())
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Không có khối nào trong hệ thống!");
+            } else
+            {
+                response.Succeeded = true;
+                response.Data = subjectGroupDataSets;
+            }
+            return response;
         }
 
         private double CalculateTotalWeightMark(SubjectGroupParam subjectGroupParam, IEnumerable<WeightNumber> weightNumbers)
@@ -225,21 +248,41 @@ namespace CapstoneAPI.Services.SubjectGroup
             return totalMark;
         }
 
-        public async Task<CreateSubjectGroupDataset> CreateNewSubjectGroup(CreateSubjectGroupParam createSubjectGroupParam)
+        public async Task<Response<CreateSubjectGroupDataset>> CreateNewSubjectGroup(CreateSubjectGroupParam createSubjectGroupParam)
         {
+            Response<CreateSubjectGroupDataset> response = new Response<CreateSubjectGroupDataset>();
             List<int> listOfSubjectId = createSubjectGroupParam.ListOfSubjectId;
-            if(listOfSubjectId == null || listOfSubjectId.Count <3)
+            if(listOfSubjectId == null || listOfSubjectId.Count < 3)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Danh sách môn học không hợp lệ!");
+                return response;
             }
-            if(createSubjectGroupParam.GroupCode == null || createSubjectGroupParam.GroupCode.Equals(""))
+
+            if (createSubjectGroupParam.GroupCode == null || createSubjectGroupParam.GroupCode.Trim().Equals(""))
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Tên khối không được để trống!");
+                return response;
             }
             Models.SubjectGroup existSubjectGroup = await _uow.SubjectGroupRepository.GetFirst(filter: e => e.GroupCode.Equals(createSubjectGroupParam.GroupCode));
             if(existSubjectGroup != null)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Tên khối đã tồn tại trong hệ thống!");
+                return response;
             }
 
             IEnumerable<int> foundedSubjectGroupIds = (await _uow.SubjecGroupDetailRepository.Get(filter: s => listOfSubjectId.Contains(s.SubjectId)))
@@ -250,7 +293,13 @@ namespace CapstoneAPI.Services.SubjectGroup
                 bool isExisted = (await _uow.SubjecGroupDetailRepository.Get(filter: s => s.SubjectGroupId == id)).Count() == listOfSubjectId.Count;
                 if (isExisted)
                 {
-                    return null;
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Khối có những môn học trên đã tồn tại trong hệ thống!");
+                    return response;
                 }
             }
             Models.SubjectGroup insertSubjectGroupModels = new Models.SubjectGroup
@@ -262,7 +311,13 @@ namespace CapstoneAPI.Services.SubjectGroup
             int result =  await _uow.CommitAsync();
             if (result <= 0)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống!");
+                return response;
             }
             foreach (int subjectId in listOfSubjectId)
             {
@@ -275,7 +330,13 @@ namespace CapstoneAPI.Services.SubjectGroup
                 result = await _uow.CommitAsync();
                 if (result <= 0)
                 {
-                    return null;
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Lỗi hệ thống!");
+                    return response;
                 }
             }
             List<Models.Subject> subjects = (await _uow.SubjectRepository.Get(filter: s => listOfSubjectId.Contains(s.Id))).ToList();
@@ -291,34 +352,67 @@ namespace CapstoneAPI.Services.SubjectGroup
                 ListOfSubject = subjectDatas,
                 Status = insertSubjectGroupModels.Status
             };
-            return createSubjectGroupDataset;
+            response.Succeeded = true;
+            response.Data = createSubjectGroupDataset;
+            return response;
 
         }
 
-        public async Task<CreateSubjectGroupDataset> UpdateSubjectGroup(UpdateSubjectGroupParam updateSubjectGroupParam)
+        public async Task<Response<CreateSubjectGroupDataset>> UpdateSubjectGroup(UpdateSubjectGroupParam updateSubjectGroupParam)
         {
+            Response<CreateSubjectGroupDataset> response = new Response<CreateSubjectGroupDataset>();
             int id = updateSubjectGroupParam.Id;
             List<int> listOfSubjectId = updateSubjectGroupParam.ListOfSubjectId;
             if( updateSubjectGroupParam.Id < 1)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Id không hợp lệ!");
+                return response;
             }
             if (updateSubjectGroupParam.ListOfSubjectId.Count != updateSubjectGroupParam.ListOfSubjectId.Distinct().Count())
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Không được có môn trùng nhau!");
+                return response;
             }
             if (listOfSubjectId == null || listOfSubjectId.Count < Consts.REQUIRED_NUMBER_SUBJECTS)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Số môn học phải lớn hơn hoặc bằng 3!");
+                return response;
             }
-            if (updateSubjectGroupParam.GroupCode == null || updateSubjectGroupParam.GroupCode.Equals(""))
+            if (updateSubjectGroupParam.GroupCode == null || updateSubjectGroupParam.GroupCode.Trim().Equals(""))
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Tên khối không được để trống!");
+                return response;
             }
             Models.SubjectGroup existSubjectGroupByCode = await _uow.SubjectGroupRepository.GetFirst(filter: e => e.GroupCode.Equals(updateSubjectGroupParam.GroupCode));
             if (existSubjectGroupByCode != null && existSubjectGroupByCode.Id != updateSubjectGroupParam.Id)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Tên khối đã tồn tại trong hệ thống!");
+                return response;
             }
 
             IEnumerable<int> foundedSubjectGroupIds = (await _uow.SubjecGroupDetailRepository.Get(filter: s => listOfSubjectId.Contains(s.SubjectId)))
@@ -328,7 +422,13 @@ namespace CapstoneAPI.Services.SubjectGroup
                 bool isExisted = (await _uow.SubjecGroupDetailRepository.Get(filter: s => s.SubjectGroupId == subjectGroupId)).Count() == listOfSubjectId.Count;
                 if (isExisted && subjectGroupId != updateSubjectGroupParam.Id)
                 {
-                    return null;
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Khối bạn muốn cập nhập đã tồn tại trong hệ thống!");
+                    return response;
                 }
             }
 
@@ -341,7 +441,13 @@ namespace CapstoneAPI.Services.SubjectGroup
             int result = await _uow.CommitAsync();
             if (result <= 0)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống!");
+                return response;
             }
 
             IEnumerable<int> oldSubjectIds = (await _uow.SubjecGroupDetailRepository.Get(filter: s => s.SubjectGroupId == updateSubjectGroupModel.Id))
@@ -364,7 +470,13 @@ namespace CapstoneAPI.Services.SubjectGroup
                 result = await _uow.CommitAsync();
                 if (result <= 0)
                 {
-                    return null;
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Lỗi hệ thống!");
+                    return response;
                 }
             }
             List<Models.Subject> subjects = (await _uow.SubjectRepository.Get(filter: s => listOfSubjectId.Contains(s.Id))).ToList();
@@ -380,7 +492,10 @@ namespace CapstoneAPI.Services.SubjectGroup
                 ListOfSubject = subjectDatas,
                 Status = updateSubjectGroupParam.Status
             };
-            return updateSubjectGroupDataset;
+
+            response.Succeeded = true;
+            response.Data = updateSubjectGroupDataset;
+            return response;
         }
     }
 }

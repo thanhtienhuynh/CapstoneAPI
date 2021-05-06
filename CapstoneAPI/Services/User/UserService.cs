@@ -8,6 +8,7 @@
     using FirebaseAdmin.Auth;
     using Microsoft.IdentityModel.Tokens;
     using System;
+    using System.Collections.Generic;
     using System.IdentityModel.Tokens.Jwt;
     using System.Security.Claims;
     using System.Text;
@@ -50,6 +51,10 @@
                 if (await _uow.CommitAsync() <= 0)
                 {
                     response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
                     response.Errors.Add("Đăng nhập vào hệ thống thất bại!");
                     return response;
                 }
