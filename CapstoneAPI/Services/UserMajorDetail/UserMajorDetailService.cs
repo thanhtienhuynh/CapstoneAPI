@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using CapstoneAPI.DataSets.SubjectGroup;
+using CapstoneAPI.DataSets.University;
 using CapstoneAPI.DataSets.UserMajorDetail;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
@@ -63,7 +64,8 @@ namespace CapstoneAPI.Services.UserMajorDetail
                             TranscriptTypeId = userMajorDetailParam.SubjectGroupParam.TranscriptTypeId,
                             DateRecord = DateTime.UtcNow
                         });
-                    } else
+                    }
+                    else
                     {
                         transcript.Mark = markParam.Mark;
                         transcript.DateRecord = DateTime.UtcNow;
@@ -190,7 +192,7 @@ namespace CapstoneAPI.Services.UserMajorDetail
         {
             Response<IEnumerable<UserMajorDetailGroupByMajorDataSet>> response = new Response<IEnumerable<UserMajorDetailGroupByMajorDataSet>>();
 
-            
+            /*
             if (token == null || token.Trim().Length == 0)
             {
                 response.Succeeded = false;
@@ -208,61 +210,63 @@ namespace CapstoneAPI.Services.UserMajorDetail
             }
 
             int userId = Int32.Parse(userIdString);
-
+            */
+            int userId = 3;
             IEnumerable<Models.UserMajorDetail> userMajorDetails = await _uow.UserMajorDetailRepository.
                                 Get(filter: u => u.UserId == userId,
-                                includeProperties: "MajorDetail,Rank,MajorDetail.Major,MajorDetail.University,SubjectGroup,MajorDetail.AdmissionCriteria,MajorDetail.EntryMarks");
+                                includeProperties: "MajorDetail,Rank,MajorDetail.Major," +
+                                "MajorDetail.University,SubjectGroup,MajorDetail.AdmissionCriteria,MajorDetail.EntryMarks,MajorDetail.TrainingProgram");
             IEnumerable<IGrouping<Models.Major, Models.UserMajorDetail>> userMajorDetailGroups = userMajorDetails.GroupBy(u => u.MajorDetail.Major);
 
             List<UserMajorDetailGroupByMajorDataSet> result = new List<UserMajorDetailGroupByMajorDataSet>();
-            foreach (IGrouping<Models.Major,Models.UserMajorDetail> userMajorDetailGroup in userMajorDetailGroups)
-            {                
-                List<UserMajorDetailToReturn> detailOfDataSets = new List<UserMajorDetailToReturn>();
-                foreach (Models.UserMajorDetail item in userMajorDetailGroup)
+            // cái này lấy major name
+            foreach (IGrouping<Models.Major, Models.UserMajorDetail> userMajorDetailInMajor in userMajorDetailGroups)
+            {
+                IEnumerable<IGrouping<Models.University, Models.UserMajorDetail>> GroupByUni =
+                            userMajorDetailInMajor.GroupBy(g => g.MajorDetail.University);
+                List<UniversitiesOfMajor> listDetailOfDataSet = new List<UniversitiesOfMajor>();
+                foreach (IGrouping<Models.University, Models.UserMajorDetail> userMajorDetailInUni in GroupByUni)
                 {
-                    UserMajorDetailToReturn userMajorDetailToReturn = new UserMajorDetailToReturn
+                    List<UserMajorDetailPerTrainingProgram> listByTP = new List<UserMajorDetailPerTrainingProgram>();
+                    CreateUniversityDataset universityDataset = _mapper.Map<CreateUniversityDataset>(userMajorDetailInUni.Key);                    
+                    foreach (Models.UserMajorDetail item in userMajorDetailInUni)
                     {
-                        PositionOfUser = item.Rank.Position,
-                        TotalUserCared = _uow.UserMajorDetailRepository.Count(filter: u => u.MajorDetailId == item.MajorDetailId),
-
-                        UniversityId = item.MajorDetail.University.Id,
-                        University = new DataSets.University.CreateUniversityDataset
+                        UserMajorDetailPerTrainingProgram detailPerTrainingProgram = new UserMajorDetailPerTrainingProgram
                         {
-                            Name = item.MajorDetail.University.Name,
-                            Code = item.MajorDetail.University.Code,
-                            Address = item.MajorDetail.University.Address,
-                            Phone = item.MajorDetail.University.Phone,
-                            WebUrl = item.MajorDetail.University.WebUrl,
-                            Rating = item.MajorDetail.University.Rating,
-                            TuitionType = item.MajorDetail.University.TuitionType,
-                            TuitionFrom = item.MajorDetail.University.TuitionFrom,
-                            TuitionTo = item.MajorDetail.University.TuitionTo,
-                            LogoUrl = item.MajorDetail.University.LogoUrl,
-                            Description = item.MajorDetail.University.Description,
-                        },
-                        UniversityMajorCode = item.MajorDetail.MajorCode,
-                        TrainingProgramId = item.MajorDetail.TrainingProgram.Id,
-                        TrainingProgramName = item.MajorDetail.TrainingProgram.Name,
-                        NumberOfStudent = item.MajorDetail.AdmissionCriteria.FirstOrDefault(u => u.MajorDetailId == item.MajorDetailId
-                        && u.Year == Consts.NEAREST_YEAR).Quantity,
-                        NewestEntryMark = item.MajorDetail.EntryMarks.FirstOrDefault(n => n.MajorDetailId == item.MajorDetailId
-                        && n.Year == Consts.NEAREST_YEAR).Mark,
-                        YearOfEntryMark = Consts.NEAREST_YEAR,
+                            TrainingProgramId = item.MajorDetail.TrainingProgramId,
+                            TrainingProgramName = item.MajorDetail.TrainingProgram.Name,
+                            UniversityMajorCode = item.MajorDetail.MajorCode,
+                            PositionOfUser = item.Rank.Position,
+                            TotalUserCared = _uow.UserMajorDetailRepository.Count(filter: c => c.MajorDetailId == item.MajorDetailId),
+                            NumberOfStudent = item.MajorDetail.AdmissionCriteria.FirstOrDefault(u => u.MajorDetailId == item.MajorDetailId
+                            && u.Year == Consts.NEAREST_YEAR).Quantity,
+                            NewestEntryMark = item.MajorDetail.EntryMarks.FirstOrDefault(n => n.MajorDetailId == item.MajorDetailId
+                            && n.Year == Consts.NEAREST_YEAR).Mark,
+                            YearOfEntryMark = Consts.NEAREST_YEAR,
 
-                        SubjectGroupId = item.SubjectGroup.Id,
-                        SubjectGroupCode = item.SubjectGroup.GroupCode,
+                            SubjectGroupId = item.SubjectGroup.Id,
+                            SubjectGroupCode = item.SubjectGroup.GroupCode,
+                        };
+                        listByTP.Add(detailPerTrainingProgram);
+                    }
+                    UniversitiesOfMajor universitiesOfMajor = new UniversitiesOfMajor
+                    {
+                        UniversityId = userMajorDetailInUni.Key.Id,
+                        detailPerTrainingPrograms = listByTP,
+                        University = universityDataset,
                     };
-                    detailOfDataSets.Add(userMajorDetailToReturn);
+                    listDetailOfDataSet.Add(universitiesOfMajor);
                 }
-                UserMajorDetailGroupByMajorDataSet userMajorDetailDataSet = new UserMajorDetailGroupByMajorDataSet
+                UserMajorDetailGroupByMajorDataSet byMajorDataSet = new UserMajorDetailGroupByMajorDataSet
                 {
-                    MajorId = userMajorDetailGroup.Key.Id,
-                    MajorName = userMajorDetailGroup.Key.Name,
-                    DetailOfDataSets = detailOfDataSets
+                    MajorId = userMajorDetailInMajor.Key.Id,
+                    MajorCode = userMajorDetailInMajor.Key.Code,
+                    MajorName = userMajorDetailInMajor.Key.Name,
+                    DetailOfDataSets = listDetailOfDataSet
                 };
-                result.Add(userMajorDetailDataSet);
+                result.Add(byMajorDataSet);
             }
-            if (result.Count<=0)
+            if (result.Count <= 0)
             {
                 response.Succeeded = false;
                 response.Errors.Add("Bạn chưa có ngành quan tâm");
@@ -280,7 +284,7 @@ namespace CapstoneAPI.Services.UserMajorDetail
         {
             Response<IEnumerable<UserMajorDetailGroupByUniversityDataSet>> response = new Response<IEnumerable<UserMajorDetailGroupByUniversityDataSet>>();
 
-            
+            /*
             if (token == null || token.Trim().Length == 0)
             {
                 response.Succeeded = false;
@@ -298,55 +302,56 @@ namespace CapstoneAPI.Services.UserMajorDetail
             }
 
             int userId = Int32.Parse(userIdString);
+            */
+            int userId = 3;
             IEnumerable<Models.UserMajorDetail> userMajorDetails = await _uow.UserMajorDetailRepository.
                                 Get(filter: u => u.UserId == userId,
-                                includeProperties: "MajorDetail,Rank,MajorDetail.Major,MajorDetail.University,SubjectGroup,MajorDetail.AdmissionCriteria,MajorDetail.EntryMarks");
+                                includeProperties: "MajorDetail,Rank,MajorDetail.Major,MajorDetail.University,SubjectGroup," +
+                                "MajorDetail.AdmissionCriteria,MajorDetail.EntryMarks,MajorDetail.TrainingProgram");
             IEnumerable<IGrouping<Models.University, Models.UserMajorDetail>> userMajorDetailGroups = userMajorDetails.GroupBy(u => u.MajorDetail.University);
 
             List<UserMajorDetailGroupByUniversityDataSet> result = new List<UserMajorDetailGroupByUniversityDataSet>();
-            foreach (IGrouping<Models.University, Models.UserMajorDetail> userMajorDetailGroup in userMajorDetailGroups)
+            foreach (IGrouping<Models.University, Models.UserMajorDetail> userMajorDetailInUni in userMajorDetailGroups)
             {
                 UserMajorDetailGroupByUniversityDataSet userMajorDetailDataSet = new UserMajorDetailGroupByUniversityDataSet
                 {
-                    UniversityId = userMajorDetailGroup.Key.Id,
-                    University = new DataSets.University.CreateUniversityDataset
-                    {
-                        Code = userMajorDetailGroup.Key.Code,
-                        Name = userMajorDetailGroup.Key.Name,
-                        Description = userMajorDetailGroup.Key.Description,
-                        Address = userMajorDetailGroup.Key.Address,
-                        LogoUrl = userMajorDetailGroup.Key.LogoUrl,
-                        Phone = userMajorDetailGroup.Key.Phone,
-                        WebUrl = userMajorDetailGroup.Key.WebUrl,
-                        TuitionTo = userMajorDetailGroup.Key.TuitionTo,
-                        TuitionFrom = userMajorDetailGroup.Key.TuitionFrom,
-                        TuitionType = userMajorDetailGroup.Key.TuitionType,
-                        Rating = userMajorDetailGroup.Key.Rating
-                    }
+                    UniversityId = userMajorDetailInUni.Key.Id,
+                    University = _mapper.Map<CreateUniversityDataset>(userMajorDetailInUni.Key),
                 };
-                List<UserMajorDetailGroupByUniversityToReturn> detailOfDataSets = new List<UserMajorDetailGroupByUniversityToReturn>();
-                foreach (Models.UserMajorDetail item in userMajorDetailGroup)
-                {
-                    UserMajorDetailGroupByUniversityToReturn detailOfDataSet = new UserMajorDetailGroupByUniversityToReturn
-                    {
-                        MajorId = (int)item.MajorDetail.MajorId,
-                        MajorName = item.MajorDetail.Major.Name,
-                        UniversityMajorCode = item.MajorDetail.MajorCode,
-                        TrainingProgramId = item.MajorDetail.TrainingProgram.Id,
-                        TrainingProgramName = item.MajorDetail.TrainingProgram.Name,
-                        PositionOfUser = item.Rank.Position,
-                        TotalUserCared = _uow.UserMajorDetailRepository.Count(filter: u => u.MajorDetailId == item.MajorDetailId),
+                List<MajorsOfUniversity> detailOfDataSets = new List<MajorsOfUniversity>();
 
-                        NumberOfStudent = item.MajorDetail.AdmissionCriteria.FirstOrDefault(u => u.MajorDetailId == item.MajorDetailId
-                        && u.Year == Consts.NEAREST_YEAR).Quantity,
-                        NewestEntryMark = item.MajorDetail.EntryMarks.FirstOrDefault(n => n.MajorDetailId == item.MajorDetailId
-                        && n.Year == Consts.NEAREST_YEAR).Mark,
-                        YearOfEntryMark = Consts.NEAREST_YEAR,
-                        
-                        SubjectGroupId = item.SubjectGroup.Id,
-                        SubjectGroupCode = item.SubjectGroup.GroupCode,
+                IEnumerable<IGrouping<Models.Major, Models.UserMajorDetail>> groupByMajor = userMajorDetailInUni.GroupBy(m => m.MajorDetail.Major);
+                foreach (IGrouping<Models.Major, Models.UserMajorDetail> userMajorDetailInMajor in groupByMajor)
+                {
+                    List<TrainningProgramsOfMajor> listByTP = new List<TrainningProgramsOfMajor>();
+                    foreach (Models.UserMajorDetail item in userMajorDetailInMajor)
+                    {
+                        TrainningProgramsOfMajor detailPerTrainingProgram = new TrainningProgramsOfMajor
+                        {
+                            TrainingProgramId = item.MajorDetail.TrainingProgramId,
+                            TrainingProgramName = item.MajorDetail.TrainingProgram.Name,
+                            UniversityMajorCode = item.MajorDetail.MajorCode,
+                            PositionOfUser = item.Rank.Position,
+                            TotalUserCared = _uow.UserMajorDetailRepository.Count(filter: c => c.MajorDetailId == item.MajorDetailId),
+                            NumberOfStudent = item.MajorDetail.AdmissionCriteria.FirstOrDefault(u => u.MajorDetailId == item.MajorDetailId
+                            && u.Year == Consts.NEAREST_YEAR).Quantity,
+                            NewestEntryMark = item.MajorDetail.EntryMarks.FirstOrDefault(n => n.MajorDetailId == item.MajorDetailId
+                            && n.Year == Consts.NEAREST_YEAR).Mark,
+                            YearOfEntryMark = Consts.NEAREST_YEAR,
+
+                            SubjectGroupId = item.SubjectGroup.Id,
+                            SubjectGroupCode = item.SubjectGroup.GroupCode,
+                        };
+                        listByTP.Add(detailPerTrainingProgram);
+                    }
+                    MajorsOfUniversity majorsOfUniversity = new MajorsOfUniversity
+                    {
+                        MajorId = userMajorDetailInMajor.Key.Id,
+                        MajorCode = userMajorDetailInMajor.Key.Code,
+                        MajorName = userMajorDetailInMajor.Key.Name,
+                        TrainningProgramPerMajor = listByTP
                     };
-                    detailOfDataSets.Add(detailOfDataSet);
+                    detailOfDataSets.Add(majorsOfUniversity);
                 }
                 userMajorDetailDataSet.DetailOfDataSets = detailOfDataSets;
                 result.Add(userMajorDetailDataSet);

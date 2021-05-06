@@ -10,14 +10,19 @@ namespace CapstoneAPI.DataSets.UserMajorDetail
     {
         public int UniversityId { get; set; }
         public CreateUniversityDataset University { get; set; }
-        public IEnumerable<UserMajorDetailGroupByUniversityToReturn> DetailOfDataSets { get; set; }
+        public IEnumerable<MajorsOfUniversity> DetailOfDataSets { get; set; }
     }
-    public class UserMajorDetailGroupByUniversityToReturn
+    public class MajorsOfUniversity
     {
         public int MajorId { get; set; }
+        public string MajorCode { get; set; }
         public string MajorName { get; set; }
-        public string UniversityMajorCode { get; set; }
+        public IEnumerable<TrainningProgramsOfMajor> TrainningProgramPerMajor { get; set; }
+    }
+    public class TrainningProgramsOfMajor
+    {
         public int TrainingProgramId { get; set; }
+        public string UniversityMajorCode { get; set; }
         public string TrainingProgramName { get; set; }
         public double? NewestEntryMark { get; set; }
         public int? NumberOfStudent { get; set; }
