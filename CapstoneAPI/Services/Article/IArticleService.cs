@@ -12,7 +12,7 @@ namespace CapstoneAPI.Services.Article
     {
         Task<PagedResponse<List<ArticleCollapseDataSet>>> GetListArticleForGuest(PaginationFilter validFilter);
         Task<PagedResponse<List<AdminArticleCollapseDataSet>>> GetListArticleForAdmin(PaginationFilter validFilter);
-        Task<ArticleDetailDataSet> GetArticleById(int id);
+        Task<Response<ArticleDetailDataSet>> GetArticleById(int id);
         Task<Response<AdminArticleDetailDataSet>> AdminGetArticleById(int id);
 
     }

@@ -15,6 +15,9 @@ namespace CapstoneAPI.Wrappers
         public int TotalRecords { get; set; }
         public int? NextPage { get; set; }
         public int? PreviousPage { get; set; }
+        public PagedResponse()
+        {
+        }
         public PagedResponse(T data, int pageNumber, int pageSize)
         {
             this.PageNumber = pageNumber;
