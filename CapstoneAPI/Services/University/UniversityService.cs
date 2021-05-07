@@ -263,6 +263,44 @@ namespace CapstoneAPI.Services.University
                 response.Errors.Add("Trường này đã tồn tại!");
                 return response;
             }
+            //Upload logo to Firebase block
+
+            IFormFile logoImage = createUniversityDataset.File;
+            if (logoImage != null)
+            {
+                if (Consts.IMAGE_EXTENSIONS.Contains(Path.GetExtension(logoImage.FileName).ToUpperInvariant()))
+                {
+
+                    using (var ms = new MemoryStream())
+                    {
+                        logoImage.CopyTo(ms);
+                        ms.Position = 0;
+                        if (ms != null && ms.Length > 0)
+                        {
+                            var auth = new FirebaseAuthProvider(new FirebaseConfig(Consts.API_KEY));
+                            var firebaseAuth = await auth.SignInWithEmailAndPasswordAsync(Consts.AUTH_MAIL, Consts.AUTH_PASSWORD);
+
+                            // you can use CancellationTokenSource to cancel the upload midway
+                            var cancellation = new CancellationTokenSource();
+
+                            var task = new FirebaseStorage(
+                                Consts.BUCKET,
+                                new FirebaseStorageOptions
+                                {
+                                    ThrowOnCancel = true, // when you cancel the upload, exception is thrown. By default no exception is thrown
+                                    AuthTokenAsyncFactory = () => Task.FromResult(firebaseAuth.FirebaseToken),
+                                })
+                                .Child(Consts.LOGO_FOLDER)
+                                .Child(createUniversityDataset.Code + Path.GetExtension(logoImage.FileName))
+                                .PutAsync(ms, cancellation.Token);
+
+                            createUniversityDataset.LogoUrl = await task;
+                        }
+
+                    }
+                }
+            }
+
             Models.University university = _mapper.Map<Models.University>(createUniversityDataset);
             _uow.UniversityRepository.Insert(university);
             int result = await _uow.CommitAsync();

@@ -40,7 +40,7 @@ namespace CapstoneAPI.Controllers
             return Ok(result);
         }
         [HttpPost]
-        public async Task<ActionResult<Response<AdminUniversityDataSet>>> CreateAnUniversity([FromBody] CreateUniversityDataset createUniversityDataset)
+        public async Task<ActionResult<Response<AdminUniversityDataSet>>> CreateAnUniversity([FromForm] CreateUniversityDataset createUniversityDataset)
         {
             Response<AdminUniversityDataSet> result = await _service.CreateNewAnUniversity(createUniversityDataset);
             return Ok(result);
