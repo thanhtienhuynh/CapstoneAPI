@@ -10,11 +10,11 @@ namespace CapstoneAPI.Services.University
     public interface IUniversityService
     {
         Task<Response<IEnumerable<UniversityDataSetBaseOnTrainingProgram>>> GetUniversityBySubjectGroupAndMajor(UniversityParam universityParam, string token);
-        Task<IEnumerable<AdminUniversityDataSet>> GetUniversities();
-        Task<DetailUniversityDataSet> GetDetailUniversity(int universityId);
-        Task<AdminUniversityDataSet> CreateNewAnUniversity(CreateUniversityDataset createUniversityDataset);
-        Task<AdminUniversityDataSet> UpdateUniversity(AdminUniversityDataSet adminUniversityDataSet);
-        Task<DetailUniversityDataSet> AddMajorToUniversity(AddingMajorUniversityParam addingMajorUniversityParam);
-        Task<DetailUniversityDataSet> UpdateMajorOfUniversity(UpdatingMajorUniversityParam updatingMajorUniversityParam);
+        Task<Response<IEnumerable<AdminUniversityDataSet>>> GetUniversities();
+        Task<Response<DetailUniversityDataSet>> GetDetailUniversity(int universityId);
+        Task<Response<AdminUniversityDataSet>> CreateNewAnUniversity(CreateUniversityDataset createUniversityDataset);
+        Task<Response<AdminUniversityDataSet>> UpdateUniversity(AdminUniversityDataSet adminUniversityDataSet);
+        Task<Response<bool>> AddMajorToUniversity(AddingMajorUniversityParam addingMajorUniversityParam);
+        Task<Response<bool>> UpdateMajorOfUniversity(UpdatingMajorUniversityParam updatingMajorUniversityParam);
     }
 }

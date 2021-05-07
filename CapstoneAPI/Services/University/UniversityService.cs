@@ -44,6 +44,10 @@ namespace CapstoneAPI.Services.University
             if (majorDetails == null || !majorDetails.Any())
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Hiện tại không có trường nào dạy ngành này!");
                 return response;
             }
@@ -112,6 +116,10 @@ namespace CapstoneAPI.Services.University
             } else
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Không có trường phù hợp!");
             }
 
@@ -137,17 +145,42 @@ namespace CapstoneAPI.Services.University
             return false;
         }
 
-        public async Task<IEnumerable<AdminUniversityDataSet>> GetUniversities()
+        public async Task<Response<IEnumerable<AdminUniversityDataSet>>> GetUniversities()
         {
+            Response<IEnumerable<AdminUniversityDataSet>> response = new Response<IEnumerable<AdminUniversityDataSet>>();
             IEnumerable<AdminUniversityDataSet> universities = (await _uow.UniversityRepository.Get()).OrderBy(s => s.UpdatedDate)
                                                         .Select(u => _mapper.Map<AdminUniversityDataSet>(u));
-            return universities;
+            if (universities == null || !universities.Any())
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Không có trường đại học nào!");
+            } else
+            {
+                response.Succeeded = true;
+                response.Data = universities;
+            }
+            return response;
         }
 
-        public async Task<DetailUniversityDataSet> GetDetailUniversity(int universityId)
+        public async Task<Response<DetailUniversityDataSet>> GetDetailUniversity(int universityId)
         {
+            Response<DetailUniversityDataSet> response = new Response<DetailUniversityDataSet>();
             Models.University university = await _uow.UniversityRepository.GetFirst(filter: u => u.Id == universityId,
                                             includeProperties: "MajorDetails");
+            if (university == null)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Trường đại học này không tồn tại!");
+                return response;
+            }
             DetailUniversityDataSet universityDataSet = _mapper.Map<DetailUniversityDataSet>(university);
             List<UniMajorDataSet> uniMajorDataSets = new List<UniMajorDataSet>();
             foreach (MajorDetail majorDetail in university.MajorDetails)
@@ -189,41 +222,101 @@ namespace CapstoneAPI.Services.University
                 uniMajorDataSet.SubjectGroups = uniSubjectGroupDataSets;
             }
             universityDataSet.Majors = uniMajorDataSets;
-            return universityDataSet;  
+            if (universityDataSet == null)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Trường đại học này không tồn tại!");
+            } else
+            {
+                response.Succeeded = true;
+                response.Data = universityDataSet;
+            }
+            return response;  
         }
 
-        public async Task<AdminUniversityDataSet> CreateNewAnUniversity(CreateUniversityDataset createUniversityDataset)
+        public async Task<Response<AdminUniversityDataSet>> CreateNewAnUniversity(CreateUniversityDataset createUniversityDataset)
         {
+            Response<AdminUniversityDataSet> response = new Response<AdminUniversityDataSet>();
             if (createUniversityDataset.Name.Equals("") || createUniversityDataset.Code.Equals("") || (createUniversityDataset.Status != 0 && createUniversityDataset.Status != Consts.STATUS_ACTIVE))
-                return null;
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Các thông tin cần thiết không hợp lệ!");
+                return response;
+            }
+                
             Models.University ExistUni = await _uow.UniversityRepository.GetFirst(filter: u => u.Code.Equals(createUniversityDataset.Code));
             if (ExistUni != null)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Trường này đã tồn tại!");
+                return response;
             }
             Models.University university = _mapper.Map<Models.University>(createUniversityDataset);
             _uow.UniversityRepository.Insert(university);
             int result = await _uow.CommitAsync();
             if (result > 0)
             {
-                return _mapper.Map<AdminUniversityDataSet>(university);
+                response.Succeeded = true;
+                response.Data = _mapper.Map<AdminUniversityDataSet>(university);
+            } else
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống!");
             }
-            return null;
+            return response;
         }
 
-        public async Task<AdminUniversityDataSet> UpdateUniversity(AdminUniversityDataSet adminUniversityDataSet)
+        public async Task<Response<AdminUniversityDataSet>> UpdateUniversity(AdminUniversityDataSet adminUniversityDataSet)
         {
+            Response<AdminUniversityDataSet> response = new Response<AdminUniversityDataSet>();
             if (adminUniversityDataSet.Name.Equals("") || adminUniversityDataSet.Code.Equals("") || (adminUniversityDataSet.Status != Consts.STATUS_ACTIVE && adminUniversityDataSet.Status != Consts.STATUS_INACTIVE))
-                return null;
-            Models.University existUni = await _uow.UniversityRepository.GetFirst(filter: u => u.Code.Equals(adminUniversityDataSet.Code));
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Các thông tin cần thiết không hợp lệ!");
+                return response;
+            }
+            Models.University existUni = await _uow.UniversityRepository.GetFirst(filter: u => u.Code.Equals(adminUniversityDataSet.Code.Trim()));
             if (existUni != null && existUni.Id != adminUniversityDataSet.Id)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Mã trường đại học đã tồn tại!");
+                return response;
+
             }
             Models.University updatedUni = await _uow.UniversityRepository.GetById(adminUniversityDataSet.Id);
             if (updatedUni == null)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Trường này không tồn tại!");
+                return response;
             }
             //Upload logo to Firebase block
 
@@ -261,10 +354,6 @@ namespace CapstoneAPI.Services.University
 
                     }
                 }
-                else
-                {
-                    return null;
-                }
             }
 
 
@@ -285,13 +374,23 @@ namespace CapstoneAPI.Services.University
             int result = await _uow.CommitAsync();
             if (result > 0)
             {
-                return _mapper.Map<AdminUniversityDataSet>(updatedUni);
+                response.Succeeded = true;
+                response.Data = _mapper.Map<AdminUniversityDataSet>(updatedUni);
+            } else
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống!");
             }
-            return null;
+            return response;
         }
 
-        public async Task<DetailUniversityDataSet> AddMajorToUniversity(AddingMajorUniversityParam addingMajorUniversityParam)
+        public async Task<Response<bool>> AddMajorToUniversity(AddingMajorUniversityParam addingMajorUniversityParam)
         {
+            Response<bool> response = new Response<bool>();
             MajorDetail majorDetail = null;
 
             MajorDetail existedMajorDetail = await _uow.MajorDetailRepository
@@ -300,7 +399,13 @@ namespace CapstoneAPI.Services.University
                        && m.TrainingProgramId == addingMajorUniversityParam.TrainingProgramId);
             if (existedMajorDetail != null)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Ngành này đã tồn tại trong trường!");
+                return response;
             }
             majorDetail = new MajorDetail()
             {
@@ -314,7 +419,13 @@ namespace CapstoneAPI.Services.University
 
             if ((await _uow.CommitAsync()) <= 0)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống!");
+                return response;
             }
 
             AdmissionCriterion admissionCriterion = new AdmissionCriterion()
@@ -328,7 +439,13 @@ namespace CapstoneAPI.Services.University
 
             if ((await _uow.CommitAsync()) <= 0)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống!");
+                return response;
             }
 
             if (addingMajorUniversityParam.SubjectGroups != null && addingMajorUniversityParam.SubjectGroups.Any())
@@ -360,27 +477,57 @@ namespace CapstoneAPI.Services.University
                             );
                         }
                     }
-
-                    if ((await _uow.CommitAsync()) <= 0)
-                    {
-                        return null;
-                    }
                 }
+
+                if ((await _uow.CommitAsync()) <= 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Lỗi hệ thống!");
+                    return response;
+                } else
+                {
+                    response.Succeeded = true;
+                    response.Data = true;
+                }
+                return response;
             }
-            return await GetDetailUniversity(addingMajorUniversityParam.UniversityId);
+            response.Succeeded = false;
+            if (response.Errors == null)
+            {
+                response.Errors = new List<string>();
+            }
+            response.Errors.Add("Danh sách khối không được trống!");
+            return response;
         }
-        public async Task<DetailUniversityDataSet> UpdateMajorOfUniversity(UpdatingMajorUniversityParam updatingMajorUniversityParam)
+        public async Task<Response<bool>> UpdateMajorOfUniversity(UpdatingMajorUniversityParam updatingMajorUniversityParam)
         {
+            Response<bool> response = new Response<bool>();
             if (updatingMajorUniversityParam.MajorId < 0)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Id ngành không hợp lệ!");
+                return response;
             }
 
             bool isMajorExisted = (await _uow.MajorRepository.GetById(updatingMajorUniversityParam.MajorId)) != null;
 
             if (!isMajorExisted)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Ngành này không tồn tại!");
+                return response;
             }
 
             MajorDetail majorDetail = await _uow.MajorDetailRepository
@@ -389,7 +536,13 @@ namespace CapstoneAPI.Services.University
                 && m.TrainingProgramId == updatingMajorUniversityParam.OldTrainingProgramId);
             if (majorDetail == null)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Không có ngành này trong trường!");
+                return response;
             }
 
             if (updatingMajorUniversityParam.OldTrainingProgramId != updatingMajorUniversityParam.NewTrainingProgramId)
@@ -401,7 +554,13 @@ namespace CapstoneAPI.Services.University
 
                 if (exitedUpdateMajorDetail != null)
                 {
-                    return null;
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Ngành này đã tồn tại trong trường!");
+                    return response;
                 }
             }
 
@@ -429,7 +588,13 @@ namespace CapstoneAPI.Services.University
 
             if ((await _uow.CommitAsync()) <= 0)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống!");
+                return response;
             }
 
             foreach (UpdatingUniSubjectGroupDataSet updatingUniSubjectGroupDataSet in updatingMajorUniversityParam.SubjectGroups)
@@ -446,9 +611,15 @@ namespace CapstoneAPI.Services.University
                     {
                         if (entryMark.Id < 0)
                         {
-                            if (entryMark.Mark <= 0)
+                            if (entryMark.Mark < 0)
                             {
-                                return null;
+                                response.Succeeded = false;
+                                if (response.Errors == null)
+                                {
+                                    response.Errors = new List<string>();
+                                }
+                                response.Errors.Add("Điểm chuẩn phải lớn hơn 0!");
+                                return response;
                             }
                             EntryMark existedEntryMark = await _uow.EntryMarkRepository
                                 .GetFirst(filter: s => s.SubjectGroupId == updatingUniSubjectGroupDataSet.Id
@@ -478,10 +649,19 @@ namespace CapstoneAPI.Services.University
 
             if ((await _uow.CommitAsync()) <= 0)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống!");
+            } else
+            {
+                response.Succeeded = true;
+                response.Data = true; ;
             }
             
-            return await GetDetailUniversity(updatingMajorUniversityParam.UniversityId);
+            return response;
         }
     }
 

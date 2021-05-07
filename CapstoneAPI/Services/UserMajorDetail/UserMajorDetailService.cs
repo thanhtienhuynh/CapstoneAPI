@@ -29,6 +29,10 @@ namespace CapstoneAPI.Services.UserMajorDetail
             if (token == null || token.Trim().Length == 0)
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Bạn chưa đăng nhập!");
                 return response;
             }
@@ -38,6 +42,10 @@ namespace CapstoneAPI.Services.UserMajorDetail
             if (userIdString == null || userIdString.Length <= 0)
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Tài khoản của bạn không tồn tại!");
                 return response;
             }
@@ -80,6 +88,10 @@ namespace CapstoneAPI.Services.UserMajorDetail
             if (majorDetail == null)
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Trường này không tồn tại!");
                 return response;
             }
@@ -113,6 +125,10 @@ namespace CapstoneAPI.Services.UserMajorDetail
                 if ((await _uow.CommitAsync()) <= 0)
                 {
                     response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
                     response.Errors.Add("Quan tâm không thành công, lỗi hệ thống!");
                     return response;
                 }
@@ -128,6 +144,10 @@ namespace CapstoneAPI.Services.UserMajorDetail
             if (token == null || token.Trim().Length == 0)
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Bạn chưa đăng nhập!");
                 return response;
             }
@@ -137,6 +157,10 @@ namespace CapstoneAPI.Services.UserMajorDetail
             if (userIdString == null || userIdString.Length <= 0)
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Tài khoản của bạn không tồn tại!");
                 return response;
             }
@@ -151,6 +175,10 @@ namespace CapstoneAPI.Services.UserMajorDetail
             if (majorDetail == null)
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Trường này không tồn tại!");
                 return response;
             }
@@ -167,6 +195,10 @@ namespace CapstoneAPI.Services.UserMajorDetail
                     if ((await _uow.CommitAsync()) <= 0)
                     {
                         response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
                         response.Errors.Add("Bỏ quan tâm không thành công, lỗi hệ thống!");
                         return response;
                     }
@@ -176,6 +208,10 @@ namespace CapstoneAPI.Services.UserMajorDetail
                 if ((await _uow.CommitAsync()) <= 0)
                 {
                     response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
                     response.Errors.Add("Bỏ quan tâm không thành công, lỗi hệ thống!");
                     return response;
                 }

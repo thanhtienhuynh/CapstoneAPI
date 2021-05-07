@@ -2,6 +2,7 @@
 using CapstoneAPI.DataSets.Major;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Repositories;
+using CapstoneAPI.Wrappers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,70 +19,147 @@ namespace CapstoneAPI.Services.Major
             _uow = uow;
             _mapper = mapper;
         }
-        public async Task<IEnumerable<AdminMajorDataSet>> GetActiveMajorsByAdmin()
+        public async Task<Response<IEnumerable<AdminMajorDataSet>>> GetActiveMajorsByAdmin()
         {
-            return (await _uow.MajorRepository.Get(filter: m => m.Status == Consts.STATUS_ACTIVE))
+            Response<IEnumerable<AdminMajorDataSet>> response = new Response<IEnumerable<AdminMajorDataSet>>();
+            IEnumerable<AdminMajorDataSet> adminMajorDataSets = (await _uow.MajorRepository.Get(filter: m => m.Status == Consts.STATUS_ACTIVE))
                 .Select(m => _mapper.Map<AdminMajorDataSet>(m));
+            if (adminMajorDataSets == null || !adminMajorDataSets.Any())
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Không có ngành học thỏa mãn!");
+            } else
+            {
+                response.Succeeded = true;
+                response.Data = adminMajorDataSets;
+            }
+            return response;
         }
 
-        public async Task<ResultOfCreateMajorDataSet> CreateAMajor(CreateMajorDataSet createMajorDataSet)
+        public async Task<Response<ResultOfCreateMajorDataSet>> CreateAMajor(CreateMajorDataSet createMajorDataSet)
         {
-            if(createMajorDataSet.Name.Equals("")|| createMajorDataSet.Code.Equals(""))
+            Response<ResultOfCreateMajorDataSet> response = new Response<ResultOfCreateMajorDataSet>();
+            if (createMajorDataSet.Name.Equals("")|| createMajorDataSet.Code.Trim().Equals(""))
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Mã ngành không được để trống!");
+                return response;
             }
             Models.Major existMajor = await _uow.MajorRepository.GetFirst(filter: m => m.Code.Equals(createMajorDataSet.Code));
-            if(existMajor != null)
+            if (existMajor != null)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Mã ngành đã tồn tại!");
+                return response;
             }
             existMajor = await _uow.MajorRepository.GetFirst(filter: m => m.Name.Equals(createMajorDataSet.Name));
             if (existMajor != null)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Tên ngành đã tồn tại!");
+                return response;
             }
             Models.Major newMajor = _mapper.Map<Models.Major>(createMajorDataSet);
             newMajor.Status = Consts.STATUS_ACTIVE;
             _uow.MajorRepository.Insert(newMajor);
             int result = await _uow.CommitAsync();
-            if(result > 0)
+            if (result <= 0)
             {
-                return _mapper.Map<ResultOfCreateMajorDataSet>(newMajor);
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Tên ngành đã tồn tại!");
+            } else
+            {
+                response.Succeeded = false;
+                response.Data = _mapper.Map<ResultOfCreateMajorDataSet>(newMajor); 
             }
-            return null;
+            return response;
         }
 
-        public async Task<ResultOfCreateMajorDataSet> UpdateAMajor(ResultOfCreateMajorDataSet updateMajor)
+        public async Task<Response<ResultOfCreateMajorDataSet>> UpdateAMajor(ResultOfCreateMajorDataSet updateMajor)
         {
-            if (updateMajor.Name.Equals("") || updateMajor.Code.Equals("") || (updateMajor.Status != Consts.STATUS_ACTIVE&& updateMajor.Status != Consts.STATUS_INACTIVE))
+            Response<ResultOfCreateMajorDataSet> response = new Response<ResultOfCreateMajorDataSet>();
+            if (updateMajor.Name.Trim().Equals("") || updateMajor.Code.Trim().Equals("") || (updateMajor.Status != Consts.STATUS_ACTIVE && updateMajor.Status != Consts.STATUS_INACTIVE))
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Dữ liệu bị thiếu!");
+                return response;
             }
             Models.Major existMajor = await _uow.MajorRepository.GetFirst(filter: m => m.Code.Equals(updateMajor.Code));
             if (existMajor != null && existMajor.Id != updateMajor.Id)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Mã ngành cập nhật đã tồn tại!");
+                return response;
             }
             existMajor = await _uow.MajorRepository.GetFirst(filter: m => m.Name.Equals(updateMajor.Name));
             if (existMajor != null && existMajor.Id != updateMajor.Id)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Tên ngành cập nhật đã tồn tại!");
+                return response;
             }
             Models.Major objToUpdate = await _uow.MajorRepository.GetFirst(filter: m => m.Id.Equals(updateMajor.Id));
             if (objToUpdate == null)
             {
-                return null;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Ngành này không tồn tại trong hệ thống!");
+                return response;
             }
             objToUpdate.Code = updateMajor.Code;
             objToUpdate.Name = updateMajor.Name;
             objToUpdate.Status = updateMajor.Status;
             _uow.MajorRepository.Update(objToUpdate);
             int result = await _uow.CommitAsync();
-            if(result > 0)
+            if(result <= 0)
             {
-                return _mapper.Map<ResultOfCreateMajorDataSet>(objToUpdate);
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Ngành này không tồn tại trong hệ thống!");
+            } else
+            {
+                response.Succeeded = true;
+                response.Data = _mapper.Map<ResultOfCreateMajorDataSet>(objToUpdate);
             }
-            return null;
+            return response;
         }
     }
 }

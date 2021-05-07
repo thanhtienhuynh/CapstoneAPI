@@ -60,6 +60,10 @@
             } else
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Không có bài thi phù hợp");
             }
             return response;
@@ -73,6 +77,10 @@
             if (test == null)
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Bài thi không tồn tại!");
             }
             test.Questions = test.Questions.OrderBy(s => s.Ordinal).ToList();

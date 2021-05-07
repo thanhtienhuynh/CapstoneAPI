@@ -1,4 +1,5 @@
 ﻿using CapstoneAPI.DataSets.TrainingProgram;
+using CapstoneAPI.Wrappers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,9 +9,9 @@ namespace CapstoneAPI.Services.TrainingProgram
 {
    public interface ITrainingProgramService
     {
-        Task<IEnumerable<AdminTrainingProgramDataSet>> AdminGetAllTrainingPrograms();
+        Task<Response<IEnumerable<AdminTrainingProgramDataSet>>> AdminGetAllTrainingPrograms();
 
-        Task<AdminTrainingProgramDataSet> CreateATrainingProgram(CreateTrainingProgramParam createTraining);
-        Task<AdminTrainingProgramDataSet> UpdateATrainingProgram(AdminTrainingProgramDataSet updateTraining);
+        Task<Response<AdminTrainingProgramDataSet>> CreateATrainingProgram(CreateTrainingProgramParam createTraining);
+        Task<Response<AdminTrainingProgramDataSet>> UpdateATrainingProgram(AdminTrainingProgramDataSet updateTraining);
     }
 }
