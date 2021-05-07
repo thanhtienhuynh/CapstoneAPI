@@ -192,7 +192,6 @@ namespace CapstoneAPI.Services.UserMajorDetail
         {
             Response<IEnumerable<UserMajorDetailGroupByMajorDataSet>> response = new Response<IEnumerable<UserMajorDetailGroupByMajorDataSet>>();
 
-            /*
             if (token == null || token.Trim().Length == 0)
             {
                 response.Succeeded = false;
@@ -210,8 +209,6 @@ namespace CapstoneAPI.Services.UserMajorDetail
             }
 
             int userId = Int32.Parse(userIdString);
-            */
-            int userId = 3;
             IEnumerable<Models.UserMajorDetail> userMajorDetails = await _uow.UserMajorDetailRepository.
                                 Get(filter: u => u.UserId == userId,
                                 includeProperties: "MajorDetail,Rank,MajorDetail.Major," +
@@ -284,7 +281,6 @@ namespace CapstoneAPI.Services.UserMajorDetail
         {
             Response<IEnumerable<UserMajorDetailGroupByUniversityDataSet>> response = new Response<IEnumerable<UserMajorDetailGroupByUniversityDataSet>>();
 
-            /*
             if (token == null || token.Trim().Length == 0)
             {
                 response.Succeeded = false;
@@ -302,8 +298,7 @@ namespace CapstoneAPI.Services.UserMajorDetail
             }
 
             int userId = Int32.Parse(userIdString);
-            */
-            int userId = 3;
+
             IEnumerable<Models.UserMajorDetail> userMajorDetails = await _uow.UserMajorDetailRepository.
                                 Get(filter: u => u.UserId == userId,
                                 includeProperties: "MajorDetail,Rank,MajorDetail.Major,MajorDetail.University,SubjectGroup," +
