@@ -1,4 +1,5 @@
 ﻿using CapstoneAPI.DataSets.Major;
+using CapstoneAPI.Wrappers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,8 +9,8 @@ namespace CapstoneAPI.Services.Major
 {
     public interface IMajorService
     {
-        Task<IEnumerable<AdminMajorDataSet>> GetActiveMajorsByAdmin();
-        Task<ResultOfCreateMajorDataSet> CreateAMajor(CreateMajorDataSet createMajorDataSet);
-        Task<ResultOfCreateMajorDataSet> UpdateAMajor(ResultOfCreateMajorDataSet updateMajor);
+        Task<Response<IEnumerable<AdminMajorDataSet>>> GetActiveMajorsByAdmin();
+        Task<Response<ResultOfCreateMajorDataSet>> CreateAMajor(CreateMajorDataSet createMajorDataSet);
+        Task<Response<ResultOfCreateMajorDataSet>> UpdateAMajor(ResultOfCreateMajorDataSet updateMajor);
     }
 }
