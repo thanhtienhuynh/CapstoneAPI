@@ -1,9 +1,7 @@
 ﻿using CapstoneAPI.DataSets.Article;
 using CapstoneAPI.Filters;
 using CapstoneAPI.Wrappers;
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace CapstoneAPI.Services.Article
@@ -14,5 +12,6 @@ namespace CapstoneAPI.Services.Article
         Task<PagedResponse<List<AdminArticleCollapseDataSet>>> GetListArticleForAdmin(PaginationFilter validFilter);
         Task<Response<ArticleDetailDataSet>> GetArticleById(int id);
         Task<Response<AdminArticleDetailDataSet>> AdminGetArticleById(int id);
+        Task<Response<ApprovingArticleDataSet>> ApprovingArticle(ApprovingArticleDataSet approvingArticleDataSet, string token);
     }
 }

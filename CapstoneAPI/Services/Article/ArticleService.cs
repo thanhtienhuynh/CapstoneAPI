@@ -128,5 +128,71 @@ namespace CapstoneAPI.Services.Article
 
             return result;
         }
+
+        public async Task<Response<ApprovingArticleDataSet>> ApprovingArticle(ApprovingArticleDataSet approvingArticleDataSet, string token)
+        {
+            Response<ApprovingArticleDataSet> response = new Response<ApprovingArticleDataSet>();
+
+            if (token == null || token.Trim().Length == 0)
+            {
+                if (response.Errors == null)
+                    response.Errors = new List<string>();
+                response.Errors.Add("Bạn chưa đăng nhập!");
+                return response;
+            }
+
+            string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
+
+            if (userIdString == null || userIdString.Length <= 0)
+            {
+                if (response.Errors == null)
+                    response.Errors = new List<string>();
+                response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                return response;
+            }
+
+            int userId = Int32.Parse(userIdString);
+            if (approvingArticleDataSet != null)
+            {
+                Models.Article articleToUpdate = await _uow.ArticleRepository.GetFirst(filter: a => a.Id.Equals(approvingArticleDataSet.Id));
+                if (articleToUpdate == null)
+                {
+                    if (response.Errors == null)
+                        response.Errors = new List<string>();
+                    response.Errors.Add("Không thể tìm thấy bài viết để cập nhật!");
+                } 
+                else
+                {
+                    articleToUpdate.PublicFromDate = approvingArticleDataSet.PublicFromDate;
+                    articleToUpdate.PublicToDate = approvingArticleDataSet.PublicToDate;
+                    articleToUpdate.Status = approvingArticleDataSet.Status;
+                    articleToUpdate.Censor = userId;
+                    if (approvingArticleDataSet.University.Count() > 0)
+                    {
+                        foreach (var item in approvingArticleDataSet.University)
+                        {
+                            Models.UniversityArticle universityArticle = new Models.UniversityArticle()
+                            {
+                                UniversityId = item,
+                                ArticleId = approvingArticleDataSet.Id
+                            };
+                            _uow.UniversityArticleRepository.Insert(universityArticle);
+                        }
+                    }
+                    _uow.ArticleRepository.Update(articleToUpdate);
+                    int result = await _uow.CommitAsync();
+                    if (result > 0)
+                    {
+                        ApprovingArticleDataSet successApproving = _mapper.Map<ApprovingArticleDataSet>(articleToUpdate);
+                        response = new Response<ApprovingArticleDataSet>(successApproving)
+                        {
+                            Message = "Duyệt bài viết thành công!"
+                        };
+                    }
+                }
+            }
+
+            return response;
+        }
     }
 }
