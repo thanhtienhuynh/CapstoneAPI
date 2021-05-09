@@ -53,9 +53,12 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.TrainingProgram, TrainingProgramGroupByMajorDataSet>();
             CreateMap<Models.TrainingProgram, TrainingProgramGroupByUniversityDataSet>();
             CreateMap<Models.Article, ArticleCollapseDataSet>();
+            CreateMap<Models.Article, AdminArticleCollapseDataSet>();
             CreateMap<Models.Article, ArticleDetailDataSet>();
             CreateMap<Models.Rank, RankDataSet>();
             CreateMap<Models.UserMajorDetail, UserMajorDetailDataSet>();
+            CreateMap<Models.Article, AdminArticleDetailDataSet>();
+            CreateMap<Models.Article, ApprovingArticleDataSet>();
         }
     }
 }

@@ -14,7 +14,7 @@ namespace CapstoneAPI.Wrappers
         {
             Succeeded = true;
             Message = string.Empty;
-            Errors = new List<string>();
+            Errors = null;
             Data = data;
         }
         public T Data { get; set; }

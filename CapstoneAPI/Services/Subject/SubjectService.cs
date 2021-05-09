@@ -29,6 +29,10 @@ namespace CapstoneAPI.Services.Subject
             if (!subjects.Any())
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
                 response.Errors.Add("Không có môn học nào thỏa mãn!");
             } else
             {

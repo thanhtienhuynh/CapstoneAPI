@@ -27,34 +27,22 @@ namespace CapstoneAPI.Controllers
         }
 
         [HttpGet()]
-        public async Task<ActionResult<IEnumerable<AdminSubjectGroupDataSet>>> GetSubjectGroupsByAdmin()
+        public async Task<ActionResult<Response<IEnumerable<AdminSubjectGroupDataSet>>>> GetSubjectGroupsByAdmin()
         {
-            IEnumerable<AdminSubjectGroupDataSet> subjectGroups = await _service.GetListSubjectGroups();
-            if (!subjectGroups.Any())
-            {
-                return NotFound();
-            }
-            return Ok(subjectGroups);
+            Response<IEnumerable<AdminSubjectGroupDataSet>> response = await _service.GetListSubjectGroups();
+            return Ok(response);
         }
         [HttpPost]
-        public async Task<ActionResult<CreateSubjectGroupDataset>> CreateASubjectGroup([FromBody]CreateSubjectGroupParam createSubjectGroupParam)
+        public async Task<ActionResult<Response<CreateSubjectGroupDataset>>> CreateASubjectGroup([FromBody]CreateSubjectGroupParam createSubjectGroupParam)
         {
-            CreateSubjectGroupDataset createSubjectGroupDataset = await _service.CreateNewSubjectGroup(createSubjectGroupParam);
-           if(createSubjectGroupDataset == null)
-            {
-                return BadRequest();
-            }
-            return Ok(createSubjectGroupDataset);
+            Response<CreateSubjectGroupDataset> response = await _service.CreateNewSubjectGroup(createSubjectGroupParam);
+            return Ok(response);
         }
         [HttpPut]
-        public async Task<ActionResult<CreateSubjectGroupDataset>> UpdateASubjectGroup([FromBody]UpdateSubjectGroupParam updateSubjectGroupParam)
+        public async Task<ActionResult<Response<CreateSubjectGroupDataset>>> UpdateASubjectGroup([FromBody]UpdateSubjectGroupParam updateSubjectGroupParam)
         {
-            CreateSubjectGroupDataset resultDataset = await _service.UpdateSubjectGroup(updateSubjectGroupParam);
-            if(resultDataset == null)
-            {
-                return BadRequest();
-            }
-            return Ok(resultDataset);
+            Response<CreateSubjectGroupDataset> response = await _service.UpdateSubjectGroup(updateSubjectGroupParam);
+            return Ok(response);
         }
     }
 }
