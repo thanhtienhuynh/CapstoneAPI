@@ -29,6 +29,9 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.Subject, SubjectDataSet>();
             CreateMap<Models.University, UniversityDataSet>();
             CreateMap<CreateUniversityDataset, Models.University>();
+            CreateMap<Models.University, CreateUniversityDataset>();
+            CreateMap<Models.University, UniversityGroupByTrainingProgramDataSet>();
+            CreateMap<Models.University, UserMajorDetailGroupByUniversityDataSet>();
             CreateMap<Models.Test, TestDataSet>();
             CreateMap<Models.Question, QuestionDataSet>();
             CreateMap<Models.Option, OptionDataSet>();
@@ -39,6 +42,7 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.University, DetailUniversityDataSet>();
             CreateMap<Models.University, AdminUniversityDataSet>();
             CreateMap<Models.Major, UniMajorDataSet>();
+            CreateMap<Models.Major, UserMajorDetailGroupByMajorDataSet>();
             CreateMap<Models.SubjectGroup, UniSubjectGroupDataSet>();
             CreateMap<Models.SubjectGroup, AdminSubjectGroupDataSet>();
             CreateMap<Models.EntryMark, UniEntryMarkDataSet>();
@@ -46,6 +50,8 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.Major, ResultOfCreateMajorDataSet>();
             CreateMap<Models.QuestionSubmisstion, QuestionSubmissionDataSet>();
             CreateMap<Models.TrainingProgram, AdminTrainingProgramDataSet>();
+            CreateMap<Models.TrainingProgram, TrainingProgramGroupByMajorDataSet>();
+            CreateMap<Models.TrainingProgram, TrainingProgramGroupByUniversityDataSet>();
             CreateMap<Models.Article, ArticleCollapseDataSet>();
             CreateMap<Models.Article, AdminArticleCollapseDataSet>();
             CreateMap<Models.Article, ArticleDetailDataSet>();
