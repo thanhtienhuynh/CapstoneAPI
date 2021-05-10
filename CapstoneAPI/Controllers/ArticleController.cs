@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using CapstoneAPI.DataSets.Article;
+﻿using CapstoneAPI.DataSets.Article;
 using CapstoneAPI.Filters;
 using CapstoneAPI.Services.Article;
 using CapstoneAPI.Wrappers;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace CapstoneAPI.Controllers
 {
@@ -56,7 +53,7 @@ namespace CapstoneAPI.Controllers
         [HttpGet("admin-detail/{id}")]
         public async Task<ActionResult<Response<AdminArticleDetailDataSet>>> GetArticleDetailsForAdmin(int id)
         {
-            string token = Request.Headers["Authorization"];
+            //string token = Request.Headers["Authorization"];
             Response<AdminArticleDetailDataSet> article = await _service.AdminGetArticleById(id);
             if (article == null)
                 return NoContent();

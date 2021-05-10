@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using CapstoneAPI.DataSets.Article;
-using CapstoneAPI.DataSets.University;
 using CapstoneAPI.Filters;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Repositories;
@@ -110,7 +109,8 @@ namespace CapstoneAPI.Services.Article
         {
             Response<AdminArticleDetailDataSet> result = null;
 
-            Models.Article article = await _uow.ArticleRepository.GetFirst(filter: a => a.Id == id);
+            Models.Article article = await _uow.ArticleRepository.GetFirst(filter: a => a.Id == id, 
+                includeProperties: "UniversityArticles,UniversityArticles.University");
 
             if (article == null)
             {
@@ -122,6 +122,13 @@ namespace CapstoneAPI.Services.Article
             else
             {
                 var data = _mapper.Map<AdminArticleDetailDataSet>(article);
+
+                if (data.UniversityIds == null)
+                    data.UniversityIds = new List<int>();
+                foreach (var item in article.UniversityArticles)
+                {
+                    data.UniversityIds?.Add(item.UniversityId);
+                }
                 result = new Response<AdminArticleDetailDataSet>(data);
             }
 

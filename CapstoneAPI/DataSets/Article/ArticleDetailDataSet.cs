@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace CapstoneAPI.DataSets.Article
 {
@@ -17,6 +14,5 @@ namespace CapstoneAPI.DataSets.Article
         public string PostImageUrl { get; set; }
         public int? Status { get; set; }
         public string HeaderConfig { get; set; }
-
     }
 }

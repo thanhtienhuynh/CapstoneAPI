@@ -1,8 +1,5 @@
-﻿using CapstoneAPI.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace CapstoneAPI.DataSets.Article
 {
@@ -22,7 +19,7 @@ namespace CapstoneAPI.DataSets.Article
         public DateTime? CrawlerDate { get; set; }
         public int? ImportantLevel { get; set; }
         public int? Censor { get; set; }
-        public virtual ICollection<UniversityArticle> UniversityArticles { get; set; }
+        public List<int> UniversityIds { get; set; }
 
     }
 }
