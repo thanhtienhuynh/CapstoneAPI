@@ -128,9 +128,9 @@ namespace CapstoneAPI.Services.Article
             return result;
         }
 
-        public async Task<Response<ApprovingArticleResponse>> ApprovingArticle(ApprovingArticleDataSet approvingArticleDataSet, string token)
+        public async Task<Response<ApprovingArticleDataSet>> ApprovingArticle(ApprovingArticleDataSet approvingArticleDataSet, string token)
         {
-            Response<ApprovingArticleResponse> response = new Response<ApprovingArticleResponse>();
+            Response<ApprovingArticleDataSet> response = new Response<ApprovingArticleDataSet>();
 
             if (token == null || token.Trim().Length == 0)
             {
@@ -190,16 +190,15 @@ namespace CapstoneAPI.Services.Article
                     int result = await _uow.CommitAsync();
                     if (result > 0)
                     {
-                        ApprovingArticleResponse successApproving = _mapper.Map<ApprovingArticleResponse>(articleToUpdate);
-                        if (successApproving.Universities == null)
-                            successApproving.Universities = new List<ApprovingArticleUniversityResponse>();
+                        ApprovingArticleDataSet successApproving = _mapper.Map<ApprovingArticleDataSet>(articleToUpdate);
+                        if (successApproving.University == null)
+                            successApproving.University = new List<int>();
                         foreach (var item in articleToUpdate.UniversityArticles)
                         {
                             var uniRes = await _uow.UniversityRepository.GetById(item.UniversityId);
-                            successApproving?.Universities?.Add(_mapper
-                                .Map<ApprovingArticleUniversityResponse>(uniRes));
+                            successApproving?.University?.Add(item.UniversityId);
                         }
-                        response = new Response<ApprovingArticleResponse>(successApproving)
+                        response = new Response<ApprovingArticleDataSet>(successApproving)
                         {
                             Message = "Duyệt bài viết thành công!"
                         };

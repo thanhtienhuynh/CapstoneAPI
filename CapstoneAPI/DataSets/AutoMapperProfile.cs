@@ -54,7 +54,7 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.Rank, RankDataSet>();
             CreateMap<Models.UserMajorDetail, UserMajorDetailDataSet>();
             CreateMap<Models.Article, AdminArticleDetailDataSet>();
-            CreateMap<Models.Article, ApprovingArticleResponse>();
+            CreateMap<Models.Article, ApprovingArticleDataSet>();
             CreateMap<Models.University, ApprovingArticleUniversityResponse>();
         }
     }
