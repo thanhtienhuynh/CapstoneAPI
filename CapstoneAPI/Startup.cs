@@ -7,6 +7,7 @@ using CapstoneAPI.Repositories;
 using CapstoneAPI.Services.Article;
 using CapstoneAPI.Services.Crawler;
 using CapstoneAPI.Services.Email;
+using CapstoneAPI.Services.FirebaseService;
 using CapstoneAPI.Services.Major;
 using CapstoneAPI.Services.Rank;
 using CapstoneAPI.Services.Subject;
@@ -44,13 +45,9 @@ namespace CapstoneAPI
         {
             Configuration = configuration;
 
-            string path = Path.Combine(Path
-                .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"FirebaseKey\capstone-7071e-firebase-adminsdk-umiw1-2c95fcab0a.json");
-            Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", path);
-
             FirebaseApp.Create(new AppOptions()
             {
-                Credential = GoogleCredential.GetApplicationDefault(),
+                Credential = GoogleCredential.FromFile(@"FirebaseKey\capstone-7071e-firebase-adminsdk-umiw1-2c95fcab0a.json")
             });
         }
 
@@ -122,6 +119,7 @@ namespace CapstoneAPI
             services.AddScoped<IArticleService, ArticleService>();
             services.AddScoped<IUserMajorDetailService, UserMajorDetailService>();
             services.AddScoped<IRankService, RankService>();
+            services.AddScoped<IFCMService, FCMService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

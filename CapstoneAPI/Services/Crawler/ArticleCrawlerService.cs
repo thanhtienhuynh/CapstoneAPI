@@ -136,7 +136,7 @@ namespace CapstoneAPI.Services.Crawler
 
 
                 article.HeaderConfig = headerConfig.InnerHtml.Trim();
-                article.Status = 1;
+                article.Status = 0;
                 article.CrawlerDate = DateTime.Now;
                 article.Content = detail.InnerHtml.Trim();
             }
@@ -281,7 +281,7 @@ namespace CapstoneAPI.Services.Crawler
                 }
 
                 article.HeaderConfig = headerConfig.InnerHtml.Trim();
-                article.Status = 1;
+                article.Status = 0;
                 article.CrawlerDate = DateTime.Now;
                 article.Content = detail.InnerHtml.Trim();
 
