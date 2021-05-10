@@ -45,9 +45,8 @@ namespace CapstoneAPI.Services.Article
 
             if (articles.Count() == 0)
             {
-                if (result.Errors == null)
-                    result.Errors = new List<string>();
-                result.Errors.Add("Không có bài viết nào để hiển thị!");
+                result.Succeeded = true;
+                result.Message = "Không có bài viết nào để hiển thị!";
             }
             else
             {
@@ -69,9 +68,8 @@ namespace CapstoneAPI.Services.Article
                 first: validFilter.PageSize, offset: (validFilter.PageNumber - 1) * validFilter.PageSize);
             if (articles.Count() == 0)
             {
-                if (result.Errors == null)
-                    result.Errors = new List<string>();
-                result.Errors.Add("Không có bài viết nào để hiển thị!");
+                result.Succeeded = true;
+                result.Message = "Không có bài viết nào để hiển thị!";
             }
             else
             {
@@ -96,7 +94,7 @@ namespace CapstoneAPI.Services.Article
                 result = new Response<ArticleDetailDataSet>();
                 if (result.Errors == null)
                     result.Errors = new List<string>();
-                result.Errors.Add("Không thể xem bài viết!");
+                result.Errors.Add("Không thể xem bài viết này!");
             }
             else
             {
@@ -118,7 +116,7 @@ namespace CapstoneAPI.Services.Article
                 result = new Response<AdminArticleDetailDataSet>();
                 if (result.Errors == null)
                     result.Errors = new List<string>();
-                result.Errors.Add("Không thể xem bài viết!");
+                result.Errors.Add("Không thể xem bài viết này!");
             }
             else
             {
@@ -160,7 +158,7 @@ namespace CapstoneAPI.Services.Article
                     if (response.Errors == null)
                         response.Errors = new List<string>();
                     response.Errors.Add("Không thể tìm thấy bài viết để cập nhật!");
-                } 
+                }
                 else
                 {
                     articleToUpdate.PublicFromDate = approvingArticleDataSet.PublicFromDate;
@@ -193,6 +191,25 @@ namespace CapstoneAPI.Services.Article
             }
 
             return response;
+        }
+
+        public async Task<Response<List<int>>> GetUnApprovedArticleIds()
+        {
+            Response<List<int>> result = new Response<List<int>>();
+
+            IEnumerable<Models.Article> articles = await _uow.ArticleRepository
+                .Get(filter: a => a.Status == 0, 
+                    orderBy: o => o.OrderByDescending(a => a.PostedDate));
+
+            if (articles == null)
+            {
+                result.Message = "Tất cả các bài viết đã được duyệt!";
+            }
+
+            result.Data = articles.Select(a => a.Id).ToList();
+            result.Succeeded = true;
+
+            return result;
         }
     }
 }

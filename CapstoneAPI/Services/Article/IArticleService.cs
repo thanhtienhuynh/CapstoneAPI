@@ -13,5 +13,6 @@ namespace CapstoneAPI.Services.Article
         Task<Response<ArticleDetailDataSet>> GetArticleById(int id);
         Task<Response<AdminArticleDetailDataSet>> AdminGetArticleById(int id);
         Task<Response<ApprovingArticleDataSet>> ApprovingArticle(ApprovingArticleDataSet approvingArticleDataSet, string token);
+        Task<Response<List<int>>> GetUnApprovedArticleIds();
     }
 }

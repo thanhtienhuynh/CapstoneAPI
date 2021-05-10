@@ -43,6 +43,7 @@ namespace CapstoneAPI.Controllers
         [HttpGet("admin-all")]
         public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListArticleForAdmin([FromQuery] PaginationFilter filter)
         {
+            string token = Request.Headers["Authorization"];
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
 
             PagedResponse<List<AdminArticleCollapseDataSet>> articles = await _service.GetListArticleForAdmin(validFilter);
@@ -55,7 +56,16 @@ namespace CapstoneAPI.Controllers
         [HttpGet("admin-detail/{id}")]
         public async Task<ActionResult<Response<AdminArticleDetailDataSet>>> GetArticleDetailsForAdmin(int id)
         {
+            string token = Request.Headers["Authorization"];
             Response<AdminArticleDetailDataSet> article = await _service.AdminGetArticleById(id);
+            if (article == null)
+                return NoContent();
+            return Ok(article);
+        }
+        [HttpGet("admin-unapproved-articles")]
+        public async Task<ActionResult<Response<List<int>>>> GetUnApprovedArticleIds()
+        {
+            Response<List<int>> article = await _service.GetUnApprovedArticleIds();
             if (article == null)
                 return NoContent();
             return Ok(article);
