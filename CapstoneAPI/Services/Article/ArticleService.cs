@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using CapstoneAPI.DataSets.Article;
+using CapstoneAPI.DataSets.University;
 using CapstoneAPI.Filters;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Repositories;
@@ -127,9 +128,9 @@ namespace CapstoneAPI.Services.Article
             return result;
         }
 
-        public async Task<Response<ApprovingArticleDataSet>> ApprovingArticle(ApprovingArticleDataSet approvingArticleDataSet, string token)
+        public async Task<Response<ApprovingArticleResponse>> ApprovingArticle(ApprovingArticleDataSet approvingArticleDataSet, string token)
         {
-            Response<ApprovingArticleDataSet> response = new Response<ApprovingArticleDataSet>();
+            Response<ApprovingArticleResponse> response = new Response<ApprovingArticleResponse>();
 
             if (token == null || token.Trim().Length == 0)
             {
@@ -152,7 +153,9 @@ namespace CapstoneAPI.Services.Article
             int userId = Int32.Parse(userIdString);
             if (approvingArticleDataSet != null)
             {
-                Models.Article articleToUpdate = await _uow.ArticleRepository.GetFirst(filter: a => a.Id.Equals(approvingArticleDataSet.Id));
+                Models.Article articleToUpdate = await _uow.ArticleRepository
+                    .GetFirst(filter: a => a.Id.Equals(approvingArticleDataSet.Id),
+                    includeProperties: "UniversityArticles,UniversityArticles.University");
                 if (articleToUpdate == null)
                 {
                     if (response.Errors == null)
@@ -165,24 +168,38 @@ namespace CapstoneAPI.Services.Article
                     articleToUpdate.PublicToDate = approvingArticleDataSet.PublicToDate;
                     articleToUpdate.Status = approvingArticleDataSet.Status;
                     articleToUpdate.Censor = userId;
+
                     if (approvingArticleDataSet.University.Count() > 0)
                     {
+                        List<int> currentUniversityIds = articleToUpdate.UniversityArticles.Select(u => u.UniversityId).ToList();
                         foreach (var item in approvingArticleDataSet.University)
                         {
-                            Models.UniversityArticle universityArticle = new Models.UniversityArticle()
+                            if (!currentUniversityIds.Contains(item))
                             {
-                                UniversityId = item,
-                                ArticleId = approvingArticleDataSet.Id
-                            };
-                            _uow.UniversityArticleRepository.Insert(universityArticle);
+                                Models.UniversityArticle universityArticle = new Models.UniversityArticle()
+                                {
+                                    UniversityId = item,
+                                    ArticleId = approvingArticleDataSet.Id
+                                };
+                                _uow.UniversityArticleRepository.Insert(universityArticle);
+                            }
+
                         }
                     }
                     _uow.ArticleRepository.Update(articleToUpdate);
                     int result = await _uow.CommitAsync();
                     if (result > 0)
                     {
-                        ApprovingArticleDataSet successApproving = _mapper.Map<ApprovingArticleDataSet>(articleToUpdate);
-                        response = new Response<ApprovingArticleDataSet>(successApproving)
+                        ApprovingArticleResponse successApproving = _mapper.Map<ApprovingArticleResponse>(articleToUpdate);
+                        if (successApproving.Universities == null)
+                            successApproving.Universities = new List<ApprovingArticleUniversityResponse>();
+                        foreach (var item in articleToUpdate.UniversityArticles)
+                        {
+                            var uniRes = await _uow.UniversityRepository.GetById(item.UniversityId);
+                            successApproving?.Universities?.Add(_mapper
+                                .Map<ApprovingArticleUniversityResponse>(uniRes));
+                        }
+                        response = new Response<ApprovingArticleResponse>(successApproving)
                         {
                             Message = "Duyệt bài viết thành công!"
                         };
@@ -198,7 +215,7 @@ namespace CapstoneAPI.Services.Article
             Response<List<int>> result = new Response<List<int>>();
 
             IEnumerable<Models.Article> articles = await _uow.ArticleRepository
-                .Get(filter: a => a.Status == 0, 
+                .Get(filter: a => a.Status == 0,
                     orderBy: o => o.OrderByDescending(a => a.PostedDate));
 
             if (articles == null)

@@ -71,10 +71,10 @@ namespace CapstoneAPI.Controllers
             return Ok(article);
         }
         [HttpPut()]
-        public async Task<ActionResult<Response<ApprovingArticleDataSet>>> ApprovingArticle([FromBody] ApprovingArticleDataSet approvingArticleDataSet)
+        public async Task<ActionResult<Response<ApprovingArticleResponse>>> ApprovingArticle([FromBody] ApprovingArticleDataSet approvingArticleDataSet)
         {
             string token = Request.Headers["Authorization"];
-            Response<ApprovingArticleDataSet> result = await _service.ApprovingArticle(approvingArticleDataSet, token);
+            Response<ApprovingArticleResponse> result = await _service.ApprovingArticle(approvingArticleDataSet, token);
             if (result == null)
                 return NoContent();
             return Ok(result);
