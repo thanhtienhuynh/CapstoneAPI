@@ -48,5 +48,11 @@ namespace CapstoneAPI.Controllers
             string token = Request.Headers["Authorization"];
             return Ok(await _service.GetUserMajorDetailGroupByUniversityDataSets(token));
         }
+
+        [HttpGet("users-group-by-major-detail")]
+        public async Task<ActionResult<Response<IEnumerable<RankingUserInformationGroupByRankType>>>> GetUsersByMajorDetailId([FromQuery] RankingUserParam rankingUserParam)
+        {
+            return Ok(await _service.GetUsersByMajorDetailId(rankingUserParam));
+        }
     }
 }
