@@ -14,6 +14,6 @@ namespace CapstoneAPI.Services.UserMajorDetail
         Task<Response<Object>> RemoveUserMajorDetail(UpdateUserMajorDetailParam userMajorDetailParam, string token);
         Task<Response<IEnumerable<UserMajorDetailGroupByMajorDataSet>>> GetUserMajorDetailGroupByMajorDataSets(string token);
         Task<Response<IEnumerable<UserMajorDetailGroupByUniversityDataSet>>> GetUserMajorDetailGroupByUniversityDataSets(string token);
-
+        Task<Response<IEnumerable<RankingUserInformationGroupByRankType>>> GetUsersByMajorDetailId(RankingUserParam rankingUserParam);
     }
 }

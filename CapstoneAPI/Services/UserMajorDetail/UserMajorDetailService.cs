@@ -423,5 +423,73 @@ namespace CapstoneAPI.Services.UserMajorDetail
             }
             return response;
         }
+
+        public async Task<Response<IEnumerable<RankingUserInformationGroupByRankType>>> GetUsersByMajorDetailId(RankingUserParam rankingUserParam)
+        {
+            Response<IEnumerable<RankingUserInformationGroupByRankType>> response = new Response<IEnumerable<RankingUserInformationGroupByRankType>>();
+            if (rankingUserParam == null || rankingUserParam.MajorId <= 0 || rankingUserParam.UniversityId <= 0 || rankingUserParam.TrainingProgramId <= 0)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Thông tin truy cập không hợp lệ!");
+                return response;
+            }
+
+            MajorDetail majorDetail = await _uow.MajorDetailRepository.GetFirst(filter: m => m.UniversityId == rankingUserParam.UniversityId
+                                                                        && m.MajorId == rankingUserParam.MajorId
+                                                                        && m.TrainingProgramId == rankingUserParam.TrainingProgramId);
+            if (majorDetail == null)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Thông tin truy cập không tồn tại!");
+                return response;
+            }
+
+            IEnumerable<Models.UserMajorDetail> userMajorDetails = await _uow.UserMajorDetailRepository.Get(filter: u => u.MajorDetailId == majorDetail.Id,
+                                                                                                                includeProperties: "SubjectGroup,User,Rank,Rank.RankType");
+            if (userMajorDetails == null || !userMajorDetails.Any())
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Hiện tại chưa có lượt quan tâm nào!");
+                return response;
+            }
+
+            IEnumerable<IGrouping<Models.Rank, Models.UserMajorDetail>> userMajorDetailsGroupsByRankType = userMajorDetails.GroupBy(u => u.Rank);
+
+            List<RankingUserInformationGroupByRankType> rankingUserInformationGroupByRanks = new List<RankingUserInformationGroupByRankType>();
+
+            foreach (IGrouping<Models.Rank, Models.UserMajorDetail> userMajorDetailsGroup in userMajorDetailsGroupsByRankType)
+            {
+                List<RankingUserInformation> rankingUserInformations = new List<RankingUserInformation>();
+                RankingUserInformationGroupByRankType rankingUserInformationGroupByRank = new RankingUserInformationGroupByRankType();
+                foreach (Models.UserMajorDetail userMajorDetail in userMajorDetailsGroup)
+                {
+                    RankingUserInformation rankingUserInformation = _mapper.Map<RankingUserInformation>(userMajorDetail.User);
+                    rankingUserInformation.GroupCode = userMajorDetail?.SubjectGroup.GroupCode;
+                    rankingUserInformation.Position = userMajorDetail?.Rank.Position;
+                    rankingUserInformation.TotalMark = userMajorDetail?.Rank.TotalMark;
+                    rankingUserInformations.Add(rankingUserInformation);
+                }
+                rankingUserInformationGroupByRank.Id = userMajorDetailsGroup.Key.RankTypeId;
+                rankingUserInformationGroupByRank.Name = userMajorDetailsGroup.Key.RankType.Name;
+                rankingUserInformationGroupByRank.RankingUserInformations = rankingUserInformations;
+                rankingUserInformationGroupByRanks.Add(rankingUserInformationGroupByRank);
+            }
+
+            response.Succeeded = true;
+            response.Data = rankingUserInformationGroupByRanks;
+            return response;
+        }
     }
 }
