@@ -110,7 +110,7 @@ namespace CapstoneAPI.Services.Article
             Response<AdminArticleDetailDataSet> result = null;
 
             Models.Article article = await _uow.ArticleRepository.GetFirst(filter: a => a.Id == id, 
-                includeProperties: "UniversityArticles,UniversityArticles.University");
+                includeProperties: "UniversityArticles,UniversityArticles.University,MajorArticles,MajorArticles.Article");
 
             if (article == null)
             {
@@ -123,12 +123,26 @@ namespace CapstoneAPI.Services.Article
             {
                 var data = _mapper.Map<AdminArticleDetailDataSet>(article);
 
-                if (data.UniversityIds == null)
-                    data.UniversityIds = new List<int>();
-                foreach (var item in article.UniversityArticles)
+                if (article.UniversityArticles != null)
                 {
-                    data.UniversityIds?.Add(item.UniversityId);
+                    if (data.UniversityIds == null)
+                        data.UniversityIds = new List<int>();
+                    foreach (var item in article.UniversityArticles)
+                    {
+                        data.UniversityIds?.Add(item.UniversityId);
+                    }
                 }
+
+                if (article.MajorArticles != null)
+                {
+                    if (data.MajorIds == null)
+                        data.MajorIds = new List<int>();
+                    foreach (var item in article.MajorArticles)
+                    {
+                        data.MajorIds?.Add(item.MajorId);
+                    }
+                }
+
                 result = new Response<AdminArticleDetailDataSet>(data);
             }
 
