@@ -1,5 +1,6 @@
 ﻿using CapstoneAPI.DataSets.Article;
 using CapstoneAPI.Filters;
+using CapstoneAPI.Filters.Article;
 using CapstoneAPI.Services.Article;
 using CapstoneAPI.Wrappers;
 using Microsoft.AspNetCore.Mvc;
@@ -39,6 +40,19 @@ namespace CapstoneAPI.Controllers
         }
         [HttpGet("admin-all")]
         public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListArticleForAdmin([FromQuery] PaginationFilter filter)
+        {
+            string token = Request.Headers["Authorization"];
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+
+            PagedResponse<List<AdminArticleCollapseDataSet>> articles = await _service.GetListArticleForAdmin(validFilter);
+
+            if (articles == null)
+                return NoContent();
+            return Ok(articles);
+        }
+        [HttpGet("admin-all2")]
+        public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListArticleForAdmin2([FromQuery] PaginationFilter filter, 
+            [FromQuery] AdminArticleFilter articleFilter)
         {
             string token = Request.Headers["Authorization"];
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);

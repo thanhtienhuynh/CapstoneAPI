@@ -20,6 +20,7 @@ namespace CapstoneAPI.DataSets.Article
         public int? ImportantLevel { get; set; }
         public int? Censor { get; set; }
         public List<int> UniversityIds { get; set; }
+        public List<int> MajorIds { get; set; }
 
     }
 }
