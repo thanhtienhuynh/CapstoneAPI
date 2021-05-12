@@ -5,13 +5,13 @@ using System.Collections.Generic;
 
 namespace CapstoneAPI.Models
 {
-    public partial class UniversityArticle
+    public partial class MajorArticle
     {
         public int Id { get; set; }
         public int ArticleId { get; set; }
-        public int UniversityId { get; set; }
+        public int MajorId { get; set; }
 
         public virtual Article Article { get; set; }
-        public virtual University University { get; set; }
+        public virtual Major Major { get; set; }
     }
 }
