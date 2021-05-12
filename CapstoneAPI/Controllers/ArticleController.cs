@@ -3,6 +3,7 @@ using CapstoneAPI.Filters;
 using CapstoneAPI.Filters.Article;
 using CapstoneAPI.Services.Article;
 using CapstoneAPI.Wrappers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -63,7 +64,6 @@ namespace CapstoneAPI.Controllers
                 return NoContent();
             return Ok(articles);
         }
-
         [HttpGet("admin-detail/{id}")]
         public async Task<ActionResult<Response<AdminArticleDetailDataSet>>> GetArticleDetailsForAdmin(int id)
         {
@@ -81,6 +81,7 @@ namespace CapstoneAPI.Controllers
                 return NoContent();
             return Ok(article);
         }
+        [Authorize()]
         [HttpPut()]
         public async Task<ActionResult<Response<ApprovingArticleDataSet>>> ApprovingArticle([FromBody] ApprovingArticleDataSet approvingArticleDataSet)
         {
