@@ -11,5 +11,6 @@ namespace CapstoneAPI.DataSets.Article
         public DateTime? PublicToDate { get; set; }
         public int? Status { get; set; }
         public List<int> University { get; set; }
+        public List<int> Major { get; set; }
     }
 }

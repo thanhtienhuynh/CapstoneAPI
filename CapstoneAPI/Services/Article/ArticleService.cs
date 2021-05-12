@@ -162,7 +162,7 @@ namespace CapstoneAPI.Services.Article
             {
                 Models.Article articleToUpdate = await _uow.ArticleRepository
                     .GetFirst(filter: a => a.Id.Equals(approvingArticleDataSet.Id),
-                    includeProperties: "UniversityArticles,UniversityArticles.University");
+                    includeProperties: "UniversityArticles,UniversityArticles.University,MajorArticles,MajorArticles.Major");
                 if (articleToUpdate == null)
                 {
                     if (response.Errors == null)
@@ -171,9 +171,9 @@ namespace CapstoneAPI.Services.Article
                 }
                 else
                 {
-                    articleToUpdate.PublicFromDate = approvingArticleDataSet.PublicFromDate;
-                    articleToUpdate.PublicToDate = approvingArticleDataSet.PublicToDate;
-                    articleToUpdate.Status = approvingArticleDataSet.Status;
+                    articleToUpdate.PublicFromDate = approvingArticleDataSet?.PublicFromDate;
+                    articleToUpdate.PublicToDate = approvingArticleDataSet?.PublicToDate;
+                    articleToUpdate.Status = approvingArticleDataSet?.Status;
                     articleToUpdate.Censor = userId;
 
                     if (approvingArticleDataSet.University.Count() > 0)
@@ -193,8 +193,29 @@ namespace CapstoneAPI.Services.Article
 
                         }
                     }
+                   
+
+                    if (approvingArticleDataSet.Major.Count() > 0)
+                    {
+                        List<int> currentMajorIds = articleToUpdate.MajorArticles.Select(m => m.MajorId).ToList();
+                        foreach (var item in approvingArticleDataSet.Major)
+                        {
+                            if (!currentMajorIds.Contains(item))
+                            {
+                                Models.MajorArticle majorArticle = new Models.MajorArticle()
+                                {
+                                    MajorId = item,
+                                    ArticleId = approvingArticleDataSet.Id
+                                };
+                                _uow.MajorArticleRepository.Insert(majorArticle);
+                            }
+
+                        }
+                    }
                     _uow.ArticleRepository.Update(articleToUpdate);
+
                     int result = await _uow.CommitAsync();
+
                     if (result > 0)
                     {
                         ApprovingArticleDataSet successApproving = _mapper.Map<ApprovingArticleDataSet>(articleToUpdate);
@@ -202,9 +223,17 @@ namespace CapstoneAPI.Services.Article
                             successApproving.University = new List<int>();
                         foreach (var item in articleToUpdate.UniversityArticles)
                         {
-                            var uniRes = await _uow.UniversityRepository.GetById(item.UniversityId);
                             successApproving?.University?.Add(item.UniversityId);
                         }
+
+                        if (successApproving.Major == null)
+                            successApproving.Major = new List<int>();
+                        foreach (var item in articleToUpdate.MajorArticles)
+                        {
+                            successApproving?.Major?.Add(item.MajorId);
+                        }
+
+
                         response = new Response<ApprovingArticleDataSet>(successApproving)
                         {
                             Message = "Duyệt bài viết thành công!"

@@ -22,6 +22,7 @@ namespace CapstoneAPI.Models
         public virtual DbSet<Career> Careers { get; set; }
         public virtual DbSet<EntryMark> EntryMarks { get; set; }
         public virtual DbSet<Major> Majors { get; set; }
+        public virtual DbSet<MajorArticle> MajorArticles { get; set; }
         public virtual DbSet<MajorCareer> MajorCareers { get; set; }
         public virtual DbSet<MajorDetail> MajorDetails { get; set; }
         public virtual DbSet<Option> Options { get; set; }
@@ -115,6 +116,27 @@ namespace CapstoneAPI.Models
                     .IsUnicode(false);
 
                 entity.Property(e => e.Name).HasMaxLength(200);
+            });
+
+            modelBuilder.Entity<MajorArticle>(entity =>
+            {
+                entity.ToTable("MajorArticle");
+
+                entity.Property(e => e.ArticleId).HasColumnName("Article_Id");
+
+                entity.Property(e => e.MajorId).HasColumnName("Major_Id");
+
+                entity.HasOne(d => d.Article)
+                    .WithMany(p => p.MajorArticles)
+                    .HasForeignKey(d => d.ArticleId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_MajorArticle_Article");
+
+                entity.HasOne(d => d.Major)
+                    .WithMany(p => p.MajorArticles)
+                    .HasForeignKey(d => d.MajorId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_MajorArticle_Major");
             });
 
             modelBuilder.Entity<MajorCareer>(entity =>
@@ -456,7 +478,7 @@ namespace CapstoneAPI.Models
 
             modelBuilder.Entity<UniversityArticle>(entity =>
             {
-                entity.ToTable("University_Article");
+                entity.ToTable("UniversityArticle");
 
                 entity.Property(e => e.ArticleId).HasColumnName("Article_Id");
 
@@ -466,13 +488,13 @@ namespace CapstoneAPI.Models
                     .WithMany(p => p.UniversityArticles)
                     .HasForeignKey(d => d.ArticleId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_Article_University_Article");
+                    .HasConstraintName("FK_UniversityArticle_Article");
 
                 entity.HasOne(d => d.University)
                     .WithMany(p => p.UniversityArticles)
                     .HasForeignKey(d => d.UniversityId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_University_University_Article");
+                    .HasConstraintName("FK_UniversityArticle_University");
             });
 
             modelBuilder.Entity<User>(entity =>

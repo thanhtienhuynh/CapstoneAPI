@@ -30,6 +30,7 @@ namespace CapstoneAPI.Repositories
         private IGenericRepository<UserMajorDetail> _userMajorDetailRepository;
         private IGenericRepository<Transcript> _transcriptRepository;
         private IGenericRepository<UniversityArticle> _universityArticleRepository;
+        private IGenericRepository<MajorArticle> _majorArticleRepository;
         private IRankRepository _rankRepository;
 
         public IGenericRepository<SubjectGroup> SubjectGroupRepository
@@ -128,6 +129,10 @@ namespace CapstoneAPI.Repositories
         public IGenericRepository<UniversityArticle> UniversityArticleRepository
         {
             get { return _universityArticleRepository ??= new GenericRepository<UniversityArticle>(_context); }
+        }
+        public IGenericRepository<MajorArticle> MajorArticleRepository
+        {
+            get { return _majorArticleRepository ??= new GenericRepository<MajorArticle>(_context); }
         }
         public IRankRepository RankRepository
         {
