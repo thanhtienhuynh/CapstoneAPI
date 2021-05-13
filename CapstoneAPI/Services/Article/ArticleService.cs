@@ -1,14 +1,18 @@
 ﻿using AutoMapper;
 using CapstoneAPI.DataSets.Article;
 using CapstoneAPI.Filters;
+using CapstoneAPI.Filters.Article;
 using CapstoneAPI.Helpers;
+using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
 using CapstoneAPI.Wrappers;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
 
@@ -81,6 +85,136 @@ namespace CapstoneAPI.Services.Article
             return result;
         }
 
+        public async Task<PagedResponse<List<AdminArticleCollapseDataSet>>> GetListArticleForAdmin(PaginationFilter validFilter,
+            AdminArticleFilter articleFilter)
+        {
+            PagedResponse<List<AdminArticleCollapseDataSet>> result = new PagedResponse<List<AdminArticleCollapseDataSet>>();
+
+            string sql = "SELECT * FROM Article";
+
+            if (!string.IsNullOrEmpty(articleFilter.Search?.Trim()))
+            {
+                if (!sql.Contains("WHERE"))
+                    sql += " WHERE ";
+
+                sql += $"Title LIKE '%{articleFilter.Search?.Trim()}%'";
+            }
+
+            if (articleFilter.PublicFromDate != null && articleFilter.PublicFromDate != DateTime.MinValue)
+            {
+                if (!sql.Contains("WHERE"))
+                    sql += " WHERE ";
+                else
+                    sql += " AND ";
+
+                sql += $"PublicFromDate >= '{articleFilter.PublicFromDate}'";
+            }
+
+            if (articleFilter.PublicToDate != null && articleFilter.PublicToDate != DateTime.MinValue)
+            {
+                if (!sql.Contains("WHERE"))
+                    sql += " WHERE ";
+                else
+                    sql += " AND ";
+
+                sql += $"PublicToDate <= '{articleFilter.PublicToDate}'";
+            }
+
+            if (articleFilter.PostedDate != null && articleFilter.PostedDate != DateTime.MinValue)
+            {
+                if (!sql.Contains("WHERE"))
+                    sql += " WHERE ";
+                else
+                    sql += " AND ";
+
+                sql += "CONVERT(DATE, PostedDate) <= CONVERT(DATE, '" + articleFilter.PostedDate + "')";
+            }
+
+            if (articleFilter.ImportantLevel != null)
+            {
+                if (!sql.Contains("WHERE"))
+                    sql += " WHERE ";
+                else
+                    sql += " AND ";
+
+                sql += "ImportantLevel = " + articleFilter.ImportantLevel;
+            }
+
+            if (!string.IsNullOrEmpty(articleFilter.PublishedPage?.Trim()))
+            {
+                if (!sql.Contains("WHERE"))
+                    sql += " WHERE ";
+                else
+                    sql += " AND ";
+
+                sql += "PublishedPage = '" + articleFilter.PublishedPage + "'";
+            }
+
+            if (articleFilter.Status >= 0)
+            {
+                if (!sql.Contains("WHERE"))
+                    sql += " WHERE ";
+                else
+                    sql += " AND ";
+
+                sql += "Status = " + articleFilter.Status;
+            }
+
+            string sqlCount = sql;
+
+            sql += " ORDER BY ";
+            switch (articleFilter.Order)
+            {
+                case 0:
+                    sql += "CrawlerDate DESC ";
+                    break;
+                case 1:
+                    sql += "CrawlerDate ";
+                    break;
+                case 2:
+                    sql += "Title ";
+                    break;
+                case 3:
+                    sql += "Title DESC ";
+                    break;
+                case 4:
+                    sql += "PostedDate ";
+                    break;
+                case 5:
+                    sql += "PostedDate DESC ";
+                    break;
+                case 6:
+                    sql += "ImportantLevel ";
+                    break;
+                case 7:
+                    sql += "ImportantLevel DESC ";
+                    break;
+            }
+
+            sql += "OFFSET " + (validFilter.PageNumber - 1) + " ROWS FETCH FIRST " + validFilter.PageSize + " ROWS ONLY";
+
+            var context = new CapstoneDBContext();
+            var articles = await context.Articles
+                    .FromSqlRaw(sql)
+                    .ToListAsync();
+
+            if (articles.Count() == 0)
+            {
+                result.Succeeded = true;
+                result.Message = "Không có bài viết nào để hiển thị!";
+            }
+            else
+            {
+                var totalRecords = await context.Articles
+                    .FromSqlRaw(sqlCount)
+                    .CountAsync();
+                var articleCollapseDataSet = articles.Select(m => _mapper.Map<AdminArticleCollapseDataSet>(m)).ToList();
+                result = PaginationHelper.CreatePagedReponse(articleCollapseDataSet, validFilter, totalRecords);
+            }
+
+            return result;
+        }
+
         public async Task<Response<ArticleDetailDataSet>> GetArticleById(int id)
         {
             var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
@@ -109,7 +243,7 @@ namespace CapstoneAPI.Services.Article
         {
             Response<AdminArticleDetailDataSet> result = null;
 
-            Models.Article article = await _uow.ArticleRepository.GetFirst(filter: a => a.Id == id, 
+            Models.Article article = await _uow.ArticleRepository.GetFirst(filter: a => a.Id == id,
                 includeProperties: "UniversityArticles,UniversityArticles.University,MajorArticles,MajorArticles.Article");
 
             if (article == null)
@@ -207,7 +341,7 @@ namespace CapstoneAPI.Services.Article
 
                         }
                     }
-                   
+
 
                     if (approvingArticleDataSet.Major.Count() > 0)
                     {

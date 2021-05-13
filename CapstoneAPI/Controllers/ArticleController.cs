@@ -3,6 +3,7 @@ using CapstoneAPI.Filters;
 using CapstoneAPI.Filters.Article;
 using CapstoneAPI.Services.Article;
 using CapstoneAPI.Wrappers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -38,32 +39,32 @@ namespace CapstoneAPI.Controllers
                 return NoContent();
             return Ok(article);
         }
+        //[HttpGet("admin-all")]
+        //public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListArticleForAdmin([FromQuery] PaginationFilter filter)
+        //{
+        //    string token = Request.Headers["Authorization"];
+        //    var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+
+        //    PagedResponse<List<AdminArticleCollapseDataSet>> articles = await _service.GetListArticleForAdmin(validFilter, );
+
+        //    if (articles == null)
+        //        return NoContent();
+        //    return Ok(articles);
+        //}
         [HttpGet("admin-all")]
-        public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListArticleForAdmin([FromQuery] PaginationFilter filter)
-        {
-            string token = Request.Headers["Authorization"];
-            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
-
-            PagedResponse<List<AdminArticleCollapseDataSet>> articles = await _service.GetListArticleForAdmin(validFilter);
-
-            if (articles == null)
-                return NoContent();
-            return Ok(articles);
-        }
-        [HttpGet("admin-all2")]
-        public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListArticleForAdmin2([FromQuery] PaginationFilter filter, 
+        public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListArticleForAdmin([FromQuery] PaginationFilter filter, 
             [FromQuery] AdminArticleFilter articleFilter)
         {
             string token = Request.Headers["Authorization"];
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
 
-            PagedResponse<List<AdminArticleCollapseDataSet>> articles = await _service.GetListArticleForAdmin(validFilter);
+            PagedResponse<List<AdminArticleCollapseDataSet>> articles = await _service
+                .GetListArticleForAdmin(validFilter, articleFilter);
 
             if (articles == null)
                 return NoContent();
             return Ok(articles);
         }
-
         [HttpGet("admin-detail/{id}")]
         public async Task<ActionResult<Response<AdminArticleDetailDataSet>>> GetArticleDetailsForAdmin(int id)
         {
@@ -81,6 +82,7 @@ namespace CapstoneAPI.Controllers
                 return NoContent();
             return Ok(article);
         }
+        [Authorize]
         [HttpPut()]
         public async Task<ActionResult<Response<ApprovingArticleDataSet>>> ApprovingArticle([FromBody] ApprovingArticleDataSet approvingArticleDataSet)
         {
