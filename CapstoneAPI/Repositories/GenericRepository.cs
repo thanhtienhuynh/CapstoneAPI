@@ -114,5 +114,12 @@ namespace CapstoneAPI.Repositories
             }
             return query.Count();
         }
+
+        public void UpdateRange(IEnumerable<T> list)
+        {
+            if (list == null) 
+                throw new ArgumentException("list");
+            dbSet.UpdateRange(list);
+        }
     }
 }

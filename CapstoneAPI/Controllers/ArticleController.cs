@@ -39,27 +39,28 @@ namespace CapstoneAPI.Controllers
                 return NoContent();
             return Ok(article);
         }
-        //[HttpGet("admin-all")]
-        //public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListArticleForAdmin([FromQuery] PaginationFilter filter)
-        //{
-        //    string token = Request.Headers["Authorization"];
-        //    var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
 
-        //    PagedResponse<List<AdminArticleCollapseDataSet>> articles = await _service.GetListArticleForAdmin(validFilter, );
-
-        //    if (articles == null)
-        //        return NoContent();
-        //    return Ok(articles);
-        //}
         [HttpGet("admin-all")]
         public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListArticleForAdmin([FromQuery] PaginationFilter filter, 
             [FromQuery] AdminArticleFilter articleFilter)
         {
-            string token = Request.Headers["Authorization"];
+            //string token = Request.Headers["Authorization"];
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
 
             PagedResponse<List<AdminArticleCollapseDataSet>> articles = await _service
                 .GetListArticleForAdmin(validFilter, articleFilter);
+
+            if (articles == null)
+                return NoContent();
+            return Ok(articles);
+        }
+        [HttpGet("admin-top")]
+        public async Task<ActionResult<Response<List<ArticleCollapseDataSet>>>> GetTopArticlesForAdmin()
+        {
+            //string token = Request.Headers["Authorization"];
+
+            Response<List<AdminArticleCollapseDataSet>> articles = await _service
+                .GetTopArticlesForAdmin();
 
             if (articles == null)
                 return NoContent();
@@ -91,6 +92,17 @@ namespace CapstoneAPI.Controllers
             if (result == null)
                 return NoContent();
             return Ok(result);
+        }
+        [HttpPut("top")]
+        public async Task<ActionResult<Response<List<ArticleCollapseDataSet>>>> SetTopArticles([FromBody] List<int> articleIds)
+        {
+            string token = Request.Headers["Authorization"];
+
+            Response<List<AdminArticleCollapseDataSet>> articles = await _service.SetTopArticles(articleIds, token);
+
+            if (articles == null)
+                return NoContent();
+            return Ok(articles);
         }
     }
 }
