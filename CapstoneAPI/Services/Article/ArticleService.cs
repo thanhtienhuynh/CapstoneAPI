@@ -388,7 +388,7 @@ namespace CapstoneAPI.Services.Article
                     response.Errors = new List<string>();
                 foreach (var item in invalidArticleTitle)
                 {
-                    response.Errors.Add("Bài viết " + item + " không hợp lệ, vui lòng kiểm tra lại!");
+                    response.Errors.Add("Bài viết: " + item + " không hợp lệ, vui lòng kiểm tra lại!");
                 }
             }
             else
@@ -401,18 +401,22 @@ namespace CapstoneAPI.Services.Article
 
                 _uow.ArticleRepository.UpdateRange(currentTop);
 
-                var articleToUpdate = await _uow.ArticleRepository.Get(a => articleIds.Contains(a.Id));
                 int numberOfUpdate = articleIds.Count();
-                foreach (var item in articleToUpdate)
+
+                List<Models.Article> articleToUpdate = new List<Models.Article>();
+                foreach (var item in articleIds)
                 {
-                    item.ImportantLevel = numberOfUpdate--;
+                    var test = await _uow.ArticleRepository.GetById(item);
+                    test.ImportantLevel = numberOfUpdate--;
+                    articleToUpdate.Add(test);
                 }
+
                 _uow.ArticleRepository.UpdateRange(articleToUpdate);
 
                 int result = await _uow.CommitAsync();
                 if (result > 0)
                 {
-                    var articleCollapseDataSet = articles.Select(m => _mapper.Map<AdminArticleCollapseDataSet>(m)).ToList();
+                    var articleCollapseDataSet = articleToUpdate.Select(m => _mapper.Map<AdminArticleCollapseDataSet>(m)).ToList();
                     response = new Response<List<AdminArticleCollapseDataSet>>(articleCollapseDataSet);
                 } 
             }
