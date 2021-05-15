@@ -63,140 +63,58 @@ namespace CapstoneAPI.Services.Article
 
             return result;
         }
-        public async Task<PagedResponse<List<AdminArticleCollapseDataSet>>> GetListArticleForAdmin(PaginationFilter validFilter)
-        {
-            PagedResponse<List<AdminArticleCollapseDataSet>> result = new PagedResponse<List<AdminArticleCollapseDataSet>>();
-
-            IEnumerable<Models.Article> articles = await _uow.ArticleRepository
-                .Get(orderBy: o => o.OrderByDescending(a => a.PostedDate),
-                first: validFilter.PageSize, offset: (validFilter.PageNumber - 1) * validFilter.PageSize);
-            if (articles.Count() == 0)
-            {
-                result.Succeeded = true;
-                result.Message = "Không có bài viết nào để hiển thị!";
-            }
-            else
-            {
-                var articleCollapseDataSet = articles.Select(m => _mapper.Map<AdminArticleCollapseDataSet>(m)).ToList();
-                var totalRecords = _uow.ArticleRepository.Count();
-                result = PaginationHelper.CreatePagedReponse(articleCollapseDataSet, validFilter, totalRecords);
-            }
-
-            return result;
-        }
 
         public async Task<PagedResponse<List<AdminArticleCollapseDataSet>>> GetListArticleForAdmin(PaginationFilter validFilter,
             AdminArticleFilter articleFilter)
         {
             PagedResponse<List<AdminArticleCollapseDataSet>> result = new PagedResponse<List<AdminArticleCollapseDataSet>>();
 
-            string sql = "SELECT * FROM Article";
+            Expression<Func<Models.Article, bool>> filter = null;
 
-            if (!string.IsNullOrEmpty(articleFilter.Search?.Trim()))
-            {
-                if (!sql.Contains("WHERE"))
-                    sql += " WHERE ";
+            filter = a => (string.IsNullOrEmpty(articleFilter.Search) || a.Title.Contains(articleFilter.Search))
+            && (articleFilter.PublicFromDate == null || articleFilter.PublicFromDate == DateTime.MinValue
+            || a.PublicFromDate >= articleFilter.PublicFromDate)
+            && (articleFilter.PublicToDate == null || articleFilter.PublicToDate == DateTime.MinValue
+            || a.PublicToDate <= articleFilter.PublicToDate)
+            && (articleFilter.PostedDate == null || articleFilter.PostedDate == DateTime.MinValue
+            || a.PostedDate.Value.Date == articleFilter.PostedDate.Date)
+            && (articleFilter.ImportantLevel == null || a.ImportantLevel == articleFilter.ImportantLevel)
+            && (string.IsNullOrEmpty(articleFilter.PublishedPage) || a.PublishedPage.Equals(articleFilter.PublishedPage))
+            && (articleFilter.Status < 0 || a.Status == articleFilter.Status);
 
-                sql += $"Title LIKE '%{articleFilter.Search?.Trim()}%'";
-            }
-
-            if (articleFilter.PublicFromDate != null && articleFilter.PublicFromDate != DateTime.MinValue)
-            {
-                if (!sql.Contains("WHERE"))
-                    sql += " WHERE ";
-                else
-                    sql += " AND ";
-
-                sql += $"PublicFromDate >= '{articleFilter.PublicFromDate}'";
-            }
-
-            if (articleFilter.PublicToDate != null && articleFilter.PublicToDate != DateTime.MinValue)
-            {
-                if (!sql.Contains("WHERE"))
-                    sql += " WHERE ";
-                else
-                    sql += " AND ";
-
-                sql += $"PublicToDate <= '{articleFilter.PublicToDate}'";
-            }
-
-            if (articleFilter.PostedDate != null && articleFilter.PostedDate != DateTime.MinValue)
-            {
-                if (!sql.Contains("WHERE"))
-                    sql += " WHERE ";
-                else
-                    sql += " AND ";
-
-                sql += "CONVERT(DATE, PostedDate) <= CONVERT(DATE, '" + articleFilter.PostedDate + "')";
-            }
-
-            if (articleFilter.ImportantLevel != null)
-            {
-                if (!sql.Contains("WHERE"))
-                    sql += " WHERE ";
-                else
-                    sql += " AND ";
-
-                sql += "ImportantLevel = " + articleFilter.ImportantLevel;
-            }
-
-            if (!string.IsNullOrEmpty(articleFilter.PublishedPage?.Trim()))
-            {
-                if (!sql.Contains("WHERE"))
-                    sql += " WHERE ";
-                else
-                    sql += " AND ";
-
-                sql += "PublishedPage = '" + articleFilter.PublishedPage + "'";
-            }
-
-            if (articleFilter.Status >= 0)
-            {
-                if (!sql.Contains("WHERE"))
-                    sql += " WHERE ";
-                else
-                    sql += " AND ";
-
-                sql += "Status = " + articleFilter.Status;
-            }
-
-            string sqlCount = sql;
-
-            sql += " ORDER BY ";
+            Func<IQueryable<Models.Article>, IOrderedQueryable<Models.Article>> order = null;
             switch (articleFilter.Order)
             {
                 case 0:
-                    sql += "CrawlerDate DESC ";
+                    order = order => order.OrderByDescending(a => a.CrawlerDate);
                     break;
                 case 1:
-                    sql += "CrawlerDate ";
+                    order = order => order.OrderBy(a => a.CrawlerDate);
                     break;
                 case 2:
-                    sql += "Title ";
+                    order = order => order.OrderBy(a => a.Title);
                     break;
                 case 3:
-                    sql += "Title DESC ";
+                    order = order => order.OrderByDescending(a => a.Title);
                     break;
                 case 4:
-                    sql += "PostedDate ";
+                    order = order => order.OrderBy(a => a.PostedDate);
                     break;
                 case 5:
-                    sql += "PostedDate DESC ";
+                    order = order => order.OrderByDescending(a => a.PostedDate);
                     break;
                 case 6:
-                    sql += "ImportantLevel ";
+                    order = order => order.OrderBy(a => a.ImportantLevel);
                     break;
                 case 7:
-                    sql += "ImportantLevel DESC ";
+                    order = order => order.OrderByDescending(a => a.ImportantLevel);
                     break;
             }
 
-            sql += "OFFSET " + (validFilter.PageNumber - 1) + " ROWS FETCH FIRST " + validFilter.PageSize + " ROWS ONLY";
 
-            var context = new CapstoneDBContext();
-            var articles = await context.Articles
-                    .FromSqlRaw(sql)
-                    .ToListAsync();
+            IEnumerable<Models.Article> articles = await _uow.ArticleRepository
+                .Get(filter: filter, orderBy: order,
+                first: validFilter.PageSize, offset: (validFilter.PageNumber - 1) * validFilter.PageSize);
 
             if (articles.Count() == 0)
             {
@@ -205,16 +123,13 @@ namespace CapstoneAPI.Services.Article
             }
             else
             {
-                var totalRecords = await context.Articles
-                    .FromSqlRaw(sqlCount)
-                    .CountAsync();
                 var articleCollapseDataSet = articles.Select(m => _mapper.Map<AdminArticleCollapseDataSet>(m)).ToList();
+                var totalRecords = _uow.ArticleRepository.Count(filter);
                 result = PaginationHelper.CreatePagedReponse(articleCollapseDataSet, validFilter, totalRecords);
             }
 
             return result;
         }
-
         public async Task<Response<ArticleDetailDataSet>> GetArticleById(int id)
         {
             var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();

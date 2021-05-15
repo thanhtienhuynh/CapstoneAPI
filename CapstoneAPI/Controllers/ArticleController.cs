@@ -39,18 +39,7 @@ namespace CapstoneAPI.Controllers
                 return NoContent();
             return Ok(article);
         }
-        //[HttpGet("admin-all")]
-        //public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListArticleForAdmin([FromQuery] PaginationFilter filter)
-        //{
-        //    string token = Request.Headers["Authorization"];
-        //    var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
 
-        //    PagedResponse<List<AdminArticleCollapseDataSet>> articles = await _service.GetListArticleForAdmin(validFilter, );
-
-        //    if (articles == null)
-        //        return NoContent();
-        //    return Ok(articles);
-        //}
         [HttpGet("admin-all")]
         public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListArticleForAdmin([FromQuery] PaginationFilter filter, 
             [FromQuery] AdminArticleFilter articleFilter)
