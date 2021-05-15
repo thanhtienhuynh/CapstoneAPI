@@ -16,5 +16,6 @@ namespace CapstoneAPI.Services.University
         Task<Response<AdminUniversityDataSet>> UpdateUniversity(AdminUniversityDataSet adminUniversityDataSet);
         Task<Response<bool>> AddMajorToUniversity(AddingMajorUniversityParam addingMajorUniversityParam);
         Task<Response<bool>> UpdateMajorOfUniversity(UpdatingMajorUniversityParam updatingMajorUniversityParam);
+        Task<Response<bool>> DeleteMajorOfUnivesity(int majorDetailId);
     }
 }

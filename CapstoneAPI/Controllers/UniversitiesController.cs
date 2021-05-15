@@ -63,6 +63,11 @@ namespace CapstoneAPI.Controllers
             Response<bool> result = await _service.UpdateMajorOfUniversity(updatingMajorUniversityParam);
             return Ok(result);
         }
-
+        [HttpDelete("major-deletion")]
+        public async Task<ActionResult<Response<bool>>> DeleteMajorOfUniversity(int id)
+        {
+            Response<bool> result = await _service.DeleteMajorOfUnivesity(id);
+            return Ok(result);
+        }
     }
 }

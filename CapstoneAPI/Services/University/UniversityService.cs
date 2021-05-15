@@ -701,6 +701,48 @@ namespace CapstoneAPI.Services.University
             
             return response;
         }
+
+        public async Task<Response<bool>> DeleteMajorOfUnivesity(int majorDetailId)
+        {
+            Response<bool> response = new Response<bool>();
+            MajorDetail existedMajorDetail = await _uow.MajorDetailRepository
+                       .GetFirst(m => m.Id == majorDetailId);
+            if (existedMajorDetail == null)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Ngành không đã tồn tại trong trường!");
+                response.Data = false;
+                return response;
+            }
+            IEnumerable<Models.UserMajorDetail> userMajorDetails = await _uow.UserMajorDetailRepository.Get(filter: u => u.MajorDetailId == majorDetailId);
+            foreach (var userMajorDetail in userMajorDetails)
+            {
+                _uow.RankRepository.Delete(userMajorDetail.Id);
+            }
+            _uow.AdmissionCriterionRepository.DeleteComposite(a => a.MajorDetailId == majorDetailId);
+            _uow.EntryMarkRepository.DeleteComposite(e => e.MajorDetailId == majorDetailId);
+            _uow.UserMajorDetailRepository.DeleteComposite(u => u.MajorDetailId == majorDetailId);
+            _uow.MajorDetailRepository.Delete(majorDetailId);
+            if ((await _uow.CommitAsync()) <= 0)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống");
+                response.Data = false;
+                return response;
+            }
+            response.Succeeded = true;
+            response.Message = "Xóa thành công";
+            response.Data = true;
+            return response;
+        }
     }
 
 }
