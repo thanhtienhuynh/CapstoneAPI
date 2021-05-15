@@ -22,6 +22,7 @@ namespace CapstoneAPI.Models
         public virtual DbSet<Career> Careers { get; set; }
         public virtual DbSet<EntryMark> EntryMarks { get; set; }
         public virtual DbSet<Major> Majors { get; set; }
+        public virtual DbSet<MajorArticle> MajorArticles { get; set; }
         public virtual DbSet<MajorCareer> MajorCareers { get; set; }
         public virtual DbSet<MajorDetail> MajorDetails { get; set; }
         public virtual DbSet<Option> Options { get; set; }
@@ -44,6 +45,15 @@ namespace CapstoneAPI.Models
         public virtual DbSet<User> Users { get; set; }
         public virtual DbSet<UserMajorDetail> UserMajorDetails { get; set; }
         public virtual DbSet<WeightNumber> WeightNumbers { get; set; }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (!optionsBuilder.IsConfigured)
+            {
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
+                optionsBuilder.UseSqlServer("Server=SE130566\\SQLEXPRESS;Database=CapstoneDB;Trusted_Connection=True;User ID=sa;Password=gooner");
+            }
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -115,6 +125,27 @@ namespace CapstoneAPI.Models
                     .IsUnicode(false);
 
                 entity.Property(e => e.Name).HasMaxLength(200);
+            });
+
+            modelBuilder.Entity<MajorArticle>(entity =>
+            {
+                entity.ToTable("MajorArticle");
+
+                entity.Property(e => e.ArticleId).HasColumnName("Article_Id");
+
+                entity.Property(e => e.MajorId).HasColumnName("Major_Id");
+
+                entity.HasOne(d => d.Article)
+                    .WithMany(p => p.MajorArticles)
+                    .HasForeignKey(d => d.ArticleId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_MajorArticle_Article");
+
+                entity.HasOne(d => d.Major)
+                    .WithMany(p => p.MajorArticles)
+                    .HasForeignKey(d => d.MajorId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_MajorArticle_Major");
             });
 
             modelBuilder.Entity<MajorCareer>(entity =>
@@ -456,7 +487,7 @@ namespace CapstoneAPI.Models
 
             modelBuilder.Entity<UniversityArticle>(entity =>
             {
-                entity.ToTable("University_Article");
+                entity.ToTable("UniversityArticle");
 
                 entity.Property(e => e.ArticleId).HasColumnName("Article_Id");
 
@@ -466,13 +497,13 @@ namespace CapstoneAPI.Models
                     .WithMany(p => p.UniversityArticles)
                     .HasForeignKey(d => d.ArticleId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_Article_University_Article");
+                    .HasConstraintName("FK_UniversityArticle_Article");
 
                 entity.HasOne(d => d.University)
                     .WithMany(p => p.UniversityArticles)
                     .HasForeignKey(d => d.UniversityId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_University_University_Article");
+                    .HasConstraintName("FK_UniversityArticle_University");
             });
 
             modelBuilder.Entity<User>(entity =>

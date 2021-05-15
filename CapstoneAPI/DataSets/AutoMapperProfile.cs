@@ -13,10 +13,6 @@ using CapstoneAPI.DataSets.TrainingProgram;
 using CapstoneAPI.DataSets.University;
 using CapstoneAPI.DataSets.User;
 using CapstoneAPI.DataSets.UserMajorDetail;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace CapstoneAPI.DataSets
 {
@@ -39,6 +35,7 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.TestSubmission, DetailTestSubmissionDataSet>();
             CreateMap<Models.TestSubmission, UserTestSubmissionDataSet>();
             CreateMap<Models.User, UserDataSet>();
+            CreateMap<Models.User, RankingUserInformation>();
             CreateMap<Models.University, DetailUniversityDataSet>();
             CreateMap<Models.University, AdminUniversityDataSet>();
             CreateMap<Models.Major, UniMajorDataSet>();
@@ -59,6 +56,7 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.UserMajorDetail, UserMajorDetailDataSet>();
             CreateMap<Models.Article, AdminArticleDetailDataSet>();
             CreateMap<Models.Article, ApprovingArticleDataSet>();
+            CreateMap<Models.University, ApprovingArticleUniversityResponse>();
         }
     }
 }
