@@ -50,7 +50,7 @@ namespace CapstoneAPI.Services.Article
             if (articles.Count() == 0)
             {
                 result.Succeeded = true;
-                result.Message = "Không có bài viết nào để hiển thị!";
+                result.Message = "Không có tin tức nào để hiển thị!";
             }
             else
             {
@@ -119,7 +119,7 @@ namespace CapstoneAPI.Services.Article
             if (articles.Count() == 0)
             {
                 result.Succeeded = true;
-                result.Message = "Không có bài viết nào để hiển thị!";
+                result.Message = "Không có tin tức nào để hiển thị!";
             }
             else
             {
@@ -143,7 +143,7 @@ namespace CapstoneAPI.Services.Article
                 result = new Response<ArticleDetailDataSet>();
                 if (result.Errors == null)
                     result.Errors = new List<string>();
-                result.Errors.Add("Không thể xem bài viết này!");
+                result.Errors.Add("Không thể xem tin tức này!");
             }
             else
             {
@@ -166,7 +166,7 @@ namespace CapstoneAPI.Services.Article
                 result = new Response<AdminArticleDetailDataSet>();
                 if (result.Errors == null)
                     result.Errors = new List<string>();
-                result.Errors.Add("Không thể xem bài viết này!");
+                result.Errors.Add("Không thể xem tin tức này!");
             }
             else
             {
@@ -230,7 +230,7 @@ namespace CapstoneAPI.Services.Article
                 {
                     if (response.Errors == null)
                         response.Errors = new List<string>();
-                    response.Errors.Add("Không thể tìm thấy bài viết để cập nhật!");
+                    response.Errors.Add("Không thể tìm thấy tin tức để cập nhật!");
                 }
                 else
                 {
@@ -299,7 +299,7 @@ namespace CapstoneAPI.Services.Article
 
                         response = new Response<ApprovingArticleDataSet>(successApproving)
                         {
-                            Message = "Duyệt bài viết thành công!"
+                            Message = "Duyệt tin tức thành công!"
                         };
                     }
                 }
@@ -318,13 +318,106 @@ namespace CapstoneAPI.Services.Article
 
             if (articles == null)
             {
-                result.Message = "Tất cả các bài viết đã được duyệt!";
+                result.Message = "Tất cả các tin tức đã được duyệt!";
             }
 
             result.Data = articles.Select(a => a.Id).ToList();
             result.Succeeded = true;
 
             return result;
+        }
+
+        public async Task<Response<List<AdminArticleCollapseDataSet>>> GetTopArticlesForAdmin()
+        {
+            Response<List<AdminArticleCollapseDataSet>> response = null;
+
+            var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
+            DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
+
+            IEnumerable<Models.Article> articles = await _uow.ArticleRepository
+                .Get(filter: a => a.Status == 3
+                 && (a.PublicFromDate != null && a.PublicFromDate <= currentDate)
+                 && (a.PublicToDate != null && a.PublicToDate >= currentDate),
+                orderBy: o => o.OrderByDescending(a => a.ImportantLevel));
+
+            if (articles.Count() == 0)
+            {
+                response = new Response<List<AdminArticleCollapseDataSet>>
+                {
+                    Succeeded = true,
+                    Message = "Không có tin tức hot nào!"
+                };
+            }
+            else
+            {
+                var articleCollapseDataSet = articles.Select(m => _mapper.Map<AdminArticleCollapseDataSet>(m)).ToList();
+                response = new Response<List<AdminArticleCollapseDataSet>>(articleCollapseDataSet);
+            }
+
+            return response;
+        }
+
+        public async Task<Response<List<AdminArticleCollapseDataSet>>> SetTopArticles(List<int> articleIds, string token)
+        {
+            Response<List<AdminArticleCollapseDataSet>> response = null;
+            var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
+            DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
+            IEnumerable<Models.Article> articles = await _uow.ArticleRepository
+               .Get(filter: a => a.Status == 3
+                && (a.PublicFromDate != null && a.PublicFromDate <= currentDate)
+                && (a.PublicToDate != null && a.PublicToDate >= currentDate));
+
+            List<int> publishedArticleIds = articles.Select(a => a.Id).ToList();
+            List<string> invalidArticleTitle = null;
+
+            foreach (var item in articleIds)
+            {
+                if (!publishedArticleIds.Contains(item))
+                {
+                    string title = (await _uow.ArticleRepository.GetById(item)).Title;
+                    if (invalidArticleTitle == null)
+                        invalidArticleTitle = new List<string>();
+                    invalidArticleTitle.Add(title);
+                }
+            }
+
+            if (invalidArticleTitle != null && invalidArticleTitle.Count > 0)
+            {
+                response = new Response<List<AdminArticleCollapseDataSet>>();
+                if (response.Errors == null)
+                    response.Errors = new List<string>();
+                foreach (var item in invalidArticleTitle)
+                {
+                    response.Errors.Add("Bài viết " + item + " không hợp lệ, vui lòng kiểm tra lại!");
+                }
+            }
+            else
+            {
+                var currentTop = await _uow.ArticleRepository.Get(a => a.ImportantLevel > 0);
+                foreach (var item in currentTop)
+                {
+                    item.ImportantLevel = 0;
+                }
+
+                _uow.ArticleRepository.UpdateRange(currentTop);
+
+                var articleToUpdate = await _uow.ArticleRepository.Get(a => articleIds.Contains(a.Id));
+                int numberOfUpdate = articleIds.Count();
+                foreach (var item in articleToUpdate)
+                {
+                    item.ImportantLevel = numberOfUpdate--;
+                }
+                _uow.ArticleRepository.UpdateRange(articleToUpdate);
+
+                int result = await _uow.CommitAsync();
+                if (result > 0)
+                {
+                    var articleCollapseDataSet = articles.Select(m => _mapper.Map<AdminArticleCollapseDataSet>(m)).ToList();
+                    response = new Response<List<AdminArticleCollapseDataSet>>(articleCollapseDataSet);
+                } 
+            }
+
+            return response;
         }
     }
 }

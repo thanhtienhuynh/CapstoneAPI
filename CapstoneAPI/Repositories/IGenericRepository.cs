@@ -20,5 +20,7 @@ namespace CapstoneAPI.Repositories
         void Delete(object id);
         void DeleteComposite(Expression<Func<T, bool>> filter = null);
         void InsertRange(IEnumerable<T> list);
+        void UpdateRange(IEnumerable<T> list);
+
     }
 }

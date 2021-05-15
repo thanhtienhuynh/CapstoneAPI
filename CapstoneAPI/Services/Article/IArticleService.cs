@@ -16,5 +16,7 @@ namespace CapstoneAPI.Services.Article
         Task<Response<AdminArticleDetailDataSet>> AdminGetArticleById(int id);
         Task<Response<ApprovingArticleDataSet>> ApprovingArticle(ApprovingArticleDataSet approvingArticleDataSet, string token);
         Task<Response<List<int>>> GetUnApprovedArticleIds();
+        Task<Response<List<AdminArticleCollapseDataSet>>> GetTopArticlesForAdmin();
+        Task<Response<List<AdminArticleCollapseDataSet>>> SetTopArticles(List<int> articleIds, string token);
     }
 }
