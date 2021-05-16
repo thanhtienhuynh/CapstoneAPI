@@ -4,6 +4,7 @@ using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
 using CapstoneAPI.Services.Article;
+using CapstoneAPI.Services.Configuration;
 using CapstoneAPI.Services.Crawler;
 using CapstoneAPI.Services.Email;
 using CapstoneAPI.Services.FirebaseService;
@@ -153,6 +154,7 @@ namespace CapstoneAPI
             services.AddScoped<IUserMajorDetailService, UserMajorDetailService>();
             services.AddScoped<IRankService, RankService>();
             services.AddScoped<IFCMService, FCMService>();
+            services.AddScoped<IConfigurationService, ConfigurationService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
