@@ -337,7 +337,8 @@ namespace CapstoneAPI.Services.Article
             IEnumerable<Models.Article> articles = await _uow.ArticleRepository
                 .Get(filter: a => a.Status == 3
                  && (a.PublicFromDate != null && a.PublicFromDate <= currentDate)
-                 && (a.PublicToDate != null && a.PublicToDate >= currentDate),
+                 && (a.PublicToDate != null && a.PublicToDate >= currentDate)
+                 && (a.ImportantLevel != null && a.ImportantLevel > 0),
                 orderBy: o => o.OrderByDescending(a => a.ImportantLevel));
 
             if (articles.Count() == 0)
