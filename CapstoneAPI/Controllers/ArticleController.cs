@@ -83,7 +83,6 @@ namespace CapstoneAPI.Controllers
                 return NoContent();
             return Ok(article);
         }
-        [Authorize]
         [HttpPut()]
         public async Task<ActionResult<Response<ApprovingArticleDataSet>>> ApprovingArticle([FromBody] ApprovingArticleDataSet approvingArticleDataSet)
         {

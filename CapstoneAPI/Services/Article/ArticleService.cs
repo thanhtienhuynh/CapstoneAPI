@@ -239,41 +239,30 @@ namespace CapstoneAPI.Services.Article
                     articleToUpdate.Status = approvingArticleDataSet?.Status;
                     articleToUpdate.Censor = userId;
 
-                    if (approvingArticleDataSet.University.Count() > 0)
+                    _uow.UniversityArticleRepository.DeleteComposite(filter: uniArt => uniArt.ArticleId == approvingArticleDataSet.Id);
+                    foreach (var item in approvingArticleDataSet.University)
                     {
-                        List<int> currentUniversityIds = articleToUpdate.UniversityArticles.Select(u => u.UniversityId).ToList();
-                        foreach (var item in approvingArticleDataSet.University)
+                        Models.UniversityArticle universityArticle = new Models.UniversityArticle()
                         {
-                            if (!currentUniversityIds.Contains(item))
-                            {
-                                Models.UniversityArticle universityArticle = new Models.UniversityArticle()
-                                {
-                                    UniversityId = item,
-                                    ArticleId = approvingArticleDataSet.Id
-                                };
-                                _uow.UniversityArticleRepository.Insert(universityArticle);
-                            }
+                            UniversityId = item,
+                            ArticleId = approvingArticleDataSet.Id
+                        };
+                        _uow.UniversityArticleRepository.Insert(universityArticle);
 
-                        }
                     }
 
 
-                    if (approvingArticleDataSet.Major.Count() > 0)
-                    {
-                        List<int> currentMajorIds = articleToUpdate.MajorArticles.Select(m => m.MajorId).ToList();
-                        foreach (var item in approvingArticleDataSet.Major)
-                        {
-                            if (!currentMajorIds.Contains(item))
-                            {
-                                Models.MajorArticle majorArticle = new Models.MajorArticle()
-                                {
-                                    MajorId = item,
-                                    ArticleId = approvingArticleDataSet.Id
-                                };
-                                _uow.MajorArticleRepository.Insert(majorArticle);
-                            }
 
-                        }
+                    _uow.MajorArticleRepository.DeleteComposite(filter: majorArt => majorArt.ArticleId == approvingArticleDataSet.Id);
+
+                    foreach (var item in approvingArticleDataSet.Major)
+                    {
+                        Models.MajorArticle majorArticle = new Models.MajorArticle()
+                        {
+                            MajorId = item,
+                            ArticleId = approvingArticleDataSet.Id
+                        };
+                        _uow.MajorArticleRepository.Insert(majorArticle);
                     }
                     _uow.ArticleRepository.Update(articleToUpdate);
 
@@ -419,7 +408,7 @@ namespace CapstoneAPI.Services.Article
                 {
                     var articleCollapseDataSet = articleToUpdate.Select(m => _mapper.Map<AdminArticleCollapseDataSet>(m)).ToList();
                     response = new Response<List<AdminArticleCollapseDataSet>>(articleCollapseDataSet);
-                } 
+                }
             }
 
             return response;
