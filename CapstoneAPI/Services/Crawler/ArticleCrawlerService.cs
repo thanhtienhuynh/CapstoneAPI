@@ -79,7 +79,8 @@ namespace CapstoneAPI.Services.Crawler
                                 RootUrl = link?.Trim(),
                                 PublishedPage = pageLink?.Trim(),
                                 PostImageUrl = imgUrl?.Trim(),
-                                ShortDescription = shortDescription?.Trim()
+                                ShortDescription = shortDescription?.Trim(),
+                                ImportantLevel = 0
                             };
                             articles.Add(article);
                         }
@@ -229,7 +230,8 @@ namespace CapstoneAPI.Services.Crawler
                                 RootUrl = link?.Trim(),
                                 PublishedPage = pageLink?.Trim(),
                                 ShortDescription = shortDescription?.Trim(),
-                                PostImageUrl = postImgUrl?.Trim()
+                                PostImageUrl = postImgUrl?.Trim(),
+                                ImportantLevel = 0
                             };
                             articles.Add(article);
                         }
