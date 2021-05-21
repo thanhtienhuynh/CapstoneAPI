@@ -5,19 +5,19 @@ using System.Collections.Generic;
 
 namespace CapstoneAPI.Models
 {
-    public partial class SubjectGroup
+    public partial class SpecialSubjectGroup
     {
-        public SubjectGroup()
+        public SpecialSubjectGroup()
         {
-            MajorSubjectGroups = new HashSet<MajorSubjectGroup>();
             SubjectGroupDetails = new HashSet<SubjectGroupDetail>();
+            Subjects = new HashSet<Subject>();
         }
 
         public int Id { get; set; }
-        public string GroupCode { get; set; }
-        public int Status { get; set; }
+        public string Name { get; set; }
+        public string Code { get; set; }
 
-        public virtual ICollection<MajorSubjectGroup> MajorSubjectGroups { get; set; }
         public virtual ICollection<SubjectGroupDetail> SubjectGroupDetails { get; set; }
+        public virtual ICollection<Subject> Subjects { get; set; }
     }
 }

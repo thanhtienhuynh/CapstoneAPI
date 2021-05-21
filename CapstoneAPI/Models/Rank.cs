@@ -12,7 +12,6 @@ namespace CapstoneAPI.Models
         public int Position { get; set; }
         public double TotalMark { get; set; }
         public DateTime UpdatedDate { get; set; }
-        public bool IsReceiveNotification { get; set; }
         public bool IsNew { get; set; }
 
         public virtual RankType RankType { get; set; }

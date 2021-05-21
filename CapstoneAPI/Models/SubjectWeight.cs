@@ -5,14 +5,14 @@ using System.Collections.Generic;
 
 namespace CapstoneAPI.Models
 {
-    public partial class EntryMark
+    public partial class SubjectWeight
     {
         public int Id { get; set; }
+        public int SubjectGroupDetailId { get; set; }
+        public int Weight { get; set; }
         public int MajorSubjectGroupId { get; set; }
-        public double? Mark { get; set; }
-        public int SubAdmissionCriterionId { get; set; }
 
         public virtual MajorSubjectGroup MajorSubjectGroup { get; set; }
-        public virtual SubAdmissionCriterion SubAdmissionCriterion { get; set; }
+        public virtual SubjectGroupDetail SubjectGroupDetail { get; set; }
     }
 }

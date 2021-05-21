@@ -9,6 +9,7 @@ namespace CapstoneAPI.Models
     {
         public Article()
         {
+            MajorArticles = new HashSet<MajorArticle>();
             UniversityArticles = new HashSet<UniversityArticle>();
         }
 
@@ -28,6 +29,7 @@ namespace CapstoneAPI.Models
         public DateTime? PublicToDate { get; set; }
         public int? Status { get; set; }
 
+        public virtual ICollection<MajorArticle> MajorArticles { get; set; }
         public virtual ICollection<UniversityArticle> UniversityArticles { get; set; }
     }
 }

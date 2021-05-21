@@ -24,7 +24,9 @@ namespace CapstoneAPI.Models
         public string AvatarUrl { get; set; }
         public bool IsActive { get; set; }
         public int RoleId { get; set; }
+        public int? ProvinceId { get; set; }
 
+        public virtual Province Province { get; set; }
         public virtual Role Role { get; set; }
         public virtual ICollection<TestSubmission> TestSubmissions { get; set; }
         public virtual ICollection<Test> Tests { get; set; }

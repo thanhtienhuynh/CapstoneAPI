@@ -12,16 +12,16 @@ namespace CapstoneAPI.Models
             SubjectGroupDetails = new HashSet<SubjectGroupDetail>();
             Tests = new HashSet<Test>();
             Transcripts = new HashSet<Transcript>();
-            WeightNumbers = new HashSet<WeightNumber>();
         }
 
         public int Id { get; set; }
         public string Name { get; set; }
         public int Status { get; set; }
+        public int? SpecialSubjectGroupId { get; set; }
 
+        public virtual SpecialSubjectGroup SpecialSubjectGroup { get; set; }
         public virtual ICollection<SubjectGroupDetail> SubjectGroupDetails { get; set; }
         public virtual ICollection<Test> Tests { get; set; }
         public virtual ICollection<Transcript> Transcripts { get; set; }
-        public virtual ICollection<WeightNumber> WeightNumbers { get; set; }
     }
 }

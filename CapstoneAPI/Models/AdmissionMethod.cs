@@ -5,17 +5,16 @@ using System.Collections.Generic;
 
 namespace CapstoneAPI.Models
 {
-    public partial class AdmissionCriterion
+    public partial class AdmissionMethod
     {
-        public AdmissionCriterion()
+        public AdmissionMethod()
         {
             SubAdmissionCriteria = new HashSet<SubAdmissionCriterion>();
         }
 
-        public int MajorDetailId { get; set; }
-        public int? Quantity { get; set; }
+        public int Id { get; set; }
+        public string Name { get; set; }
 
-        public virtual MajorDetail MajorDetail { get; set; }
         public virtual ICollection<SubAdmissionCriterion> SubAdmissionCriteria { get; set; }
     }
 }

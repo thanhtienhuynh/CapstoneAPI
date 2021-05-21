@@ -5,16 +5,16 @@ using System.Collections.Generic;
 
 namespace CapstoneAPI.Models
 {
-    public partial class TranscriptType
+    public partial class Region
     {
-        public TranscriptType()
+        public Region()
         {
-            Transcripts = new HashSet<Transcript>();
+            Provinces = new HashSet<Province>();
         }
 
         public int Id { get; set; }
         public string Name { get; set; }
 
-        public virtual ICollection<Transcript> Transcripts { get; set; }
+        public virtual ICollection<Province> Provinces { get; set; }
     }
 }
