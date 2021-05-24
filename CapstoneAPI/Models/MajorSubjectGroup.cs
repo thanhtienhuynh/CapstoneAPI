@@ -5,21 +5,21 @@ using System.Collections.Generic;
 
 namespace CapstoneAPI.Models
 {
-    public partial class SubjectGroupDetail
+    public partial class MajorSubjectGroup
     {
-        public SubjectGroupDetail()
+        public MajorSubjectGroup()
         {
+            EntryMarks = new HashSet<EntryMark>();
             SubjectWeights = new HashSet<SubjectWeight>();
         }
 
         public int Id { get; set; }
+        public int MajorId { get; set; }
         public int SubjectGroupId { get; set; }
-        public int? SubjectId { get; set; }
-        public int? SpecialSubjectGroupId { get; set; }
 
-        public virtual SpecialSubjectGroup SpecialSubjectGroup { get; set; }
-        public virtual Subject Subject { get; set; }
+        public virtual Major Major { get; set; }
         public virtual SubjectGroup SubjectGroup { get; set; }
+        public virtual ICollection<EntryMark> EntryMarks { get; set; }
         public virtual ICollection<SubjectWeight> SubjectWeights { get; set; }
     }
 }

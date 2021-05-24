@@ -12,17 +12,17 @@ namespace CapstoneAPI.Controllers
 {
     [Route("api/v1/user-major-detail")]
     [ApiController]
-    public class UserMajorDetailController : Controller
+    public class FollowingDetailController : Controller
     {
-        private readonly IUserMajorDetailService _service;
+        private readonly IFollowingDetailService _service;
 
-        public UserMajorDetailController(IUserMajorDetailService service)
+        public FollowingDetailController(IFollowingDetailService service)
         {
             _service = service;
         }
 
         [HttpPost()]
-        public async Task<ActionResult<Response<UserMajorDetail>>> AddUserMajorDetail(AddUserMajorDetailParam userMajorDetailParam)
+        public async Task<ActionResult<Response<FollowingDetail>>> AddUserMajorDetail(AddUserMajorDetailParam userMajorDetailParam)
         {
             string token = Request.Headers["Authorization"];
             return Ok(await _service.AddUserMajorDetail(userMajorDetailParam, token));

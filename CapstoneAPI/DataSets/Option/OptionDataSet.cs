@@ -8,7 +8,8 @@ namespace CapstoneAPI.DataSets.Option
     public class OptionDataSet
     {
         public int Id { get; set; }
-        public string OptionContent { get; set; }
+        public string Content { get; set; }
         public int QuestionId { get; set; }
+        public int Ordinal { get; set; }
     }
 }

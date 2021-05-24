@@ -6,6 +6,7 @@ using CapstoneAPI.Repositories;
 using CapstoneAPI.Services.Article;
 using CapstoneAPI.Services.Crawler;
 using CapstoneAPI.Services.Email;
+using CapstoneAPI.Services.FollowingDetail;
 using CapstoneAPI.Services.FirebaseService;
 using CapstoneAPI.Services.Major;
 using CapstoneAPI.Services.Rank;
@@ -150,7 +151,7 @@ namespace CapstoneAPI
             services.AddScoped<IArticleCrawlerService, ArticleCrawlerService>();
             services.AddScoped<ITrainingProgramService, TrainingProgramService>();
             services.AddScoped<IArticleService, ArticleService>();
-            services.AddScoped<IUserMajorDetailService, UserMajorDetailService>();
+            services.AddScoped<IFollowingDetailService, FollowingDetailService>();
             services.AddScoped<IRankService, RankService>();
             services.AddScoped<IFCMService, FCMService>();
         }
