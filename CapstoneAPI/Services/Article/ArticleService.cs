@@ -41,10 +41,12 @@ namespace CapstoneAPI.Services.Article
 
             DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
 
+            Expression<Func<Models.Article, bool>> filter = null;
+            filter = a => a.Status == 3 && a.PublicFromDate != null && a.PublicToDate != null
+                && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0;
+
             IEnumerable<Models.Article> articles = await _uow.ArticleRepository
-                .Get(filter: a => a.Status == 1 && a.PublicFromDate != null && a.PublicToDate != null
-                && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0,
-                orderBy: o => o.OrderByDescending(a => a.PostedDate),
+                .Get(filter: filter, orderBy: o => o.OrderByDescending(a => a.PostedDate),
                 first: validFilter.PageSize, offset: (validFilter.PageNumber - 1) * validFilter.PageSize);
 
             if (articles.Count() == 0)
@@ -56,8 +58,7 @@ namespace CapstoneAPI.Services.Article
             {
                 var articleCollapseDataSet = articles.Select(m => _mapper.Map<ArticleCollapseDataSet>(m)).ToList();
                 var totalRecords = _uow.ArticleRepository
-                    .Count(filter: a => a.Status == 1 && a.PublicFromDate != null && a.PublicToDate != null
-                    && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0);
+                    .Count(filter: filter);
                 result = PaginationHelper.CreatePagedReponse(articleCollapseDataSet, validFilter, totalRecords);
             }
 
@@ -411,6 +412,90 @@ namespace CapstoneAPI.Services.Article
             }
 
             return response;
+        }
+
+        public async Task<Response<List<int>>> GetApprovedArticleIds()
+        {
+            Response<List<int>> result = new Response<List<int>>();
+
+            IEnumerable<Models.Article> articles = await _uow.ArticleRepository
+                .Get(filter: a => a.Status == 1,
+                    orderBy: o => o.OrderByDescending(a => a.PostedDate));
+
+            if (articles == null)
+            {
+                result.Message = "Chưa có tin tức nào được duyệt!";
+            }
+
+            result.Data = articles.Select(a => a.Id).ToList();
+            result.Succeeded = true;
+
+            return result;
+        }
+
+        public async Task<Response<List<AdminArticleCollapseDataSet>>> GetListArticleNotPagination(AdminArticleFilter articleFilter)
+        {
+            Response<List<AdminArticleCollapseDataSet>> result = new Response<List<AdminArticleCollapseDataSet>>();
+
+            Expression<Func<Models.Article, bool>> filter = null;
+
+            filter = a => (string.IsNullOrEmpty(articleFilter.Search) || a.Title.Contains(articleFilter.Search))
+            && (articleFilter.PublicFromDate == null || articleFilter.PublicFromDate == DateTime.MinValue
+            || a.PublicFromDate >= articleFilter.PublicFromDate)
+            && (articleFilter.PublicToDate == null || articleFilter.PublicToDate == DateTime.MinValue
+            || a.PublicToDate <= articleFilter.PublicToDate)
+            && (articleFilter.PostedDate == null || articleFilter.PostedDate == DateTime.MinValue
+            || a.PostedDate.Value.Date == articleFilter.PostedDate.Date)
+            && (articleFilter.ImportantLevel == null || a.ImportantLevel == articleFilter.ImportantLevel)
+            && (string.IsNullOrEmpty(articleFilter.PublishedPage) || a.PublishedPage.Equals(articleFilter.PublishedPage))
+            && (articleFilter.Status < 0 || a.Status == articleFilter.Status);
+
+            Func<IQueryable<Models.Article>, IOrderedQueryable<Models.Article>> order = null;
+            switch (articleFilter.Order)
+            {
+                case 0:
+                    order = order => order.OrderByDescending(a => a.CrawlerDate);
+                    break;
+                case 1:
+                    order = order => order.OrderBy(a => a.CrawlerDate);
+                    break;
+                case 2:
+                    order = order => order.OrderBy(a => a.Title);
+                    break;
+                case 3:
+                    order = order => order.OrderByDescending(a => a.Title);
+                    break;
+                case 4:
+                    order = order => order.OrderBy(a => a.PostedDate);
+                    break;
+                case 5:
+                    order = order => order.OrderByDescending(a => a.PostedDate);
+                    break;
+                case 6:
+                    order = order => order.OrderBy(a => a.ImportantLevel);
+                    break;
+                case 7:
+                    order = order => order.OrderByDescending(a => a.ImportantLevel);
+                    break;
+            }
+
+
+            IEnumerable<Models.Article> articles = await _uow.ArticleRepository
+                .Get(filter: filter, orderBy: order);
+
+            if (articles.Count() == 0)
+            {
+                result.Succeeded = true;
+                result.Message = "Không có tin tức nào để hiển thị!";
+            }
+            else
+            {
+                var articleCollapseDataSet = articles.Select(m => _mapper.Map<AdminArticleCollapseDataSet>(m)).ToList();
+                result.Succeeded = true;
+                result.Data = articleCollapseDataSet;
+            }
+
+            return result;
         }
     }
 }

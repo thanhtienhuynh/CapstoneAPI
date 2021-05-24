@@ -106,8 +106,8 @@ namespace CapstoneAPI
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "MOHS API", Version = "v1" });
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
-                    Description = @"JWT Authorization header using the Bearer scheme.
-                      Enter 'Bearer' [space] and then your token in the text input below.
+                    Description = @"JWT Authorization header using the Bearer scheme.<br/>
+                      Enter 'Bearer' [space] and then your token in the text input below.<br/>
                       Example: 'Bearer 12345abcdef'",
                     Name = "Authorization",
                     In = ParameterLocation.Header,
@@ -175,8 +175,8 @@ namespace CapstoneAPI
 
             app.UseRouting();
 
-            app.UseAuthorization();
             app.UseAuthentication();
+            app.UseAuthorization();
 
             app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 

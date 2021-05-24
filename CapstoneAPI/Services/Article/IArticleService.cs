@@ -18,5 +18,7 @@ namespace CapstoneAPI.Services.Article
         Task<Response<List<int>>> GetUnApprovedArticleIds();
         Task<Response<List<AdminArticleCollapseDataSet>>> GetTopArticlesForAdmin();
         Task<Response<List<AdminArticleCollapseDataSet>>> SetTopArticles(List<int> articleIds, string token);
+        Task<Response<List<int>>> GetApprovedArticleIds();
+        Task<Response<List<AdminArticleCollapseDataSet>>> GetListArticleNotPagination(AdminArticleFilter articleFilter);
     }
 }

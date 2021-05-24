@@ -54,6 +54,30 @@ namespace CapstoneAPI.Controllers
                 return NoContent();
             return Ok(articles);
         }
+        [HttpGet("admin-all-not-paging")]
+        public async Task<ActionResult<Response<List<ArticleCollapseDataSet>>>> GetListArticleNotPagination([FromQuery] AdminArticleFilter articleFilter)
+        {
+            //string token = Request.Headers["Authorization"];
+
+            Response<List<AdminArticleCollapseDataSet>> articles = await _service
+                .GetListArticleNotPagination(articleFilter);
+
+            if (articles == null)
+                return NoContent();
+            return Ok(articles);
+        }
+        [HttpGet("approved-article-ids")]
+        public async Task<ActionResult<Response<List<int>>>> GetApprovedArticleIds()
+        {
+            //string token = Request.Headers["Authorization"];
+
+            Response<List<int>> articles = await _service
+                .GetApprovedArticleIds();
+
+            if (articles == null)
+                return NoContent();
+            return Ok(articles);
+        }
         [HttpGet("admin-top")]
         public async Task<ActionResult<Response<List<ArticleCollapseDataSet>>>> GetTopArticlesForAdmin()
         {
