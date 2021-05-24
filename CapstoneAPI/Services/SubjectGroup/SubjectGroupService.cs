@@ -63,8 +63,8 @@ namespace CapstoneAPI.Services.SubjectGroup
                 return response;
             }
 
-            Season currentSeason = await _uow.SeasonRepository.GetCurrentSeason();
-            Season previousSeason = await _uow.SeasonRepository.GetPreviousSeason();
+            Models.Season currentSeason = await _uow.SeasonRepository.GetCurrentSeason();
+            Models.Season previousSeason = await _uow.SeasonRepository.GetPreviousSeason();
 
             if (currentSeason == null || previousSeason == null)
             {

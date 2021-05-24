@@ -39,7 +39,7 @@ namespace CapstoneAPI.Services.FollowingDetail
                 return response;
             }
 
-            Season currentSeason = await _uow.SeasonRepository.GetCurrentSeason();
+            Models.Season currentSeason = await _uow.SeasonRepository.GetCurrentSeason();
 
             if (currentSeason == null)
             {

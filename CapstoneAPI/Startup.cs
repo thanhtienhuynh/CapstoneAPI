@@ -37,6 +37,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using CapstoneAPI.Services.Season;
 
 namespace CapstoneAPI
 {
@@ -154,6 +155,8 @@ namespace CapstoneAPI
             services.AddScoped<IFollowingDetailService, FollowingDetailService>();
             services.AddScoped<IRankService, RankService>();
             services.AddScoped<IFCMService, FCMService>();
+            services.AddScoped<ISeasonService, SeasonService>();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
