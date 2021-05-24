@@ -28,7 +28,7 @@ namespace CapstoneAPI.Repositories
         IGenericRepository<QuestionSubmisstion> QuestionSubmisstionRepository { get; }
         IGenericRepository<TrainingProgram> TrainingProgramRepository { get; }
         IGenericRepository<AdmissionCriterion> AdmissionCriterionRepository { get; }
-        IGenericRepository<UserMajorDetail> UserMajorDetailRepository { get; }
+        IGenericRepository<FollowingDetail> FollowingDetailRepository { get; }
         IGenericRepository<Transcript> TranscriptRepository { get; }
         IGenericRepository<UniversityArticle> UniversityArticleRepository { get; }
         IGenericRepository<SubAdmissionCriterion> SubAdmissionCriterionRepository { get; }

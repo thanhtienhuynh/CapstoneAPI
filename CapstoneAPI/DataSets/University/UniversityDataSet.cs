@@ -19,7 +19,7 @@ namespace CapstoneAPI.DataSets.University
         public int? TuitionFrom { get; set; }
         public int? TuitionTo { get; set; }
         public int? Rating { get; set; }
-        public List<TrainingProgramDataSet> TraingProgramSets { get; set; }
+        public List<TrainingProgramDataSet> TrainingProgramSets { get; set; }
     }
 
     public class TrainingProgramDataSet

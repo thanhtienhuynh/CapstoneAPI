@@ -22,6 +22,7 @@ namespace CapstoneAPI.Models
         public virtual DbSet<Article> Articles { get; set; }
         public virtual DbSet<Career> Careers { get; set; }
         public virtual DbSet<EntryMark> EntryMarks { get; set; }
+        public virtual DbSet<FollowingDetail> FollowingDetails { get; set; }
         public virtual DbSet<Major> Majors { get; set; }
         public virtual DbSet<MajorArticle> MajorArticles { get; set; }
         public virtual DbSet<MajorCareer> MajorCareers { get; set; }
@@ -51,7 +52,6 @@ namespace CapstoneAPI.Models
         public virtual DbSet<University> Universities { get; set; }
         public virtual DbSet<UniversityArticle> UniversityArticles { get; set; }
         public virtual DbSet<User> Users { get; set; }
-        public virtual DbSet<UserMajorDetail> UserMajorDetails { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -129,7 +129,6 @@ namespace CapstoneAPI.Models
                 entity.HasOne(d => d.MajorSubjectGroup)
                     .WithMany(p => p.EntryMarks)
                     .HasForeignKey(d => d.MajorSubjectGroupId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_EntryMark_MajorSubjectGroup");
 
                 entity.HasOne(d => d.SubAdmissionCriterion)
@@ -137,6 +136,27 @@ namespace CapstoneAPI.Models
                     .HasForeignKey(d => d.SubAdmissionCriterionId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_EntryMark_SubAdmissionCriterion");
+            });
+
+            modelBuilder.Entity<FollowingDetail>(entity =>
+            {
+                entity.ToTable("FollowingDetail");
+
+                entity.Property(e => e.EntryMarkId).HasColumnName("EntryMark_Id");
+
+                entity.Property(e => e.UserId).HasColumnName("User_Id");
+
+                entity.HasOne(d => d.EntryMark)
+                    .WithMany(p => p.FollowingDetails)
+                    .HasForeignKey(d => d.EntryMarkId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_FollowingDetail_EntryMark");
+
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.FollowingDetails)
+                    .HasForeignKey(d => d.UserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_FollowingDetail_User");
             });
 
             modelBuilder.Entity<Major>(entity =>
@@ -337,28 +357,28 @@ namespace CapstoneAPI.Models
 
             modelBuilder.Entity<Rank>(entity =>
             {
-                entity.HasKey(e => e.UserMajorDetailId)
+                entity.HasKey(e => e.FollowingDetailId)
                     .HasName("PK_Rank_1");
 
                 entity.ToTable("Rank");
 
-                entity.Property(e => e.UserMajorDetailId)
+                entity.Property(e => e.FollowingDetailId)
                     .ValueGeneratedNever()
-                    .HasColumnName("User_MajorDetail_Id");
+                    .HasColumnName("FollowingDetail_Id");
 
                 entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
+                entity.HasOne(d => d.FollowingDetail)
+                    .WithOne(p => p.Rank)
+                    .HasForeignKey<Rank>(d => d.FollowingDetailId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_Rank_FollowingDetail");
 
                 entity.HasOne(d => d.RankType)
                     .WithMany(p => p.Ranks)
                     .HasForeignKey(d => d.RankTypeId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_Rank_RankType");
-
-                entity.HasOne(d => d.UserMajorDetail)
-                    .WithOne(p => p.Rank)
-                    .HasForeignKey<Rank>(d => d.UserMajorDetailId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_Rank_User_MajorDetail");
             });
 
             modelBuilder.Entity<RankType>(entity =>
@@ -720,37 +740,6 @@ namespace CapstoneAPI.Models
                     .HasForeignKey(d => d.RoleId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_User_Role");
-            });
-
-            modelBuilder.Entity<UserMajorDetail>(entity =>
-            {
-                entity.ToTable("User_MajorDetail");
-
-                entity.HasIndex(e => e.UserId, "IX_User_MajorDetail");
-
-                entity.Property(e => e.MajorDetailId).HasColumnName("MajorDetail_Id");
-
-                entity.Property(e => e.MajorSubjectGroupId).HasColumnName("MajorSubjectGroup_Id");
-
-                entity.Property(e => e.UserId).HasColumnName("User_Id");
-
-                entity.HasOne(d => d.MajorDetail)
-                    .WithMany(p => p.UserMajorDetails)
-                    .HasForeignKey(d => d.MajorDetailId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_User_MajorDetail_MajorDetail");
-
-                entity.HasOne(d => d.MajorSubjectGroup)
-                    .WithMany(p => p.UserMajorDetails)
-                    .HasForeignKey(d => d.MajorSubjectGroupId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_User_MajorDetail_MajorSubjectGroup");
-
-                entity.HasOne(d => d.User)
-                    .WithMany(p => p.UserMajorDetails)
-                    .HasForeignKey(d => d.UserId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_User_MajorDetail_User");
             });
 
             OnModelCreatingPartial(modelBuilder);

@@ -28,7 +28,7 @@ namespace CapstoneAPI.Repositories
         private IGenericRepository<QuestionSubmisstion> _questionSubmisstionRepository;
         private IGenericRepository<TrainingProgram> _trainingProgramRepository;
         private IGenericRepository<AdmissionCriterion> _admissionCriterionRepository;
-        private IGenericRepository<UserMajorDetail> _userMajorDetailRepository;
+        private IGenericRepository<FollowingDetail> _followingRepository;
         private IGenericRepository<Transcript> _transcriptRepository;
         private IGenericRepository<UniversityArticle> _universityArticleRepository;
         private IGenericRepository<SubAdmissionCriterion> _subAdmissionCriterionRepository;
@@ -121,9 +121,9 @@ namespace CapstoneAPI.Repositories
         {
             get { return _admissionCriterionRepository ??= new GenericRepository<AdmissionCriterion>(_context); }
         }
-        public IGenericRepository<UserMajorDetail> UserMajorDetailRepository
+        public IGenericRepository<FollowingDetail> FollowingDetailRepository
         {
-            get { return _userMajorDetailRepository ??= new GenericRepository<UserMajorDetail>(_context); }
+            get { return _followingRepository ??= new GenericRepository<FollowingDetail>(_context); }
         }
         public IGenericRepository<Transcript> TranscriptRepository
         {

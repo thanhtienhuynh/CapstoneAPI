@@ -9,10 +9,10 @@ namespace CapstoneAPI.Models
     {
         public User()
         {
+            FollowingDetails = new HashSet<FollowingDetail>();
             TestSubmissions = new HashSet<TestSubmission>();
             Tests = new HashSet<Test>();
             Transcripts = new HashSet<Transcript>();
-            UserMajorDetails = new HashSet<UserMajorDetail>();
         }
 
         public int Id { get; set; }
@@ -28,9 +28,9 @@ namespace CapstoneAPI.Models
 
         public virtual Province Province { get; set; }
         public virtual Role Role { get; set; }
+        public virtual ICollection<FollowingDetail> FollowingDetails { get; set; }
         public virtual ICollection<TestSubmission> TestSubmissions { get; set; }
         public virtual ICollection<Test> Tests { get; set; }
         public virtual ICollection<Transcript> Transcripts { get; set; }
-        public virtual ICollection<UserMajorDetail> UserMajorDetails { get; set; }
     }
 }

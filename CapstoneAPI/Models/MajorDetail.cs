@@ -7,11 +7,6 @@ namespace CapstoneAPI.Models
 {
     public partial class MajorDetail
     {
-        public MajorDetail()
-        {
-            UserMajorDetails = new HashSet<UserMajorDetail>();
-        }
-
         public int Id { get; set; }
         public int UniversityId { get; set; }
         public int MajorId { get; set; }
@@ -24,6 +19,5 @@ namespace CapstoneAPI.Models
         public virtual TrainingProgram TrainingProgram { get; set; }
         public virtual University University { get; set; }
         public virtual AdmissionCriterion AdmissionCriterion { get; set; }
-        public virtual ICollection<UserMajorDetail> UserMajorDetails { get; set; }
     }
 }

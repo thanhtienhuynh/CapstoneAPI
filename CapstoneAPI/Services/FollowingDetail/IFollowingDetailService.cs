@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace CapstoneAPI.Services.UserMajorDetail
 {
-    public interface IUserMajorDetailService
+    public interface IFollowingDetailService
     {
-        Task<Response<Models.UserMajorDetail>> AddUserMajorDetail(AddUserMajorDetailParam userMajorDetailParam, string token);
+        Task<Response<Models.FollowingDetail>> AddUserMajorDetail(AddUserMajorDetailParam userMajorDetailParam, string token);
         Task<Response<Object>> RemoveUserMajorDetail(UpdateUserMajorDetailParam userMajorDetailParam, string token);
         Task<Response<IEnumerable<UserMajorDetailGroupByMajorDataSet>>> GetUserMajorDetailGroupByMajorDataSets(string token);
         Task<Response<IEnumerable<UserMajorDetailGroupByUniversityDataSet>>> GetUserMajorDetailGroupByUniversityDataSets(string token);

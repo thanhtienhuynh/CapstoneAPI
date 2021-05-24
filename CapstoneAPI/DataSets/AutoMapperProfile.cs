@@ -57,7 +57,7 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.Article, AdminArticleCollapseDataSet>();
             CreateMap<Models.Article, ArticleDetailDataSet>();
             CreateMap<Models.Rank, RankDataSet>();
-            CreateMap<Models.UserMajorDetail, UserMajorDetailDataSet>();
+            //CreateMap<Models.UserMajorDetail, UserMajorDetailDataSet>();
             CreateMap<Models.Article, AdminArticleDetailDataSet>();
             CreateMap<Models.Article, ApprovingArticleDataSet>();
         }

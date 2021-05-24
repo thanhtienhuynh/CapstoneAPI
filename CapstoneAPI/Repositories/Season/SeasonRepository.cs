@@ -21,7 +21,7 @@ namespace CapstoneAPI.Repositories.Season
         public async Task<Models.Season> GetPreviousSeason()
         {
             Models.Season currentSeason = await GetCurrentSeason();
-            Models.Season previousSeason = (await Get(filter: s => s.FromDate < currentSeason.FromDate)).OrderBy(s => s.FromDate).FirstOrDefault();
+            Models.Season previousSeason = (await Get(filter: s => s.FromDate < currentSeason.FromDate)).OrderByDescending(s => s.FromDate).FirstOrDefault();
             return previousSeason;
         }
     }
