@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using CapstoneAPI.DataSets.University;
 using CapstoneAPI.Services.University;
 using CapstoneAPI.Wrappers;
+using CapstoneAPI.Filters;
+using CapstoneAPI.Filters.University;
 
 namespace CapstoneAPI.Controllers
 {
@@ -26,13 +28,20 @@ namespace CapstoneAPI.Controllers
             return Ok(await _service.GetUniversityBySubjectGroupAndMajor(universityParam, token));
         }
 
-        [HttpGet()]
-        public async Task<ActionResult<Response<IEnumerable<AdminUniversityDataSet>>>> GetAllUniversities()
+        
+        [HttpGet("admin")]
+        public async Task<ActionResult<PagedResponse<List<AdminUniversityDataSet>>>> GetAllUniversities([FromQuery] PaginationFilter filter,
+            [FromQuery] UniversityFilter universityFilter)
         {
-            Response<IEnumerable<AdminUniversityDataSet>> result = await _service.GetUniversities();
-            return Ok(result);
-        }
+            string token = Request.Headers["Authorization"];
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
 
+            PagedResponse<List<AdminUniversityDataSet>> universities = await _service.GetUniversities(validFilter, universityFilter);
+
+            if (universities == null)
+                return NoContent();
+            return Ok(universities);
+        }
         [HttpGet("detail/{id}")]
         public async Task<ActionResult<Response<DetailUniversityDataSet>>> GetDetailUniversity([FromRoute] int id)
         {

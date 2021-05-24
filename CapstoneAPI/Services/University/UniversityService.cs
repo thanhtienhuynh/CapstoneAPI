@@ -13,6 +13,9 @@ using Firebase.Auth;
 using System.Threading;
 using Firebase.Storage;
 using CapstoneAPI.Wrappers;
+using CapstoneAPI.Filters;
+using CapstoneAPI.Filters.University;
+using System.Linq.Expressions;
 
 namespace CapstoneAPI.Services.University
 {
@@ -197,26 +200,61 @@ namespace CapstoneAPI.Services.University
             return response; ;
         }
 
-        public async Task<Response<IEnumerable<AdminUniversityDataSet>>> GetUniversities()
+
+        public async Task<PagedResponse<List<AdminUniversityDataSet>>> GetUniversities(PaginationFilter validFilter,
+            UniversityFilter universityFilter)
         {
-            Response<IEnumerable<AdminUniversityDataSet>> response = new Response<IEnumerable<AdminUniversityDataSet>>();
-            IEnumerable<AdminUniversityDataSet> universities = (await _uow.UniversityRepository.Get()).OrderBy(s => s.UpdatedDate)
-                                                        .Select(u => _mapper.Map<AdminUniversityDataSet>(u));
-            if (universities == null || !universities.Any())
+            PagedResponse<List<AdminUniversityDataSet>> result = new PagedResponse<List<AdminUniversityDataSet>>();
+            Expression<Func<Models.University, bool>> filter = null;
+
+            filter = a => (string.IsNullOrEmpty(universityFilter.Name) || a.Name.Contains(universityFilter.Name))
+            && (string.IsNullOrEmpty(universityFilter.Code) || a.Code.Contains(universityFilter.Code))
+            && (universityFilter.TuitionType == null || universityFilter.TuitionType == a.TuitionType)
+            && (universityFilter.Status == null || a.Status == universityFilter.Status);
+
+            Func<IQueryable<Models.University>, IOrderedQueryable<Models.University>> order = null;
+            switch (universityFilter.Order)
             {
-                response.Succeeded = false;
-                if (response.Errors == null)
-                {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Không có trường đại học nào!");
-            } else
-            {
-                response.Succeeded = true;
-                response.Data = universities;
+                case 0:
+                    order = order => order.OrderByDescending(a => a.Code);
+                    break;
+                case 1:
+                    order = order => order.OrderBy(a => a.Code);
+                    break;
+                case 2:
+                    order = order => order.OrderByDescending(a => a.Name);
+                    break;
+                case 3:
+                    order = order => order.OrderBy(a => a.Name);
+                    break;
+                case 4:
+                    order = order => order.OrderByDescending(a => a.TuitionType);
+                    break;
+                case 5:
+                    order = order => order.OrderBy(a => a.TuitionType);
+                    break;
             }
-            return response;
+
+
+            IEnumerable<Models.University> universities = await _uow.UniversityRepository
+                .Get(filter: filter, orderBy: order,
+                first: validFilter.PageSize, offset: (validFilter.PageNumber - 1) * validFilter.PageSize);
+
+            if (universities.Count() == 0)
+            {
+                result.Succeeded = true;
+                result.Message = "Không tìm thấy trường đại học phù hợp";
+            }
+            else
+            {
+                var adminUniversityDataSet = universities.Select(m => _mapper.Map<AdminUniversityDataSet>(m)).ToList();
+                var totalRecords = _uow.UniversityRepository.Count(filter);
+                result = PaginationHelper.CreatePagedReponse(adminUniversityDataSet, validFilter, totalRecords);
+            }
+
+            return result;
         }
+
 
         public async Task<Response<DetailUniversityDataSet>> GetDetailUniversity(int universityId)
         {
