@@ -13,8 +13,6 @@ namespace CapstoneAPI.Filters.Article
         public DateTime PublicToDate { get; set; }
         public int? ImportantLevel { get; set; }
         public string PublishedPage { get; set; }
-        public List<int> University { get; set; }
-        public List<int> Major { get; set; }
         public int Status { get; set; }
         /*
          * -1: All

@@ -4,6 +4,7 @@ using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
 using CapstoneAPI.Services.Article;
+using CapstoneAPI.Services.Configuration;
 using CapstoneAPI.Services.Crawler;
 using CapstoneAPI.Services.Email;
 using CapstoneAPI.Services.FollowingDetail;
@@ -155,6 +156,7 @@ namespace CapstoneAPI
             services.AddScoped<IFollowingDetailService, FollowingDetailService>();
             services.AddScoped<IRankService, RankService>();
             services.AddScoped<IFCMService, FCMService>();
+            services.AddScoped<IConfigurationService, ConfigurationService>();
             services.AddScoped<ISeasonService, SeasonService>();
 
         }

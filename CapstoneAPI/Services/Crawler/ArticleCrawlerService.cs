@@ -74,12 +74,13 @@ namespace CapstoneAPI.Services.Crawler
                         {
                             Models.Article article = new Models.Article()
                             {
-                                Title = title,
+                                Title = title?.Trim(),
                                 PostedDate = postedDate,
-                                RootUrl = link,
-                                PublishedPage = pageLink,
-                                PostImageUrl = imgUrl,
-                                ShortDescription = shortDescription
+                                RootUrl = link?.Trim(),
+                                PublishedPage = pageLink?.Trim(),
+                                PostImageUrl = imgUrl?.Trim(),
+                                ShortDescription = shortDescription?.Trim(),
+                                ImportantLevel = 0
                             };
                             articles.Add(article);
                         }
@@ -224,12 +225,13 @@ namespace CapstoneAPI.Services.Crawler
                         {
                             Models.Article article = new Models.Article()
                             {
-                                Title = title,
+                                Title = title?.Trim(),
                                 PostedDate = postedDate,
-                                RootUrl = link,
-                                PublishedPage = pageLink,
-                                ShortDescription = shortDescription,
-                                PostImageUrl = postImgUrl
+                                RootUrl = link?.Trim(),
+                                PublishedPage = pageLink?.Trim(),
+                                ShortDescription = shortDescription?.Trim(),
+                                PostImageUrl = postImgUrl?.Trim(),
+                                ImportantLevel = 0
                             };
                             articles.Add(article);
                         }
