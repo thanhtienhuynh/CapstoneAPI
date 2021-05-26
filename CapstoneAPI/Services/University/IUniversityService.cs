@@ -1,5 +1,6 @@
 ﻿using CapstoneAPI.DataSets.University;
 using CapstoneAPI.Filters;
+using CapstoneAPI.Filters.MajorDetail;
 using CapstoneAPI.Filters.University;
 using CapstoneAPI.Wrappers;
 using System;
@@ -13,7 +14,7 @@ namespace CapstoneAPI.Services.University
     {
         Task<Response<IEnumerable<TrainingProgramBasedUniversityDataSet>>> GetUniversityBySubjectGroupAndMajor(UniversityParam universityParam, string token);
         Task<PagedResponse<List<AdminUniversityDataSet>>> GetUniversities(PaginationFilter validFilter, UniversityFilter universityFilter);
-        Task<Response<DetailUniversityDataSet>> GetDetailUniversity(int universityId);
+        Task<PagedResponse<List<UniMajorDataSet>>> GetDetailUniversity(PaginationFilter validFilter, MajorDetailFilter majorDetailFilter);
         Task<Response<AdminUniversityDataSet>> CreateNewAnUniversity(CreateUniversityDataset createUniversityDataset);
         Task<Response<AdminUniversityDataSet>> UpdateUniversity(AdminUniversityDataSet adminUniversityDataSet);
         Task<Response<bool>> AddMajorToUniversity(AddingMajorUniversityParam addingMajorUniversityParam);

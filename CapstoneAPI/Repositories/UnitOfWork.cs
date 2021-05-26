@@ -1,6 +1,7 @@
 ﻿using CapstoneAPI.Models;
 using CapstoneAPI.Repositories.Rank;
 using CapstoneAPI.Repositories.Season;
+using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Threading.Tasks;
 
@@ -36,7 +37,7 @@ namespace CapstoneAPI.Repositories
         private IGenericRepository<MajorArticle> _majorArticleRepository;
         private IRankRepository _rankRepository;
         private ISeasonRepository _seasonRepository;
-
+        private IGenericRepository<Province> _provinceRepository;
         public IGenericRepository<SubjectGroup> SubjectGroupRepository
         {
             get { return _subjectGroupRepository ??= new GenericRepository<SubjectGroup>(_context); }
@@ -154,6 +155,10 @@ namespace CapstoneAPI.Repositories
         {
             get { return _rankRepository ??= new RankRepository(_context); }
         }
+        public IGenericRepository<Province> ProvinceRepository
+        {
+            get { return _provinceRepository ??= new GenericRepository<Province>(_context); }
+        }
 
         public UnitOfWork(CapstoneDBContext context)
         {
@@ -163,6 +168,11 @@ namespace CapstoneAPI.Repositories
         public async Task<int> CommitAsync()
         {
             return await _context.SaveChangesAsync();
+        }
+
+        public IDbContextTransaction GetTransaction()
+        {
+            return _context.Database.BeginTransaction();
         }
 
         public void Dispose()

@@ -2,6 +2,7 @@
 using CapstoneAPI.DataSets.Article;
 using CapstoneAPI.DataSets.Major;
 using CapstoneAPI.DataSets.Option;
+using CapstoneAPI.DataSets.Province;
 using CapstoneAPI.DataSets.Question;
 using CapstoneAPI.DataSets.QuestionSubmission;
 using CapstoneAPI.DataSets.Rank;
@@ -57,6 +58,7 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.Article, AdminArticleDetailDataSet>();
             CreateMap<Models.Article, ApprovingArticleDataSet>();
             CreateMap<Models.University, ApprovingArticleUniversityResponse>();
+            CreateMap<Models.Province, ProvinceDataSet>();
         }
     }
 }

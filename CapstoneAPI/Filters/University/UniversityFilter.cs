@@ -12,7 +12,6 @@ namespace CapstoneAPI.Filters.University
         public int? TuitionType { get; set; }
         public int? Status { get; set; }
         /*
-         * -1: All
          * 0: InActive
          * 1: Active
          */

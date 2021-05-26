@@ -7,6 +7,7 @@ using CapstoneAPI.Services.University;
 using CapstoneAPI.Wrappers;
 using CapstoneAPI.Filters;
 using CapstoneAPI.Filters.University;
+using CapstoneAPI.Filters.MajorDetail;
 
 namespace CapstoneAPI.Controllers
 {
@@ -42,10 +43,15 @@ namespace CapstoneAPI.Controllers
                 return NoContent();
             return Ok(universities);
         }
-        [HttpGet("detail/{id}")]
-        public async Task<ActionResult<Response<DetailUniversityDataSet>>> GetDetailUniversity([FromRoute] int id)
+        [HttpGet("detail")]
+        public async Task<ActionResult<Response<UniMajorDataSet>>> GetDetailUniversity([FromQuery] PaginationFilter filter,
+            [FromQuery] MajorDetailFilter majorDetailFilter)
         {
-            Response<DetailUniversityDataSet> result = await _service.GetDetailUniversity(id);
+            string token = Request.Headers["Authorization"];
+
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+
+            PagedResponse<List<UniMajorDataSet>> result = await _service.GetDetailUniversity(validFilter, majorDetailFilter);
             return Ok(result);
         }
         [HttpPost]

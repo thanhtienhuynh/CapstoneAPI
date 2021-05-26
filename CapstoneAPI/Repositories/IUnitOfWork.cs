@@ -1,6 +1,7 @@
 ﻿using CapstoneAPI.Models;
 using CapstoneAPI.Repositories.Rank;
 using CapstoneAPI.Repositories.Season;
+using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,9 +34,11 @@ namespace CapstoneAPI.Repositories
         IGenericRepository<UniversityArticle> UniversityArticleRepository { get; }
         IGenericRepository<SubAdmissionCriterion> SubAdmissionCriterionRepository { get; }
         IGenericRepository<MajorSubjectGroup> MajorSubjectGroupRepository { get; }
+        IGenericRepository<Province> ProvinceRepository { get; }
         ISeasonRepository SeasonRepository { get; }
         IGenericRepository<MajorArticle> MajorArticleRepository { get; }
         IRankRepository RankRepository { get; }
         Task<int> CommitAsync();
+        IDbContextTransaction GetTransaction();
     }
 }
