@@ -22,22 +22,10 @@ namespace CapstoneAPI.Services.Province
         {
             Response<IEnumerable<ProvinceDataSet>> response = new Response<IEnumerable<ProvinceDataSet>>();
             IEnumerable<ProvinceDataSet> provinces = (await _uow.ProvinceRepository.Get()).Select(s => _mapper.Map<ProvinceDataSet>(s));
-           
-            if (!provinces.Any())
-            {
-                response.Succeeded = false;
-                if (response.Errors == null)
-                {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Thông tin tỉnh chưa được cập nhật!");
-            }
-            else
-            {
+            
                 response.Data = provinces;
                 response.Message = "Thành công!";
                 response.Succeeded = true;
-            }
             return response;
         }
     }

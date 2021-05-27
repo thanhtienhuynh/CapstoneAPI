@@ -21,21 +21,11 @@ namespace CapstoneAPI.Services.Season
         {
             Response<IEnumerable<Models.Season>> response = new Response<IEnumerable<Models.Season>>();
             IEnumerable<Models.Season> seasons = (await _uow.SeasonRepository.Get(filter: s => s.Status == Consts.STATUS_ACTIVE, orderBy: s => s.OrderByDescending(o => o.FromDate)));
-            if (!seasons.Any())
-            {
-                response.Succeeded = false;
-                if (response.Errors == null)
-                {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Không có mùa nào cả");
-            }
-            else
-            {
-                response.Data = seasons;
-                response.Message = "Thành công!";
-                response.Succeeded = true;
-            }
+
+            response.Data = seasons;
+            response.Message = "Thành công!";
+            response.Succeeded = true;
+
             return response;
         }
     }

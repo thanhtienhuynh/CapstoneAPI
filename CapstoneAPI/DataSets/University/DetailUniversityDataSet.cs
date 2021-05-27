@@ -66,13 +66,6 @@ namespace CapstoneAPI.DataSets.University
 
 
 
-
-
-    public class UniMajorDetailDataSet
-    {
-        public int Id { get; set; }
-
-    }
     
 
     public class UniEntryMarkDataSet
