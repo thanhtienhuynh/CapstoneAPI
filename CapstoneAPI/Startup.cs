@@ -7,6 +7,7 @@ using CapstoneAPI.Services.Article;
 using CapstoneAPI.Services.Configuration;
 using CapstoneAPI.Services.Crawler;
 using CapstoneAPI.Services.Email;
+using CapstoneAPI.Services.FollowingDetail;
 using CapstoneAPI.Services.FirebaseService;
 using CapstoneAPI.Services.Major;
 using CapstoneAPI.Services.Rank;
@@ -37,6 +38,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using CapstoneAPI.Services.Season;
+using CapstoneAPI.Services.Province;
 
 namespace CapstoneAPI
 {
@@ -151,10 +154,12 @@ namespace CapstoneAPI
             services.AddScoped<IArticleCrawlerService, ArticleCrawlerService>();
             services.AddScoped<ITrainingProgramService, TrainingProgramService>();
             services.AddScoped<IArticleService, ArticleService>();
-            services.AddScoped<IUserMajorDetailService, UserMajorDetailService>();
+            services.AddScoped<IFollowingDetailService, FollowingDetailService>();
             services.AddScoped<IRankService, RankService>();
             services.AddScoped<IFCMService, FCMService>();
             services.AddScoped<IConfigurationService, ConfigurationService>();
+            services.AddScoped<ISeasonService, SeasonService>();
+            services.AddScoped<IProvinceService, ProvinceService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

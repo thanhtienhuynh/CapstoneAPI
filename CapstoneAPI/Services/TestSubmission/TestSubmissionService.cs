@@ -81,7 +81,8 @@
                 response.Errors.Add("Bạn chưa đăng nhập!");
                 return response;
             }
-            Models.TestSubmission testSubmission = new Models.TestSubmission()
+
+            TestSubmission testSubmission = new TestSubmission()
             {
                 TestId = saveTestSubmissionParam.TestId,
                 SpentTime = saveTestSubmissionParam.SpentTime,
@@ -112,8 +113,8 @@
                     {
                         response.Succeeded = true;
                         response.Data = testSubmission;
-                        return response;
-                    } else
+                    }
+                    else
                     {
                         response.Succeeded = false;
                         if (response.Errors == null)
@@ -121,9 +122,10 @@
                             response.Errors = new List<string>();
                         }
                         response.Errors.Add("Lưu không thành công, lỗi hệ thống!");
-                        return response;
                     }
-                } else
+                    
+                }
+                else
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -131,9 +133,9 @@
                         response.Errors = new List<string>();
                     }
                     response.Errors.Add("Lưu không thành công, lỗi hệ thống!");
-                    return response;
                 }
-            } else
+            }
+            else
             {
                 response.Succeeded = false;
                 if (response.Errors == null)
@@ -141,8 +143,8 @@
                     response.Errors = new List<string>();
                 }
                 response.Errors.Add("Tài khoản của bạn không tồn tại!");
-                return response;
             }
+            return response;
         }
 
         public async Task<Response<List<UserTestSubmissionDataSet>>> GetTestSubmissionsByUser(string token)
@@ -219,74 +221,74 @@
         public async Task<Response<DetailTestSubmissionDataSet>> GetDetailTestSubmissionByUser(int testSubmissionId, string token)
         {
             Response<DetailTestSubmissionDataSet> response = new Response<DetailTestSubmissionDataSet>();
-            if (token == null || token.Trim().Length == 0)
-            {
-                response.Succeeded = false;
-                if (response.Errors == null)
-                {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Bạn chưa đăng nhập!");
-                return response;
-            }
+            //if (token == null || token.Trim().Length == 0)
+            //{
+            //    response.Succeeded = false;
+            //    if (response.Errors == null)
+            //    {
+            //        response.Errors = new List<string>();
+            //    }
+            //    response.Errors.Add("Bạn chưa đăng nhập!");
+            //    return response;
+            //}
 
-            string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
+            //string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
 
-            if (userIdString == null || userIdString.Trim().Length <= 0)
-            {
-                response.Succeeded = false;
-                if (response.Errors == null)
-                {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Tài khoản của bạn không tồn tại!");
-                return response;
-            }
-            int userId = Int32.Parse(userIdString);
-            TestSubmission testSubmission = await _uow.TestSubmissionRepository
-               .GetFirst(filter: t => t.Id == testSubmissionId && t.UserId == userId,
-                        includeProperties: "Test");
+            //if (userIdString == null || userIdString.Trim().Length <= 0)
+            //{
+            //    response.Succeeded = false;
+            //    if (response.Errors == null)
+            //    {
+            //        response.Errors = new List<string>();
+            //    }
+            //    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+            //    return response;
+            //}
+            //int userId = Int32.Parse(userIdString);
+            //TestSubmission testSubmission = await _uow.TestSubmissionRepository
+            //   .GetFirst(filter: t => t.Id == testSubmissionId && t.UserId == userId,
+            //            includeProperties: "Test");
 
-            if (testSubmission == null)
-            {
-                response.Succeeded = false;
-                if (response.Errors == null)
-                {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Bài thi không tồn tại trong hệ thống!");
-                return response;
-            }
+            //if (testSubmission == null)
+            //{
+            //    response.Succeeded = false;
+            //    if (response.Errors == null)
+            //    {
+            //        response.Errors = new List<string>();
+            //    }
+            //    response.Errors.Add("Bài thi không tồn tại trong hệ thống!");
+            //    return response;
+            //}
 
-            List<QuestionSubmissionDataSet> questionSubmissionDataSets = new List<QuestionSubmissionDataSet>();
+            //List<QuestionSubmissionDataSet> questionSubmissionDataSets = new List<QuestionSubmissionDataSet>();
 
 
-            IEnumerable<QuestionSubmisstion> questionSubmissions = (await _uow.QuestionSubmisstionRepository
-                .Get(filter: q => q.TestSubmissionId == testSubmission.Id,
-                 includeProperties: "Question,Question.Options")).OrderBy(q => q.Question.Ordinal);
-            foreach (QuestionSubmisstion questionSubmission in questionSubmissions)
-            {
-                QuestionSubmissionDataSet questionSubmissionDataSet = _mapper.Map<QuestionSubmissionDataSet>(questionSubmission);
-                questionSubmissionDataSet.RightResult = questionSubmission.Question.Result;
-                questionSubmissionDataSet.QuestionContent = questionSubmission.Question.QuestionContent;
-                questionSubmissionDataSet.NumberOfOption = questionSubmission.Question.NumberOfOption;
-                questionSubmissionDataSet.Type = questionSubmission.Question.Type;
-                questionSubmissionDataSet.TestId = questionSubmission.Question.TestId;
-                questionSubmissionDataSet.Options = questionSubmission.Question.Options.OrderBy(o => o.Ordinal).Select(o => _mapper.Map<OptionDataSet>(o)).ToList();
-                questionSubmissionDataSets.Add(questionSubmissionDataSet);
-            }
+            //IEnumerable<QuestionSubmisstion> questionSubmissions = (await _uow.QuestionSubmisstionRepository
+            //    .Get(filter: q => q.TestSubmissionId == testSubmission.Id,
+            //     includeProperties: "Question,Question.Options")).OrderBy(q => q.Question.Ordinal);
+            //foreach (QuestionSubmisstion questionSubmission in questionSubmissions)
+            //{
+            //    QuestionSubmissionDataSet questionSubmissionDataSet = _mapper.Map<QuestionSubmissionDataSet>(questionSubmission);
+            //    questionSubmissionDataSet.RightResult = questionSubmission.Question.Result;
+            //    questionSubmissionDataSet.QuestionContent = questionSubmission.Question.QuestionContent;
+            //    questionSubmissionDataSet.NumberOfOption = questionSubmission.Question.NumberOfOption;
+            //    questionSubmissionDataSet.Type = questionSubmission.Question.Type;
+            //    questionSubmissionDataSet.TestId = questionSubmission.Question.TestId;
+            //    questionSubmissionDataSet.Options = questionSubmission.Question.Options.OrderBy(o => o.Ordinal).Select(o => _mapper.Map<OptionDataSet>(o)).ToList();
+            //    questionSubmissionDataSets.Add(questionSubmissionDataSet);
+            //}
 
-            DetailTestSubmissionDataSet detailTestSubmissionDataSet = _mapper.Map<DetailTestSubmissionDataSet>(testSubmission);
+            //DetailTestSubmissionDataSet detailTestSubmissionDataSet = _mapper.Map<DetailTestSubmissionDataSet>(testSubmission);
 
-            detailTestSubmissionDataSet.NumberOfCompletion = (await _uow.TestSubmissionRepository
-                        .Get(filter: t => t.UserId == userId && t.TestId == testSubmission.TestId)).Count();
-            detailTestSubmissionDataSet.QuestionSubmissions = questionSubmissionDataSets;
-            detailTestSubmissionDataSet.NumberOfQuestion = testSubmission.Test.NumberOfQuestion;
-            detailTestSubmissionDataSet.TimeLimit = (int) testSubmission.Test.TimeLimit;
-            detailTestSubmissionDataSet.TestName = testSubmission.Test.Name;
+            //detailTestSubmissionDataSet.NumberOfCompletion = (await _uow.TestSubmissionRepository
+            //            .Get(filter: t => t.UserId == userId && t.TestId == testSubmission.TestId)).Count();
+            //detailTestSubmissionDataSet.QuestionSubmissions = questionSubmissionDataSets;
+            //detailTestSubmissionDataSet.NumberOfQuestion = testSubmission.Test.NumberOfQuestion;
+            //detailTestSubmissionDataSet.TimeLimit = (int) testSubmission.Test.TimeLimit;
+            //detailTestSubmissionDataSet.TestName = testSubmission.Test.Name;
 
-            response.Succeeded = true;
-            response.Data = detailTestSubmissionDataSet;
+            //response.Succeeded = true;
+            //response.Data = detailTestSubmissionDataSet;
             return response;
         }
 

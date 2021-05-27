@@ -2,6 +2,7 @@
 using CapstoneAPI.DataSets.Article;
 using CapstoneAPI.DataSets.Major;
 using CapstoneAPI.DataSets.Option;
+using CapstoneAPI.DataSets.Province;
 using CapstoneAPI.DataSets.Question;
 using CapstoneAPI.DataSets.QuestionSubmission;
 using CapstoneAPI.DataSets.Rank;
@@ -23,7 +24,7 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.Major, MajorDataSet>();
             CreateMap<Models.Major, AdminMajorDataSet>();
             CreateMap<Models.Subject, SubjectDataSet>();
-            CreateMap<Models.University, UniversityDataSet>();
+            CreateMap<Models.University, TrainingProgramBasedUniversityDataSet>();
             CreateMap<CreateUniversityDataset, Models.University>();
             CreateMap<Models.University, CreateUniversityDataset>();
             CreateMap<Models.University, UniversityGroupByTrainingProgramDataSet>();
@@ -53,10 +54,11 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.Article, AdminArticleCollapseDataSet>();
             CreateMap<Models.Article, ArticleDetailDataSet>();
             CreateMap<Models.Rank, RankDataSet>();
-            CreateMap<Models.UserMajorDetail, UserMajorDetailDataSet>();
+            //CreateMap<Models.UserMajorDetail, UserMajorDetailDataSet>();
             CreateMap<Models.Article, AdminArticleDetailDataSet>();
             CreateMap<Models.Article, ApprovingArticleDataSet>();
             CreateMap<Models.University, ApprovingArticleUniversityResponse>();
+            CreateMap<Models.Province, ProvinceDataSet>();
         }
     }
 }
