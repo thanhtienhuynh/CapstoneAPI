@@ -45,7 +45,7 @@ namespace CapstoneAPI.Services.SubjectGroup
             //Tính điểm mỗi khối
             foreach (Models.SubjectGroup subjectGroup in subjectGroups)
             {
-                double totalMark = await CalculateSubjectGroupMark(subjectGroupParam, subjectGroup.SubjectGroupDetails.ToList());
+                double totalMark = await CalculateSubjectGroupMark(subjectGroupParam.Marks, subjectGroup.SubjectGroupDetails.ToList());
                 if (totalMark > 0)
                 {
                     subjectGroupDataSets.Add(new SubjectGroupDataSet { TotalMark = totalMark, Name = subjectGroup.GroupCode, Id = subjectGroup.Id });
@@ -54,12 +54,8 @@ namespace CapstoneAPI.Services.SubjectGroup
 
             if (!subjectGroupDataSets.Any())
             {
-                response.Succeeded = false;
-                if (response.Errors == null)
-                {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Không có tổ hợp môn thỏa mãn!");
+                response.Succeeded = true;
+                response.Data = subjectGroupDataSets;
                 return response;
             }
 
@@ -192,20 +188,9 @@ namespace CapstoneAPI.Services.SubjectGroup
             }
 
             IEnumerable<SubjectGroupDataSet> results = suggestedSubjectGroups.Where(s => s.SuggestedMajors.Count() > 0);
-            if (results.Any())
-            {
-                response.Succeeded = true;
-                response.Data = suggestedSubjectGroups.Where(s => s.SuggestedMajors.Count() > 0);
-            }
-            else
-            {
-                response.Succeeded = false;
-                if (response.Errors == null)
-                {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Không có khối ngành phù hợp!");
-            }
+
+            response.Succeeded = true;
+            response.Data = suggestedSubjectGroups.Where(s => s.SuggestedMajors.Count() > 0);
             return response;
         }
 
@@ -312,7 +297,7 @@ namespace CapstoneAPI.Services.SubjectGroup
         }
 
         //Tính tổng điểm tổ hợp hôn
-        private async Task<double> CalculateSubjectGroupMark(SubjectGroupParam subjectGroupParam, List<SubjectGroupDetail> subjectGroupDetails)
+        private async Task<double> CalculateSubjectGroupMark(List<MarkParam> marks, List<SubjectGroupDetail> subjectGroupDetails)
         {
             double totalMark = 0;
             if (subjectGroupDetails == null || !subjectGroupDetails.Any())
@@ -324,14 +309,14 @@ namespace CapstoneAPI.Services.SubjectGroup
             {
                 if (subjectGroupDetail.SubjectId != null)
                 {
-                    MarkParam markParam = subjectGroupParam.Marks.FirstOrDefault(m => m.SubjectId == subjectGroupDetail.SubjectId);
+                    MarkParam markParam = marks.FirstOrDefault(m => m.SubjectId == subjectGroupDetail.SubjectId);
                     if (markParam != null && markParam.Mark > 0)
                     {
                         totalMark += markParam.Mark;
                     }
                     else
                     {
-                        totalMark += 0;
+                        return 0;
                     }
                 }
                 else if (subjectGroupDetail.SpecialSubjectGroupId != null)
@@ -343,18 +328,24 @@ namespace CapstoneAPI.Services.SubjectGroup
                     {
                         foreach (Models.Subject subject in subjects)
                         {
-                            MarkParam markParam = subjectGroupParam.Marks.FirstOrDefault(m => m.SubjectId == subject.Id);
+                            MarkParam markParam = marks.FirstOrDefault(m => m.SubjectId == subject.Id);
                             if (markParam != null && markParam.Mark > 0)
                             {
                                 totalSpecialGroupMark += markParam.Mark;
                             }
                             else
                             {
-                                totalSpecialGroupMark += 0;
+                                return 0;
                             }
                         }
                         totalMark += (totalSpecialGroupMark / subjects.Count());
+                    } else
+                    {
+                        return 0;
                     }
+                } else
+                {
+                    return 0;
                 }
             }
             return Math.Round(totalMark, 2);

@@ -38,6 +38,7 @@ namespace CapstoneAPI.Repositories
         ISeasonRepository SeasonRepository { get; }
         IGenericRepository<MajorArticle> MajorArticleRepository { get; }
         IRankRepository RankRepository { get; }
+        IDbContextTransaction GetTransaction();
         Task<int> CommitAsync();
         IDbContextTransaction GetTransaction();
     }

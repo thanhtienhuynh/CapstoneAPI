@@ -61,16 +61,18 @@
                 NumberOfRightAnswers = correctAnswer,
                 SpentTime = testSubmissionParam.SpentTime,
                 SubmissionDate = DateTime.UtcNow,
-                NumberOfQuestion = loadedTest.NumberOfQuestion
+                NumberOfQuestion = loadedTest.NumberOfQuestion,
+                SubjectId = (int) loadedTest.SubjectId
             };
             response.Succeeded = true;
             response.Data = testSubmissionDataSet;
             return response;
         }
 
-        public async Task<Response<TestSubmission>> SaveTestSubmission(SaveTestSubmissionParam saveTestSubmissionParam, string token)
+        public async Task<Response<bool>> SaveTestSubmissions(List<SaveTestSubmissionParam> saveTestSubmissionParams, string token)
         {
-            Response<TestSubmission> response = new Response<TestSubmission>();
+            Response<bool> response = new Response<bool>();
+
             if (token == null || token.Trim().Length == 0)
             {
                 response.Succeeded = false;
@@ -82,37 +84,61 @@
                 return response;
             }
 
-            TestSubmission testSubmission = new TestSubmission()
-            {
-                TestId = saveTestSubmissionParam.TestId,
-                SpentTime = saveTestSubmissionParam.SpentTime,
-                SubmissionDate = DateTime.UtcNow,
-                NumberOfRightAnswers = saveTestSubmissionParam.NumberOfRightAnswers,
-                Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
-            };
-
-
             string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-            if (userIdString != null && userIdString.Length > 0)
+
+            if (userIdString == null || userIdString.Trim().Length <= 0)
             {
-                int userId = Int32.Parse(userIdString);
-                testSubmission.UserId = userId;
-                _uow.TestSubmissionRepository.Insert(testSubmission);
-                if ((await _uow.CommitAsync()) > 0)
+                response.Succeeded = false;
+                if (response.Errors == null)
                 {
-                    foreach (QuestionParam questionParam in saveTestSubmissionParam.Questions)
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Tài khoản của bạn không tồn tại!");
+            }
+
+            int userId = Int32.Parse(userIdString);
+
+            using var tran = _uow.GetTransaction();
+            try
+            {
+                foreach (SaveTestSubmissionParam saveTestSubmissionParam in saveTestSubmissionParams)
+                {
+                    TestSubmission testSubmission = new TestSubmission()
                     {
-                        _uow.QuestionSubmisstionRepository.Insert(new QuestionSubmisstion()
-                        {
-                            QuestionId = questionParam.Id,
-                            TestSubmissionId = testSubmission.Id,
-                            Result = questionParam.Options
-                        });
-                    }
+                        TestId = saveTestSubmissionParam.TestId,
+                        SpentTime = saveTestSubmissionParam.SpentTime,
+                        SubmissionDate = DateTime.UtcNow,
+                        NumberOfRightAnswers = saveTestSubmissionParam.NumberOfRightAnswers,
+                        Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
+                    };
+                    
+                    testSubmission.UserId = userId;
+                    _uow.TestSubmissionRepository.Insert(testSubmission);
                     if ((await _uow.CommitAsync()) > 0)
                     {
-                        response.Succeeded = true;
-                        response.Data = testSubmission;
+                        foreach (QuestionParam questionParam in saveTestSubmissionParam.Questions)
+                        {
+                            _uow.QuestionSubmisstionRepository.Insert(new QuestionSubmisstion()
+                            {
+                                QuestionId = questionParam.Id,
+                                TestSubmissionId = testSubmission.Id,
+                                Result = questionParam.Options
+                            });
+                        }
+                        if ((await _uow.CommitAsync()) > 0)
+                        {
+                            response.Succeeded = true;
+                            response.Data = true;
+                        }
+                        else
+                        {
+                            response.Succeeded = false;
+                            if (response.Errors == null)
+                            {
+                                response.Errors = new List<string>();
+                            }
+                            response.Errors.Add("Lưu không thành công, lỗi hệ thống!");
+                        }
                     }
                     else
                     {
@@ -123,26 +149,18 @@
                         }
                         response.Errors.Add("Lưu không thành công, lỗi hệ thống!");
                     }
-                    
                 }
-                else
-                {
-                    response.Succeeded = false;
-                    if (response.Errors == null)
-                    {
-                        response.Errors = new List<string>();
-                    }
-                    response.Errors.Add("Lưu không thành công, lỗi hệ thống!");
-                }
-            }
-            else
+                tran.Commit();
+            } catch (Exception ex)
             {
+                tran.Rollback();
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
                     response.Errors = new List<string>();
                 }
-                response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                response.Errors.Add(ex.Message);
+                return response;
             }
             return response;
         }
