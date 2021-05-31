@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CapstoneAPI.DataSets.FollowingDetail;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -27,7 +28,7 @@ namespace CapstoneAPI.DataSets.University
         public int Id { get; set; }
         public string Name { get; set; }
         public int? NumberOfCaring { get; set; }
-        public bool IsCared { get; set; }
+        public FollowingDetailDataSet FollowingDetail { get; set; }
         public int Rank { get; set; }
         public List<SeasonDataSet> SeasonDataSets { get; set; }
     }
@@ -38,5 +39,13 @@ namespace CapstoneAPI.DataSets.University
         public string Name { get; set; }
         public int? NumberOfStudents { get; set; }
         public double? EntryMark { get; set; }
+    }
+
+    public class MockTestBasedUniversity
+    {
+        public int MajorId { get; set; }
+        public int SubjectGroupId { get; set; }
+        public double TotalMark { get; set; }
+        public List<TrainingProgramBasedUniversityDataSet> TrainingProgramBasedUniversityDataSets { get; set; }
     }
 }

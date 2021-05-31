@@ -18,7 +18,6 @@ using CapstoneAPI.Services.TestSubmission;
 using CapstoneAPI.Services.TrainingProgram;
 using CapstoneAPI.Services.University;
 using CapstoneAPI.Services.User;
-using CapstoneAPI.Services.UserMajorDetail;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authentication.JwtBearer;

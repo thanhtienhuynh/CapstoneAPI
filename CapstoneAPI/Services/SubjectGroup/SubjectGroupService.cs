@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using CapstoneAPI.DataSets.Major;
+using CapstoneAPI.DataSets.SpecialSubjectGroup;
 using CapstoneAPI.DataSets.Subject;
 using CapstoneAPI.DataSets.SubjectGroup;
 using CapstoneAPI.Helpers;
@@ -29,7 +30,7 @@ namespace CapstoneAPI.Services.SubjectGroup
             Response<IEnumerable<SubjectGroupDataSet>> response = new Response<IEnumerable<SubjectGroupDataSet>>();
             List<SubjectGroupDataSet> subjectGroupDataSets = new List<SubjectGroupDataSet>();
             //Lấy danh sách khối
-            IEnumerable<Models.SubjectGroup> subjectGroups = await _uow.SubjectGroupRepository.Get(includeProperties: "SubjectGroupDetails");
+            IEnumerable<Models.SubjectGroup> subjectGroups = await _uow.SubjectGroupRepository.Get(includeProperties: "SubjectGroupDetails,SubjectGroupDetails.Subject,SubjectGroupDetails.SpecialSubjectGroup");
 
             if (!subjectGroups.Any())
             {
@@ -48,7 +49,13 @@ namespace CapstoneAPI.Services.SubjectGroup
                 double totalMark = await CalculateSubjectGroupMark(subjectGroupParam.Marks, subjectGroup.SubjectGroupDetails.ToList());
                 if (totalMark > 0)
                 {
-                    subjectGroupDataSets.Add(new SubjectGroupDataSet { TotalMark = totalMark, Name = subjectGroup.GroupCode, Id = subjectGroup.Id });
+                    subjectGroupDataSets.Add(new SubjectGroupDataSet {
+                        TotalMark = totalMark,
+                        Name = subjectGroup.GroupCode,
+                        Id = subjectGroup.Id,
+                        SubjectDataSets = subjectGroup.SubjectGroupDetails.Where(s => s.Subject != null).Select(s => _mapper.Map<SubjectDataSet>(s.Subject)).ToList(),
+                        SpecialSubjectGroupDataSets = subjectGroup.SubjectGroupDetails.Where(s => s.SpecialSubjectGroup != null).Select(s => _mapper.Map<SpecialSubjectGroupDataSet>(s.SpecialSubjectGroup)).ToList()
+                    });
                 }
             }
 
@@ -85,7 +92,7 @@ namespace CapstoneAPI.Services.SubjectGroup
                 {
 
                     var groupsByMajorDetails = (await _uow.MajorDetailRepository
-                        .Get(filter: m => m.MajorId == major.Id,
+                        .Get(filter: m => m.MajorId == major.Id && m.Status == Consts.STATUS_ACTIVE,
                             includeProperties: "University,TrainingProgram,AdmissionCriterion,AdmissionCriterion.SubAdmissionCriteria"))
                         .GroupBy(m => new { m.UniversityId, m.TrainingProgramId });
 
@@ -106,18 +113,18 @@ namespace CapstoneAPI.Services.SubjectGroup
                         }
 
                         if (currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria == null
-                            || !currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria.Any()
+                            || !currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria.Where(s => s.Status == Consts.STATUS_ACTIVE).Any()
                             || previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria == null
-                            || !previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria.Any())
+                            || !previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria.Where(s => s.Status == Consts.STATUS_ACTIVE).Any())
                         {
                             continue;
                         }
 
                         List<SubAdmissionCriterion> currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                            .Where(a => a.AdmissionMethodId == 1 && (a.Gender == subjectGroupParam.Gender || a.Gender == null)
+                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == subjectGroupParam.Gender || a.Gender == null)
                              && (a.ProvinceId == subjectGroupParam.ProvinceId || a.ProvinceId == null)).ToList();
                         List<SubAdmissionCriterion> previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                            .Where(a => a.AdmissionMethodId == 1 && (a.Gender == subjectGroupParam.Gender || a.Gender == null)
+                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == subjectGroupParam.Gender || a.Gender == null)
                              && (a.ProvinceId == subjectGroupParam.ProvinceId || a.ProvinceId == null)).ToList();
 
                         if (!currentSubAdmissionCriterias.Any() || !previousSubAdmissionCriterias.Any())
@@ -131,7 +138,7 @@ namespace CapstoneAPI.Services.SubjectGroup
                         foreach (SubAdmissionCriterion currentSubAdmissionCriteria in currentSubAdmissionCriterias)
                         {
                             List<EntryMark> entryMarks = (await _uow.EntryMarkRepository
-                                .Get(filter: e => e.SubAdmissionCriterionId == currentSubAdmissionCriteria.Id && e.MajorSubjectGroupId != null,
+                                .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == currentSubAdmissionCriteria.Id && e.MajorSubjectGroupId != null,
                                     includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup,SubAdmissionCriterion"))
                                 .ToList();
                             currentEntryMarks.AddRange(entryMarks);
@@ -140,7 +147,7 @@ namespace CapstoneAPI.Services.SubjectGroup
                         foreach (SubAdmissionCriterion previousSubAdmissionCriteria in previousSubAdmissionCriterias)
                         {
                             List<EntryMark> entryMarks = (await _uow.EntryMarkRepository
-                                .Get(filter: e => e.SubAdmissionCriterionId == previousSubAdmissionCriteria.Id && e.MajorSubjectGroupId != null,
+                                .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == previousSubAdmissionCriteria.Id && e.MajorSubjectGroupId != null,
                                     includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup,SubAdmissionCriterion"))
                                 .ToList();
                             previousEntryMarks.AddRange(entryMarks);

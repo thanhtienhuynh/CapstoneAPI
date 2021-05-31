@@ -1,11 +1,13 @@
 ﻿using AutoMapper;
 using CapstoneAPI.DataSets.Article;
+using CapstoneAPI.DataSets.FollowingDetail;
 using CapstoneAPI.DataSets.Major;
 using CapstoneAPI.DataSets.Option;
 using CapstoneAPI.DataSets.Province;
 using CapstoneAPI.DataSets.Question;
 using CapstoneAPI.DataSets.QuestionSubmission;
 using CapstoneAPI.DataSets.Rank;
+using CapstoneAPI.DataSets.SpecialSubjectGroup;
 using CapstoneAPI.DataSets.Subject;
 using CapstoneAPI.DataSets.SubjectGroup;
 using CapstoneAPI.DataSets.Test;
@@ -13,7 +15,6 @@ using CapstoneAPI.DataSets.TestSubmission;
 using CapstoneAPI.DataSets.TrainingProgram;
 using CapstoneAPI.DataSets.University;
 using CapstoneAPI.DataSets.User;
-using CapstoneAPI.DataSets.UserMajorDetail;
 
 namespace CapstoneAPI.DataSets
 {
@@ -28,7 +29,7 @@ namespace CapstoneAPI.DataSets
             CreateMap<CreateUniversityDataset, Models.University>();
             CreateMap<Models.University, CreateUniversityDataset>();
             CreateMap<Models.University, UniversityGroupByTrainingProgramDataSet>();
-            CreateMap<Models.University, UserMajorDetailGroupByUniversityDataSet>();
+            CreateMap<Models.University, FollowingDetailGroupByUniversityDataSet>();
             CreateMap<Models.Test, TestDataSet>();
             CreateMap<Models.Question, QuestionDataSet>();
             CreateMap<Models.Option, OptionDataSet>();
@@ -40,7 +41,7 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.University, DetailUniversityDataSet>();
             CreateMap<Models.University, AdminUniversityDataSet>();
             CreateMap<Models.Major, UniMajorDataSet>();
-            CreateMap<Models.Major, UserMajorDetailGroupByMajorDataSet>();
+            CreateMap<Models.Major, FollowingDetailGroupByMajorDataSet>();
             CreateMap<Models.SubjectGroup, UniSubjectGroupDataSet>();
             CreateMap<Models.SubjectGroup, AdminSubjectGroupDataSet>();
             CreateMap<Models.EntryMark, UniEntryMarkDataSet>();
@@ -55,10 +56,12 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.Article, ArticleDetailDataSet>();
             CreateMap<Models.Rank, RankDataSet>();
             //CreateMap<Models.UserMajorDetail, UserMajorDetailDataSet>();
+            CreateMap<Models.FollowingDetail, FollowingDetailDataSet>();
             CreateMap<Models.Article, AdminArticleDetailDataSet>();
             CreateMap<Models.Article, ApprovingArticleDataSet>();
             CreateMap<Models.University, ApprovingArticleUniversityResponse>();
             CreateMap<Models.Province, ProvinceDataSet>();
+            CreateMap<Models.SpecialSubjectGroup, SpecialSubjectGroupDataSet>();
         }
     }
 }

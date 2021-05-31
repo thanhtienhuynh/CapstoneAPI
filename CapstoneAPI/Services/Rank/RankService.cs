@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using CapstoneAPI.DataSets.Rank;
-using CapstoneAPI.DataSets.UserMajorDetail;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Repositories;
 using CapstoneAPI.Services.Email;

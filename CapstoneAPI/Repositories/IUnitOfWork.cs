@@ -40,6 +40,5 @@ namespace CapstoneAPI.Repositories
         IRankRepository RankRepository { get; }
         IDbContextTransaction GetTransaction();
         Task<int> CommitAsync();
-        IDbContextTransaction GetTransaction();
     }
 }

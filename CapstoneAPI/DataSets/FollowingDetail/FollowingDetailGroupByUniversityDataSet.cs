@@ -1,12 +1,13 @@
 ﻿using CapstoneAPI.DataSets.University;
+using CapstoneAPI.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace CapstoneAPI.DataSets.UserMajorDetail
+namespace CapstoneAPI.DataSets.FollowingDetail
 {
-    public class UserMajorDetailGroupByUniversityDataSet
+    public class FollowingDetailGroupByUniversityDataSet
     {
         public int Id { get; set; }
         public string Code { get; set; }
@@ -30,13 +31,12 @@ namespace CapstoneAPI.DataSets.UserMajorDetail
     }
     public class MajorGroupByTrainingProgramDataSet
     {
+        public int FollowingDetailId { get; set; }
         public int Id { get; set; }
         public string MajorCode { get; set; }
         public string Code { get; set; }
         public string Name { get; set; }
-        public double? NewestEntryMark { get; set; }
-        public int? NumberOfStudent { get; set; }
-        public int YearOfEntryMark { get; set; }
+        public SeasonDataSet SeasonDataSet { get; set; }
         public int? PositionOfUser { get; set; }
         public int TotalUserCared { get; set; }
         public int SubjectGroupId { get; set; }

@@ -184,27 +184,6 @@ namespace CapstoneAPI.Models
                     .HasConstraintName("FK_MajorArticle_Major");
             });
 
-            modelBuilder.Entity<MajorArticle>(entity =>
-            {
-                entity.ToTable("MajorArticle");
-
-                entity.Property(e => e.ArticleId).HasColumnName("Article_Id");
-
-                entity.Property(e => e.MajorId).HasColumnName("Major_Id");
-
-                entity.HasOne(d => d.Article)
-                    .WithMany(p => p.MajorArticles)
-                    .HasForeignKey(d => d.ArticleId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_MajorArticle_Article");
-
-                entity.HasOne(d => d.Major)
-                    .WithMany(p => p.MajorArticles)
-                    .HasForeignKey(d => d.MajorId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_MajorArticle_Major");
-            });
-
             modelBuilder.Entity<MajorCareer>(entity =>
             {
                 entity.ToTable("MajorCareer");

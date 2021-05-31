@@ -192,10 +192,5 @@ namespace CapstoneAPI.Repositories
             }
             this.disposed = true;
         }
-
-        public IDbContextTransaction GetTransaction()
-        {
-            return _context.Database.BeginTransaction();
-        }
     }
 }

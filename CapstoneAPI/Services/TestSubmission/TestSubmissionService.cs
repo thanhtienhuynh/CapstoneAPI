@@ -110,10 +110,30 @@
                         SubmissionDate = DateTime.UtcNow,
                         NumberOfRightAnswers = saveTestSubmissionParam.NumberOfRightAnswers,
                         Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
+                        UserId = userId
                     };
-                    
-                    testSubmission.UserId = userId;
+       
                     _uow.TestSubmissionRepository.Insert(testSubmission);
+                    int subjectId = (int) (await _uow.TestRepository.GetById(saveTestSubmissionParam.TestId)).SubjectId;
+
+                    Transcript transcript = await _uow.TranscriptRepository.GetFirst(t => t.TranscriptTypeId == 3 && t.UserId == userId && t.SubjectId == subjectId);
+                    if (transcript != null)
+                    {
+                        transcript.Mark = Math.Round(saveTestSubmissionParam.Mark, 2);
+                        transcript.DateRecord = DateTime.UtcNow;
+                        _uow.TranscriptRepository.Update(transcript);
+                    } else
+                    {
+                        _uow.TranscriptRepository.Insert(new Transcript()
+                        {
+                            UserId = userId,
+                            DateRecord = DateTime.UtcNow,
+                            Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
+                            TranscriptTypeId = 3,
+                            SubjectId = subjectId
+                        });
+                    }
+                    
                     if ((await _uow.CommitAsync()) > 0)
                     {
                         foreach (QuestionParam questionParam in saveTestSubmissionParam.Questions)

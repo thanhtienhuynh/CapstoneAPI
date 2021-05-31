@@ -18,6 +18,7 @@ namespace CapstoneAPI.Models
         public int? Gender { get; set; }
         public int? ProvinceId { get; set; }
         public int AdmissionMethodId { get; set; }
+        public int Status { get; set; }
 
         public virtual AdmissionCriterion AdmissionCriterion { get; set; }
         public virtual AdmissionMethod AdmissionMethod { get; set; }
