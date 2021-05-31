@@ -216,7 +216,7 @@ namespace CapstoneAPI.Services.SubjectGroup
             List<MajorDataSet> majorDataSetsBaseOnEntryMark = new List<MajorDataSet>();
             foreach (MajorDataSet majorDataSet in suggestedMajors)
             {
-                MajorSubjectGroup majorSubjectGroup = await _uow.MajorSubjectGroupRepository
+                Models.MajorSubjectGroup majorSubjectGroup = await _uow.MajorSubjectGroupRepository
                     .GetFirst(filter: m => m.SubjectGroupId == subjectGroupId && m.MajorId == majorDataSet.Id, includeProperties: "SubjectWeights");
              
                 majorDataSet.WeightMark = await CalculateTotalWeightMark(subjectGroupParam, majorSubjectGroup.SubjectWeights);
