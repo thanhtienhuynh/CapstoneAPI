@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace CapstoneAPI.Controllers
 {
-    [Route("api/v1/majorsubjectgroup")]
+    [Route("api/v1/major-subject-group")]
     [ApiController]
     public class MajorSubjectGroupController : ControllerBase
     {

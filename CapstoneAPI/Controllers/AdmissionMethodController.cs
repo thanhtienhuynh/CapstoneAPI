@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace CapstoneAPI.Controllers
 {
-    [Route("api/v1/admissionmethod")]
+    [Route("api/v1/admission-method")]
     [ApiController]
     public class AdmissionMethodController : ControllerBase
     {
