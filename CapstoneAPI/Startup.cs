@@ -40,6 +40,7 @@ using System.Text;
 using CapstoneAPI.Services.Season;
 using CapstoneAPI.Services.Province;
 using CapstoneAPI.Services.AdmissionMethodService;
+using CapstoneAPI.Services.MajorSubjectGroup;
 
 namespace CapstoneAPI
 {
@@ -161,6 +162,7 @@ namespace CapstoneAPI
             services.AddScoped<ISeasonService, SeasonService>();
             services.AddScoped<IProvinceService, ProvinceService>();
             services.AddScoped<IAdmissionMethodService, AdmissitonMethodService>();
+            services.AddScoped<IMajorSubjectGroupService, MajorSubjectGroupService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
