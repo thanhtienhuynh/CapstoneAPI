@@ -21,11 +21,10 @@ namespace CapstoneAPI.DataSets.University
         public int? Rating { get; set; }
         public int Status { get; set; }
 
-        public List<UniMajorDataSet> Majors { get; set; }
     }
 
     public class UniMajorDataSet
-    {
+    { 
         public int UniversityId { get; set; }
         public int MajorId { get; set; }
         public string MajorCode { get; set; }
@@ -35,6 +34,7 @@ namespace CapstoneAPI.DataSets.University
 
     public class MajorDetailUniDataSet
     {
+        public int Id { get; set; }
         public int TrainingProgramId { get; set; }
         public string TrainingProgramName { get; set; }
         public int? AdmissionQuantity { get; set; }
@@ -75,6 +75,8 @@ namespace CapstoneAPI.DataSets.University
         public double Mark { get; set; }
     }
 
+
+    // add majordetail
     public class AddingMajorUniversityParam
     {
         public int UniversityId { get; set; }
@@ -85,11 +87,7 @@ namespace CapstoneAPI.DataSets.University
         public int? TotalAdmissionQuantity { get; set; }
         public List<UniSubAdmissionDataSet> SubAdmissions { get; set; }
     }
-    public class UniSubjectGroupDataSet
-    {
-        public int Id { get; set; }
-        public double? EntryMarkPerGroup { get; set; }
-    }
+    
     public class UniSubAdmissionDataSet
     {
         public int? Quantity { get; set; }
@@ -99,23 +97,38 @@ namespace CapstoneAPI.DataSets.University
         public List<UniSubjectGroupDataSet> SubjectGroups { get; set; }
 
     }
-
+    public class UniSubjectGroupDataSet
+    {
+        public int MajorSubjectGroupId { get; set; }
+        public double? EntryMarkPerGroup { get; set; }
+    }
 
     public class UpdatingMajorUniversityParam
     {
-        public int UniversityId { get; set; }
-        public int MajorId { get; set; }
+        public int MajorDetailId { get; set; }
         public string MajorCode { get; set; }
-        public int? NumberOfStudents { get; set; }
-        public int OldTrainingProgramId { get; set; }
-        public int NewTrainingProgramId { get; set; }
-        public List<UpdatingUniSubjectGroupDataSet> SubjectGroups { get; set; }
+        public int? TotalAdmissionQuantity { get; set; }
+        public int Status { get; set; }
+        public List<UpdatingUniSubAdmissionParam> UpdatingUniSubAdmissionParams { get; set; }
     }
 
-    public class UpdatingUniSubjectGroupDataSet
+    public class UpdatingUniSubAdmissionParam
     {
-        public int Id { get; set; }
-        public bool IsDeleted { get; set; }
-        public List<UniEntryMarkDataSet> EntryMarks { get; set; }
+        public int? SubAdmissionId { get; set; }
+        public int? Quantity { get; set; }
+        public int? GenderId { get; set; }
+        public int AdmissionMethodId { get; set; }
+        public int? ProvinceId { get; set; }
+        public int Status { get; set; }
+
+        public List<MajorDetailEntryMarkParam> MajorDetailEntryMarkParams { get; set; }
+    }
+
+    public class MajorDetailEntryMarkParam
+    {
+        public int? EntryMarkId { get; set; }
+        public double? Mark { get; set; }
+        public int MajorSubjectGroupId { get; set; }
+        public int Status { get; set; }
     }
 }
