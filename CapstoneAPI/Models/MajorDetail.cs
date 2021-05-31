@@ -13,6 +13,7 @@ namespace CapstoneAPI.Models
         public string MajorCode { get; set; }
         public int TrainingProgramId { get; set; }
         public int SeasonId { get; set; }
+        public int Status { get; set; }
 
         public virtual Major Major { get; set; }
         public virtual Season Season { get; set; }

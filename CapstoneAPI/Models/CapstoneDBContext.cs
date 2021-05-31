@@ -52,7 +52,7 @@ namespace CapstoneAPI.Models
         public virtual DbSet<University> Universities { get; set; }
         public virtual DbSet<UniversityArticle> UniversityArticles { get; set; }
         public virtual DbSet<User> Users { get; set; }
-
+       
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.HasAnnotation("Relational:Collation", "SQL_Latin1_General_CP1_CI_AS");
@@ -161,27 +161,6 @@ namespace CapstoneAPI.Models
                 entity.Property(e => e.Name)
                     .IsRequired()
                     .HasMaxLength(200);
-            });
-
-            modelBuilder.Entity<MajorArticle>(entity =>
-            {
-                entity.ToTable("MajorArticle");
-
-                entity.Property(e => e.ArticleId).HasColumnName("Article_Id");
-
-                entity.Property(e => e.MajorId).HasColumnName("Major_Id");
-
-                entity.HasOne(d => d.Article)
-                    .WithMany(p => p.MajorArticles)
-                    .HasForeignKey(d => d.ArticleId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_MajorArticle_Article");
-
-                entity.HasOne(d => d.Major)
-                    .WithMany(p => p.MajorArticles)
-                    .HasForeignKey(d => d.MajorId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_MajorArticle_Major");
             });
 
             modelBuilder.Entity<MajorArticle>(entity =>

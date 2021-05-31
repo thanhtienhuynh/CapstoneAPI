@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CapstoneAPI.DataSets.AdmissionMethod;
 using CapstoneAPI.DataSets.Article;
 using CapstoneAPI.DataSets.Major;
 using CapstoneAPI.DataSets.Option;
@@ -59,6 +60,7 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.Article, ApprovingArticleDataSet>();
             CreateMap<Models.University, ApprovingArticleUniversityResponse>();
             CreateMap<Models.Province, ProvinceDataSet>();
+            CreateMap<Models.AdmissionMethod, AdmissionMethodDataSet>();
         }
     }
 }
