@@ -29,7 +29,13 @@ namespace CapstoneAPI.Controllers
             return Ok(await _service.GetUniversityBySubjectGroupAndMajor(universityParam, token));
         }
 
-        
+        [HttpPost("suggestion")]
+        public async Task<ActionResult<Response<MockTestBasedUniversity>>> CalculattUniversityByMockTestMarks([FromBody] MockTestsUniversityParam universityParam)
+        {
+            string token = Request.Headers["Authorization"];
+            return Ok(await _service.CalculaterUniversityByMockTestMarks(universityParam, token));
+        }
+
         [HttpGet("admin-all")]
         public async Task<ActionResult<PagedResponse<List<AdminUniversityDataSet>>>> GetAllUniversities([FromQuery] PaginationFilter filter,
             [FromQuery] UniversityFilter universityFilter)

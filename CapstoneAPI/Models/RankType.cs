@@ -15,6 +15,7 @@ namespace CapstoneAPI.Models
         public int Id { get; set; }
         public string Name { get; set; }
         public int Status { get; set; }
+        public int Priority { get; set; }
 
         public virtual ICollection<Rank> Ranks { get; set; }
     }

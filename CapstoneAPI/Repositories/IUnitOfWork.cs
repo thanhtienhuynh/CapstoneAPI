@@ -39,7 +39,7 @@ namespace CapstoneAPI.Repositories
         IGenericRepository<AdmissionMethod> AdmissionMethodRepository { get; }
         IGenericRepository<MajorArticle> MajorArticleRepository { get; }
         IRankRepository RankRepository { get; }
-        Task<int> CommitAsync();
         IDbContextTransaction GetTransaction();
+        Task<int> CommitAsync();
     }
 }

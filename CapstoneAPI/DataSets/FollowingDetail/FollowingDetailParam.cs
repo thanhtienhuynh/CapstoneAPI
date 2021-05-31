@@ -5,9 +5,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace CapstoneAPI.DataSets.UserMajorDetail
+namespace CapstoneAPI.DataSets.FollowingDetail
 {
-    public class AddUserMajorDetailParam
+    public class AddFollowingDetailParam
     {
         public int UniversityId { get; set; }
         public int TrainingProgramId { get; set; }
@@ -18,10 +18,11 @@ namespace CapstoneAPI.DataSets.UserMajorDetail
 
     }
 
-    public class UpdateUserMajorDetailParam
+    public class FollowingDetailDataSet
     {
-        public int UniversityId { get; set; }
-        public int TrainingProgramId { get; set; }
-        public int MajorId { get; set; }
+        public int Id { get; set; }
+        public int UserId { get; set; }
+        public int EntryMarkId { get; set; }
+        public bool IsReceiveNotification { get; set; }
     }
 }
