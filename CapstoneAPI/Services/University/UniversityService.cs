@@ -495,6 +495,45 @@ namespace CapstoneAPI.Services.University
 
             return result;
         }
+        public async Task<Response<List<UniMajorNonPagingDataSet>>> GetMajorDetailInUniversityNonPaging(MajorDetailParam majorDetailParam)
+        {
+            List<UniMajorNonPagingDataSet> ListOfUniMajorDataSets = new List<UniMajorNonPagingDataSet>();
+            Response<List<UniMajorNonPagingDataSet>> result = new Response<List<UniMajorNonPagingDataSet>>();
+            IEnumerable<Models.MajorDetail> majorDetails = await _uow.MajorDetailRepository
+                .Get(filter: m => m.UniversityId == majorDetailParam.UniversityId && m.SeasonId == majorDetailParam.SeasonId,
+                includeProperties: "Major,Season,AdmissionCriterion,TrainingProgram,");
+
+            IEnumerable<IGrouping<Models.Major, Models.MajorDetail>> groupbyMajor = majorDetails.GroupBy(m => m.Major);
+            foreach (IGrouping<Models.Major, Models.MajorDetail> item in groupbyMajor)
+            {
+                UniMajorNonPagingDataSet uniMajorDataSet = new UniMajorNonPagingDataSet();
+                uniMajorDataSet.UniversityId = majorDetailParam.UniversityId;
+                uniMajorDataSet.MajorId = item.Key.Id;
+                uniMajorDataSet.MajorName = item.Key.Name;
+                uniMajorDataSet.MajorCode = item.Key.Code;
+                foreach (Models.MajorDetail detailWithAMajor in item)
+                {
+                    MajorDetailUniNonPagingDataSet majorDetailUniDataSet = new MajorDetailUniNonPagingDataSet();
+                    majorDetailUniDataSet.Id = detailWithAMajor.Id;
+                    majorDetailUniDataSet.TrainingProgramId = detailWithAMajor.TrainingProgram.Id;
+                    majorDetailUniDataSet.TrainingProgramName = detailWithAMajor.TrainingProgram.Name;
+                    majorDetailUniDataSet.MajorDetailCode = detailWithAMajor.MajorCode;
+                    majorDetailUniDataSet.AdmissionQuantity = detailWithAMajor.AdmissionCriterion.Quantity;
+                    majorDetailUniDataSet.SeasonId = detailWithAMajor.Season.Id;
+                    majorDetailUniDataSet.SeasonName = detailWithAMajor.Season.Name;
+                    
+                    if (uniMajorDataSet.MajorDetailUnies == null)
+                    {
+                        uniMajorDataSet.MajorDetailUnies = new List<MajorDetailUniNonPagingDataSet>();
+                    }
+                    uniMajorDataSet.MajorDetailUnies.Add(majorDetailUniDataSet);
+                }
+                ListOfUniMajorDataSets.Add(uniMajorDataSet);
+            }
+            result.Data = ListOfUniMajorDataSets;
+            result.Succeeded = true;
+            return result;
+        }
         public async Task<PagedResponse<List<UniMajorDataSet>>> GetMajorDetailInUniversity(PaginationFilter validFilter, MajorDetailFilter majorDetailFilter)
         {
             List<UniMajorDataSet> ListOfUniMajorDataSets = new List<UniMajorDataSet>();
@@ -1211,6 +1250,8 @@ namespace CapstoneAPI.Services.University
             }
             return response;
         }
+
+        
     }
 
 }

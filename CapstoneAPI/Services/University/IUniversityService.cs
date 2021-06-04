@@ -18,6 +18,7 @@ namespace CapstoneAPI.Services.University
         Task<Response<IEnumerable<AdminUniversityDataSet>>> GetAllUniversities();
         Task<Response<DetailUniversityDataSet>> GetDetailUniversity(int universityId);
         Task<PagedResponse<List<UniMajorDataSet>>> GetMajorDetailInUniversity(PaginationFilter validFilter, MajorDetailFilter majorDetailFilter);
+        Task<Response<List<UniMajorNonPagingDataSet>>> GetMajorDetailInUniversityNonPaging(MajorDetailParam majorDetailParam);
         Task<Response<AdminUniversityDataSet>> CreateNewAnUniversity(CreateUniversityDataset createUniversityDataset);
         Task<Response<AdminUniversityDataSet>> UpdateUniversity(AdminUniversityDataSet adminUniversityDataSet);
         Task<Response<bool>> AddMajorToUniversity(AddingMajorUniversityParam addingMajorUniversityParam);

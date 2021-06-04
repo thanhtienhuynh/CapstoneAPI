@@ -16,6 +16,12 @@ namespace CapstoneAPI.DataSets.University
         public int? Gender { get; set; }
     }
 
+    public class MajorDetailParam
+    {
+        public int UniversityId { get; set; }
+        public int SeasonId { get; set;}
+    }
+  
     public class MockTestsUniversityParam
     {
         public int SubjectGroupId { get; set; }
