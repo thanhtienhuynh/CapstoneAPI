@@ -20,7 +20,7 @@ namespace CapstoneAPI.Services.Season
         public async Task<Response<IEnumerable<Models.Season>>> GetAllSeasons()
         {
             Response<IEnumerable<Models.Season>> response = new Response<IEnumerable<Models.Season>>();
-            IEnumerable<Models.Season> seasons = (await _uow.SeasonRepository.Get(filter: s => s.Status == Consts.STATUS_ACTIVE, orderBy: s => s.OrderByDescending(o => o.FromDate)));
+            IEnumerable<Models.Season> seasons = (await _uow.SeasonRepository.Get(orderBy: s => s.OrderByDescending(o => o.FromDate)));
 
             response.Data = seasons;
             response.Message = "Thành công!";

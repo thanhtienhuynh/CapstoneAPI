@@ -15,6 +15,7 @@ namespace CapstoneAPI.DataSets.TestSubmission
         public double? Mark { get; set; }
         public int? NumberOfRightAnswers { get; set; }
         public int NumberOfQuestion { get; set; }
+        public int SubjectId { get; set; }
 
     }
 }

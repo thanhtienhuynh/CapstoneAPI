@@ -32,8 +32,8 @@ namespace CapstoneAPI.Helpers
         public static int DEFAULT_WEIGHT_NUMBER = 1;
         public static int DEFAULT_MAX_SCORE = 10;
         //Transcript
-        public static int TRANSCRIPT_TYPE_HB = 1;
-        public static int TRANSCRIPT_TYPE_THPTQG = 2;
+        public static int TRANSCRIPT_TYPE_HB = 2;
+        public static int TRANSCRIPT_TYPE_THPTQG = 1;
         //Rank type
         public static int RANK_TYPE_THPTQG = 1;
         public static int RANK_TYPE_HT = 3;

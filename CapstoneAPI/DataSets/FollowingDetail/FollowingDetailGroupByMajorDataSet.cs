@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace CapstoneAPI.DataSets.UserMajorDetail
+namespace CapstoneAPI.DataSets.FollowingDetail
 {
-    public class UserMajorDetailGroupByMajorDataSet
+    public class FollowingDetailGroupByMajorDataSet
     {
         public int Id { get; set; }
         public string Code { get; set; }
@@ -23,6 +23,7 @@ namespace CapstoneAPI.DataSets.UserMajorDetail
 
     public class UniversityGroupByTrainingProgramDataSet
     {
+        public int FollowingDetailId { get; set; }
         public int Id { get; set; }
         public string Code { get; set; }
         public string Name { get; set; }
@@ -36,9 +37,7 @@ namespace CapstoneAPI.DataSets.UserMajorDetail
         public int? TuitionTo { get; set; }
         public int? Rating { get; set; }
         public string MajorCode { get; set; }
-        public double? NewestEntryMark { get; set; }
-        public int? NumberOfStudent { get; set; }
-        public int YearOfEntryMark { get; set; }
+        public SeasonDataSet SeasonDataSet { get; set; }
         public int? PositionOfUser { get; set; }
         public int TotalUserCared { get; set; }
         public int SubjectGroupId { get; set; }
