@@ -14,4 +14,11 @@ namespace CapstoneAPI.DataSets.University
         public int ProvinceId { get; set; }
         public int? Gender { get; set; }
     }
+
+
+    public class MajorDetailParam
+    {
+        public int UniversityId { get; set; }
+        public int SeasonId { get; set;}
+    }
 }

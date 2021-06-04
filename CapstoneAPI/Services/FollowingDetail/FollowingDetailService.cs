@@ -72,13 +72,13 @@ namespace CapstoneAPI.Services.FollowingDetail
                 foreach (MarkParam markParam in userMajorDetailParam.SubjectGroupParam.Marks)
                 {
                     int transcriptTypeId = userMajorDetailParam.SubjectGroupParam.TranscriptTypeId;
-                    Transcript transcript = await _uow.TranscriptRepository
+                    Models.Transcript transcript = await _uow.TranscriptRepository
                                             .GetFirst(filter: t => t.SubjectId == transcriptTypeId
                                                         && t.UserId == userId
                                                         && t.TranscriptTypeId == userMajorDetailParam.SubjectGroupParam.TranscriptTypeId);
                     if (transcript == null)
                     {
-                        _uow.TranscriptRepository.Insert(new Transcript()
+                        _uow.TranscriptRepository.Insert(new Models.Transcript()
                         {
                             Mark = markParam.Mark,
                             SubjectId = markParam.SubjectId,

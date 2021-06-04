@@ -73,6 +73,17 @@ namespace CapstoneAPI.Controllers
             PagedResponse<List<UniMajorDataSet>> result = await _service.GetMajorDetailInUniversity(validFilter, majorDetailFilter);
             return Ok(result);
         }
+
+        [HttpGet("major-detail-non-paging")]
+        public async Task<ActionResult<Response<UniMajorDataSet>>> GetMajorDetailWithOutPaging([FromQuery] MajorDetailParam majorDetailParam)
+        {
+            string token = Request.Headers["Authorization"];
+
+            Response<List<UniMajorNonPagingDataSet>> result = await _service.GetMajorDetailInUniversityNonPaging(majorDetailParam);
+            return Ok(result);
+        }
+
+
         [HttpPost]
         public async Task<ActionResult<Response<AdminUniversityDataSet>>> CreateAnUniversity([FromForm] CreateUniversityDataset createUniversityDataset)
         {
