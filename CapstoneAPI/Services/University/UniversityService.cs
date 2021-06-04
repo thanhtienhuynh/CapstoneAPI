@@ -497,40 +497,42 @@ namespace CapstoneAPI.Services.University
         }
         public async Task<Response<List<UniMajorNonPagingDataSet>>> GetMajorDetailInUniversityNonPaging(MajorDetailParam majorDetailParam)
         {
-            List<UniMajorNonPagingDataSet> ListOfUniMajorDataSets = new List<UniMajorNonPagingDataSet>();
+            List<UniMajorNonPagingDataSet> uniMajorDataSets = new List<UniMajorNonPagingDataSet>();
             Response<List<UniMajorNonPagingDataSet>> result = new Response<List<UniMajorNonPagingDataSet>>();
-            IEnumerable<Models.MajorDetail> majorDetails = await _uow.MajorDetailRepository
+            IEnumerable<MajorDetail> majorDetails = await _uow.MajorDetailRepository
                 .Get(filter: m => m.UniversityId == majorDetailParam.UniversityId && m.SeasonId == majorDetailParam.SeasonId,
-                includeProperties: "Major,Season,AdmissionCriterion,TrainingProgram,");
+                includeProperties: "Major,Season,AdmissionCriterion,TrainingProgram");
 
-            IEnumerable<IGrouping<Models.Major, Models.MajorDetail>> groupbyMajor = majorDetails.GroupBy(m => m.Major);
-            foreach (IGrouping<Models.Major, Models.MajorDetail> item in groupbyMajor)
+            IEnumerable<IGrouping<Models.Major, MajorDetail>> groupbyMajor = majorDetails.GroupBy(m => m.Major);
+            foreach (IGrouping<Models.Major, MajorDetail> item in groupbyMajor)
             {
                 UniMajorNonPagingDataSet uniMajorDataSet = new UniMajorNonPagingDataSet();
                 uniMajorDataSet.UniversityId = majorDetailParam.UniversityId;
                 uniMajorDataSet.MajorId = item.Key.Id;
                 uniMajorDataSet.MajorName = item.Key.Name;
                 uniMajorDataSet.MajorCode = item.Key.Code;
-                foreach (Models.MajorDetail detailWithAMajor in item)
+                foreach (MajorDetail detailWithAMajor in item)
                 {
-                    MajorDetailUniNonPagingDataSet majorDetailUniDataSet = new MajorDetailUniNonPagingDataSet();
-                    majorDetailUniDataSet.Id = detailWithAMajor.Id;
-                    majorDetailUniDataSet.TrainingProgramId = detailWithAMajor.TrainingProgram.Id;
-                    majorDetailUniDataSet.TrainingProgramName = detailWithAMajor.TrainingProgram.Name;
-                    majorDetailUniDataSet.MajorDetailCode = detailWithAMajor.MajorCode;
-                    majorDetailUniDataSet.AdmissionQuantity = detailWithAMajor.AdmissionCriterion.Quantity;
-                    majorDetailUniDataSet.SeasonId = detailWithAMajor.Season.Id;
-                    majorDetailUniDataSet.SeasonName = detailWithAMajor.Season.Name;
-                    
+                    MajorDetailUniNonPagingDataSet majorDetailUniDataSet = new MajorDetailUniNonPagingDataSet
+                    {
+                        Id = detailWithAMajor.Id,
+                        TrainingProgramId = detailWithAMajor.TrainingProgram.Id,
+                        TrainingProgramName = detailWithAMajor.TrainingProgram.Name,
+                        MajorDetailCode = detailWithAMajor.MajorCode,
+                        AdmissionQuantity = detailWithAMajor.AdmissionCriterion.Quantity,
+                        SeasonId = detailWithAMajor.Season.Id,
+                        SeasonName = detailWithAMajor.Season.Name
+                    };
+
                     if (uniMajorDataSet.MajorDetailUnies == null)
                     {
                         uniMajorDataSet.MajorDetailUnies = new List<MajorDetailUniNonPagingDataSet>();
                     }
                     uniMajorDataSet.MajorDetailUnies.Add(majorDetailUniDataSet);
                 }
-                ListOfUniMajorDataSets.Add(uniMajorDataSet);
+                uniMajorDataSets.Add(uniMajorDataSet);
             }
-            result.Data = ListOfUniMajorDataSets;
+            result.Data = uniMajorDataSets;
             result.Succeeded = true;
             return result;
         }
@@ -538,7 +540,7 @@ namespace CapstoneAPI.Services.University
         {
             List<UniMajorDataSet> ListOfUniMajorDataSets = new List<UniMajorDataSet>();
             PagedResponse<List<UniMajorDataSet>> result = new PagedResponse<List<UniMajorDataSet>>();
-            Expression<Func<Models.MajorDetail, bool>> filter = null;
+            Expression<Func<MajorDetail, bool>> filter = null;
 
             filter = a => (string.IsNullOrEmpty(majorDetailFilter.MajorName) || a.Major.Name.Contains(majorDetailFilter.MajorName))
             && (string.IsNullOrEmpty(majorDetailFilter.MajorCode) || a.Major.Code.Contains(majorDetailFilter.MajorCode))
@@ -547,7 +549,7 @@ namespace CapstoneAPI.Services.University
             && (majorDetailFilter.SeasonId == a.SeasonId);
 
 
-            Func<IQueryable<Models.MajorDetail>, IOrderedQueryable<Models.MajorDetail>> order = null;
+            Func<IQueryable<MajorDetail>, IOrderedQueryable<MajorDetail>> order = null;
             switch (majorDetailFilter.Order)
             {
                 case 0:
