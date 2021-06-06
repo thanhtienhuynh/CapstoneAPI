@@ -829,7 +829,7 @@ namespace CapstoneAPI.Services.University
 
             MajorDetail MajorDetailExisted = await _uow.MajorDetailRepository.GetFirst(filter: m => m.Id == updatingMajorUniversityParam.MajorDetailId
             && m.Status == Consts.STATUS_ACTIVE,
-                includeProperties: "AdmissionCriterion,AdmissionCriterion.SubAdmissionCriteria");
+                includeProperties: "AdmissionCriterion");
 
             if (MajorDetailExisted == null)
             {
