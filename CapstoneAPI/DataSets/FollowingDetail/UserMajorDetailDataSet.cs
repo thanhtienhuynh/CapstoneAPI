@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace CapstoneAPI.DataSets.UserMajorDetail
+namespace CapstoneAPI.DataSets.FollowingDetail
 {
     public class UserMajorDetailDataSet
     {

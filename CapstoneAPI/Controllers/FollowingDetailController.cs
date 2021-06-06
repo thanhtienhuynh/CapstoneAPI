@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using CapstoneAPI.DataSets;
-using CapstoneAPI.DataSets.UserMajorDetail;
+using CapstoneAPI.DataSets.FollowingDetail;
 using CapstoneAPI.Models;
-using CapstoneAPI.Services.UserMajorDetail;
+using CapstoneAPI.Services.FollowingDetail;
 using CapstoneAPI.Wrappers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CapstoneAPI.Controllers
 {
-    [Route("api/v1/user-major-detail")]
+    [Route("api/v1/following-detail")]
     [ApiController]
     public class FollowingDetailController : Controller
     {
@@ -22,37 +21,37 @@ namespace CapstoneAPI.Controllers
         }
 
         [HttpPost()]
-        public async Task<ActionResult<Response<FollowingDetail>>> AddUserMajorDetail(AddUserMajorDetailParam userMajorDetailParam)
+        public async Task<ActionResult<Response<FollowingDetail>>> AddFollowingDetail(AddFollowingDetailParam addFollowingDetailParam)
         {
             string token = Request.Headers["Authorization"];
-            return Ok(await _service.AddUserMajorDetail(userMajorDetailParam, token));
+            return Ok(await _service.AddFollowingDetail(addFollowingDetailParam, token));
         }
 
-        [HttpPost("deletion")]
-        public async Task<ActionResult<Response<Object>>> RemoveUserMajorDetail(UpdateUserMajorDetailParam userMajorDetailParam)
+        [HttpDelete("{id}")]
+        public async Task<ActionResult<Response<bool>>> RemoveUserMajorDetail([FromRoute] int id)
         {
             string token = Request.Headers["Authorization"];
-            return Ok(await _service.RemoveUserMajorDetail(userMajorDetailParam, token));
+            return Ok(await _service.RemoveFollowingDetail(id, token));
         }
 
         [HttpGet("group-by-major")]
-        public async Task<ActionResult<Response<IEnumerable<UserMajorDetailGroupByMajorDataSet>>>> GetUserMajorDetailGroupByMajor()
+        public async Task<ActionResult<Response<IEnumerable<FollowingDetailGroupByMajorDataSet>>>> GetFollowingDetailGroupByMajor()
         {
             string token = Request.Headers["Authorization"];
-            return Ok(await _service.GetUserMajorDetailGroupByMajorDataSets(token));
+            return Ok(await _service.GetFollowingDetailGroupByMajorDataSets(token));
         }
 
         [HttpGet("group-by-university")]
-        public async Task<ActionResult<Response<IEnumerable<UserMajorDetailGroupByUniversityDataSet>>>> GetUserMajorDetailGroupByUniversity()
+        public async Task<ActionResult<Response<IEnumerable<FollowingDetailGroupByUniversityDataSet>>>> GetFollowingDetailGroupByUniversity()
         {
             string token = Request.Headers["Authorization"];
-            return Ok(await _service.GetUserMajorDetailGroupByUniversityDataSets(token));
+            return Ok(await _service.GetFollowingDetailGroupByUniversityDataSets(token));
         }
 
-        [HttpGet("users-group-by-major-detail")]
-        public async Task<ActionResult<Response<IEnumerable<RankingUserInformationGroupByRankType>>>> GetUsersByMajorDetailId([FromQuery] RankingUserParam rankingUserParam)
+        [HttpGet("users-group-by-major-detail/{id}")]
+        public async Task<ActionResult<Response<IEnumerable<RankingUserInformationGroupByRankType>>>> GetUsersByFollowingDetailId([FromRoute] int id)
         {
-            return Ok(await _service.GetUsersByMajorDetailId(rankingUserParam));
+            return Ok(await _service.GetUsersByFollowingDetailId(id));
         }
     }
 }

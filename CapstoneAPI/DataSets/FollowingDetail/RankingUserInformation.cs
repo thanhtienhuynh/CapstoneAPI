@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace CapstoneAPI.DataSets.UserMajorDetail
+namespace CapstoneAPI.DataSets.FollowingDetail
 {
     public class RankingUserInformationGroupByRankType
     {
@@ -18,15 +18,8 @@ namespace CapstoneAPI.DataSets.UserMajorDetail
         public string Email { get; set; }
         public string Phone { get; set; }
         public string AvatarUrl { get; set; }
-        public string? GroupCode { get; set; }
-        public double? Position { get; set; }
+        public string GroupCode { get; set; }
+        public int? Position { get; set; }
         public double? TotalMark { get; set; }
-    }
-
-    public class RankingUserParam
-    {
-        public int UniversityId { get; set; }
-        public int TrainingProgramId { get; set; }
-        public int MajorId { get; set; }
     }
 }

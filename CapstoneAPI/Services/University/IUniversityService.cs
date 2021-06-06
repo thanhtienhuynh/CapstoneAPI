@@ -13,6 +13,7 @@ namespace CapstoneAPI.Services.University
     public interface IUniversityService
     {
         Task<Response<IEnumerable<TrainingProgramBasedUniversityDataSet>>> GetUniversityBySubjectGroupAndMajor(UniversityParam universityParam, string token);
+        Task<Response<MockTestBasedUniversity>> CalculaterUniversityByMockTestMarks(MockTestsUniversityParam universityParam, string token);
         Task<PagedResponse<List<AdminUniversityDataSet>>> GetUniversities(PaginationFilter validFilter, UniversityFilter universityFilter);
         Task<Response<IEnumerable<AdminUniversityDataSet>>> GetAllUniversities();
         Task<Response<DetailUniversityDataSet>> GetDetailUniversity(int universityId);
