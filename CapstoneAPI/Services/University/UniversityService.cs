@@ -586,7 +586,8 @@ namespace CapstoneAPI.Services.University
                     majorDetailUniDataSet.SeasonId = detailWithAMajor.Season.Id;
                     majorDetailUniDataSet.SeasonName = detailWithAMajor.Season.Name;
                     IEnumerable<Models.SubAdmissionCriterion> subAdmissionCriteria = await _uow.SubAdmissionCriterionRepository.
-                                               Get(filter: s => s.AdmissionCriterionId == detailWithAMajor.AdmissionCriterion.MajorDetailId,
+                                               Get(filter: s => s.AdmissionCriterionId == detailWithAMajor.AdmissionCriterion.MajorDetailId
+                                               && s.Status == Consts.STATUS_ACTIVE,
                                                includeProperties: "Province,AdmissionMethod");
                     foreach (Models.SubAdmissionCriterion subAdmission in subAdmissionCriteria)
                     {
@@ -604,7 +605,8 @@ namespace CapstoneAPI.Services.University
                             majorDetailSubAdmissionDataSet.AdmissionMethodId = subAdmission.AdmissionMethod.Id;
                             majorDetailSubAdmissionDataSet.AdmissionMethodName = subAdmission.AdmissionMethod.Name;
                         }
-                        IEnumerable<Models.EntryMark> entryMarks = await _uow.EntryMarkRepository.Get(e => e.SubAdmissionCriterionId == subAdmission.Id,
+                        IEnumerable<Models.EntryMark> entryMarks = await _uow.EntryMarkRepository.Get(e => e.SubAdmissionCriterionId == subAdmission.Id
+                        && e.Status == Consts.STATUS_ACTIVE,
                            includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup");
                         foreach (Models.EntryMark entry in entryMarks)
                         {
