@@ -22,7 +22,7 @@ namespace CapstoneAPI.Controllers
 
 
         [HttpGet]
-        public async Task<ActionResult<Response<IEnumerable<ProvinceDataSet>>>> GetSubjects()
+        public async Task<ActionResult<Response<IEnumerable<ProvinceDataSet>>>> GetProvinces()
         {
             return Ok(await _service.GetAllProvinces());
         }

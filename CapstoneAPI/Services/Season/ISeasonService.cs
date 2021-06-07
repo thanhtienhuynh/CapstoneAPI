@@ -1,4 +1,5 @@
 ﻿using CapstoneAPI.DataSets;
+using CapstoneAPI.DataSets.Season;
 using CapstoneAPI.Wrappers;
 using System;
 using System.Collections.Generic;
@@ -9,6 +10,6 @@ namespace CapstoneAPI.Services.Season
 {
     public interface ISeasonService
     {
-        Task<Response<IEnumerable<Models.Season>>> GetAllSeasons();
+        Task<Response<IEnumerable<AdminSeasonDataSet>>> GetAllSeasons();
     }
 }

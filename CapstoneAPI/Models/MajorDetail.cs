@@ -14,6 +14,7 @@ namespace CapstoneAPI.Models
         public int TrainingProgramId { get; set; }
         public int SeasonId { get; set; }
         public int Status { get; set; }
+        public DateTime UpdatedDate { get; set; }
 
         public virtual Major Major { get; set; }
         public virtual Season Season { get; set; }
