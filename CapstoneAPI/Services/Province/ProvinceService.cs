@@ -24,7 +24,6 @@ namespace CapstoneAPI.Services.Province
             IEnumerable<ProvinceDataSet> provinces = (await _uow.ProvinceRepository.Get()).Select(s => _mapper.Map<ProvinceDataSet>(s));
             
                 response.Data = provinces;
-                response.Message = "Thành công!";
                 response.Succeeded = true;
             return response;
         }

@@ -72,9 +72,9 @@ namespace CapstoneAPI.Services.FollowingDetail
                 {
                     int transcriptTypeId = followingDetailParam.SubjectGroupParam.TranscriptTypeId;
                     Models.Transcript transcript = await _uow.TranscriptRepository
-                                            .GetFirst(filter: t => t.SubjectId == transcriptTypeId
+                                            .GetFirst(filter: t => t.SubjectId == markParam.SubjectId
                                                         && t.UserId == userId
-                                                        && t.TranscriptTypeId == followingDetailParam.SubjectGroupParam.TranscriptTypeId);
+                                                        && t.TranscriptTypeId == transcriptTypeId);
                     if (transcript == null)
                     {
                         _uow.TranscriptRepository.Insert(new Models.Transcript()
@@ -83,15 +83,25 @@ namespace CapstoneAPI.Services.FollowingDetail
                             SubjectId = markParam.SubjectId,
                             UserId = userId,
                             TranscriptTypeId = followingDetailParam.SubjectGroupParam.TranscriptTypeId,
-                            DateRecord = DateTime.UtcNow
+                            DateRecord = DateTime.UtcNow,
+                            IsUpdate = true
                         });
                     }
                     else
                     {
                         transcript.Mark = markParam.Mark;
                         transcript.DateRecord = DateTime.UtcNow;
+                        transcript.IsUpdate = true;
                         _uow.TranscriptRepository.Update(transcript);
                     }
+                }
+
+                Models.User user = await _uow.UserRepository.GetById(userId);
+                if (user.Gender != followingDetailParam.SubjectGroupParam.Gender || user.ProvinceId != followingDetailParam.SubjectGroupParam.ProvinceId)
+                {
+                    user.Gender = followingDetailParam.SubjectGroupParam.Gender;
+                    user.ProvinceId = followingDetailParam.SubjectGroupParam.ProvinceId;
+                    _uow.UserRepository.Update(user);
                 }
             }
 
@@ -149,8 +159,8 @@ namespace CapstoneAPI.Services.FollowingDetail
                     IsReceiveNotification = true,
                     Rank = new Models.Rank()
                     {
-                        IsNew = true,
-                        RankTypeId = followingDetailParam.SubjectGroupParam.TranscriptTypeId,
+                        TranscriptTypeId = followingDetailParam.SubjectGroupParam.TranscriptTypeId,
+                        IsUpdate = true,
                         TotalMark = followingDetailParam.TotalMark,
                         UpdatedDate = DateTime.UtcNow,
                         Position = _uow.RankRepository.CalculateRank(followingDetailParam.SubjectGroupParam.TranscriptTypeId, followingDetailParam.TotalMark, ranks)
@@ -524,9 +534,9 @@ namespace CapstoneAPI.Services.FollowingDetail
             return response;
         }
 
-        public async Task<Response<IEnumerable<RankingUserInformationGroupByRankType>>> GetUsersByFollowingDetailId(int id)
+        public async Task<Response<IEnumerable<RankingUserInformationGroupByTranscriptType>>> GetUsersByFollowingDetailId(int id)
         {
-            Response<IEnumerable<RankingUserInformationGroupByRankType>> response = new Response<IEnumerable<RankingUserInformationGroupByRankType>>();
+            Response<IEnumerable<RankingUserInformationGroupByTranscriptType>> response = new Response<IEnumerable<RankingUserInformationGroupByTranscriptType>>();
 
             Models.FollowingDetail followingDetail = await _uow.FollowingDetailRepository.GetFirst(filter: f => f.Id == id
                                                                         && f.EntryMark.Status == Consts.STATUS_ACTIVE,
@@ -545,7 +555,7 @@ namespace CapstoneAPI.Services.FollowingDetail
             IEnumerable<Models.FollowingDetail> followingDetails = await _uow.FollowingDetailRepository
                                                                     .Get(filter: u => u.EntryMark.Status == Consts.STATUS_ACTIVE
                                                                                     && u.EntryMark.SubAdmissionCriterionId == followingDetail.EntryMark.SubAdmissionCriterionId,
-                                                                    includeProperties: "User,EntryMark,Rank,Rank.RankType,EntryMark.MajorSubjectGroup.SubjectGroup," +
+                                                                    includeProperties: "User,EntryMark,Rank,Rank.TranscriptType,EntryMark.MajorSubjectGroup.SubjectGroup," +
                                                                                         "EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.TrainingProgram," +
                                                                                         "EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.University," +
                                                                                         "EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.Major");
@@ -560,15 +570,15 @@ namespace CapstoneAPI.Services.FollowingDetail
                 return response;
             }
 
-            IEnumerable<IGrouping<RankType, Models.FollowingDetail>> followingDetailsGroupsByRankType = followingDetails.GroupBy(u => u.Rank.RankType)
+            IEnumerable<IGrouping<TranscriptType, Models.FollowingDetail>> followingDetailsGroupsByTranscriptType = followingDetails.GroupBy(u => u.Rank.TranscriptType)
                                                                                                                     .OrderByDescending(g => g.Key.Priority);
 
-            List<RankingUserInformationGroupByRankType> rankingUserInformationGroupByRanks = new List<RankingUserInformationGroupByRankType>();
+            List<RankingUserInformationGroupByTranscriptType> rankingUserInformationGroupByTranscriptTypes = new List<RankingUserInformationGroupByTranscriptType>();
 
-            foreach (IGrouping<RankType, Models.FollowingDetail> followingDetailsGroup in followingDetailsGroupsByRankType)
+            foreach (IGrouping<TranscriptType, Models.FollowingDetail> followingDetailsGroup in followingDetailsGroupsByTranscriptType)
             {
                 List<RankingUserInformation> rankingUserInformations = new List<RankingUserInformation>();
-                RankingUserInformationGroupByRankType rankingUserInformationGroupByRank = new RankingUserInformationGroupByRankType();
+                RankingUserInformationGroupByTranscriptType rankingUserInformationGroupByTranscriptType = new RankingUserInformationGroupByTranscriptType();
                 foreach (Models.FollowingDetail followingDetailGr in followingDetailsGroup)
                 {
                     RankingUserInformation rankingUserInformation = _mapper.Map<RankingUserInformation>(followingDetailGr.User);
@@ -577,14 +587,14 @@ namespace CapstoneAPI.Services.FollowingDetail
                     rankingUserInformation.TotalMark = followingDetailGr.Rank.TotalMark;
                     rankingUserInformations.Add(rankingUserInformation);
                 }
-                rankingUserInformationGroupByRank.Id = followingDetailsGroup.Key.Id;
-                rankingUserInformationGroupByRank.Name = followingDetailsGroup.Key.Name;
-                rankingUserInformationGroupByRank.RankingUserInformations = rankingUserInformations.OrderBy(r => r.Position).ThenByDescending(r => r.TotalMark).ToList();
-                rankingUserInformationGroupByRanks.Add(rankingUserInformationGroupByRank);
+                rankingUserInformationGroupByTranscriptType.Id = followingDetailsGroup.Key.Id;
+                rankingUserInformationGroupByTranscriptType.Name = followingDetailsGroup.Key.Name;
+                rankingUserInformationGroupByTranscriptType.RankingUserInformations = rankingUserInformations.OrderBy(r => r.Position).ThenByDescending(r => r.TotalMark).ToList();
+                rankingUserInformationGroupByTranscriptTypes.Add(rankingUserInformationGroupByTranscriptType);
             }
 
             response.Succeeded = true;
-            response.Data = rankingUserInformationGroupByRanks;
+            response.Data = rankingUserInformationGroupByTranscriptTypes;
             return response;
         }
     }

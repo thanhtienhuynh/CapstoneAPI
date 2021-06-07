@@ -19,22 +19,22 @@ namespace CapstoneAPI.Repositories.Rank
                 if (transcriptId == Consts.RANK_TYPE_HB)
                 {
                     int count = ranks.Where(r => r.TotalMark > totalMark
-                                            || r.RankTypeId == Consts.RANK_TYPE_HT
-                                            || r.RankTypeId == Consts.RANK_TYPE_THPTQG)
+                                            || r.TranscriptTypeId == Consts.RANK_TYPE_HT
+                                            || r.TranscriptTypeId == Consts.RANK_TYPE_THPTQG)
                                             .Count();
                     rank = count + 1;
                 }
                 else if (transcriptId == Consts.RANK_TYPE_HT)
                 {
-                    int count = ranks.Where(r => r.RankTypeId != Consts.RANK_TYPE_HB
+                    int count = ranks.Where(r => r.TranscriptTypeId != Consts.RANK_TYPE_HB
                                         && (r.TotalMark > totalMark
-                                            || r.RankTypeId == Consts.RANK_TYPE_THPTQG))
+                                            || r.TranscriptTypeId == Consts.RANK_TYPE_THPTQG))
                                         .Count();
                     rank = count + 1;
                 }
                 else if (transcriptId == Consts.RANK_TYPE_THPTQG)
                 {
-                    int count = ranks.Where(r => r.RankTypeId == Consts.RANK_TYPE_THPTQG
+                    int count = ranks.Where(r => r.TranscriptTypeId == Consts.RANK_TYPE_THPTQG
                                         && r.TotalMark > totalMark)
                                         .Count();
                     rank = count + 1;

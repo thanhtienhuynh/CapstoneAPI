@@ -9,6 +9,7 @@ namespace CapstoneAPI.Models
     {
         public TranscriptType()
         {
+            Ranks = new HashSet<Rank>();
             Transcripts = new HashSet<Transcript>();
         }
 
@@ -16,6 +17,7 @@ namespace CapstoneAPI.Models
         public string Name { get; set; }
         public int Priority { get; set; }
 
+        public virtual ICollection<Rank> Ranks { get; set; }
         public virtual ICollection<Transcript> Transcripts { get; set; }
     }
 }

@@ -14,6 +14,6 @@ namespace CapstoneAPI.Services.FollowingDetail
         Task<Response<bool>> RemoveFollowingDetail(int id, string token);
         Task<Response<IEnumerable<FollowingDetailGroupByMajorDataSet>>> GetFollowingDetailGroupByMajorDataSets(string token);
         Task<Response<IEnumerable<FollowingDetailGroupByUniversityDataSet>>> GetFollowingDetailGroupByUniversityDataSets(string token);
-        Task<Response<IEnumerable<RankingUserInformationGroupByRankType>>> GetUsersByFollowingDetailId(int id);
+        Task<Response<IEnumerable<RankingUserInformationGroupByTranscriptType>>> GetUsersByFollowingDetailId(int id);
     }
 }

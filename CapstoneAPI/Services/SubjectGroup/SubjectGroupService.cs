@@ -197,7 +197,7 @@ namespace CapstoneAPI.Services.SubjectGroup
             IEnumerable<SubjectGroupDataSet> results = suggestedSubjectGroups.Where(s => s.SuggestedMajors.Count() > 0);
 
             response.Succeeded = true;
-            response.Data = suggestedSubjectGroups.Where(s => s.SuggestedMajors.Count() > 0);
+            response.Data = results;
             return response;
         }
 
@@ -605,6 +605,111 @@ namespace CapstoneAPI.Services.SubjectGroup
 
             //response.Succeeded = true;
             //response.Data = updateSubjectGroupDataset;
+            return response;
+        }
+
+        public async Task<Response<UserSuggestionInformation>> GetUserSuggestTopSubjectGroup(string token)
+        {
+            Response<UserSuggestionInformation> response = new Response<UserSuggestionInformation>();
+            UserSuggestionInformation userSuggestionSubjectGroup = null;
+            if (token == null || token.Trim().Length == 0)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Bạn chưa đăng nhập!");
+                return response;
+            }
+
+            string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
+
+            if (userIdString == null || userIdString.Length <= 0)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                return response;
+            }
+
+            int userId = Int32.Parse(userIdString);
+
+            Models.User user = await _uow.UserRepository.GetFirst(filter: u => u.Id == userId && u.IsActive == true,
+                                                                includeProperties: "Transcripts.TranscriptType");
+            if (user == null)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                return response;
+            }
+
+            if (!user.Transcripts.Any())
+            {
+                response.Succeeded = true;
+                return response;
+            }
+
+            var transcriptGroups = user.Transcripts.GroupBy(s => s.TranscriptType).OrderByDescending(t => t.Key.Priority);
+            foreach (var group in transcriptGroups)
+            {
+                List<MarkParam> marks = new List<MarkParam>();
+                foreach (Models.Transcript transcript in group)
+                {
+                    marks.Add(new MarkParam()
+                    {
+                        Mark = transcript.Mark,
+                        SubjectId = transcript.SubjectId
+                    });
+                }
+                SubjectGroupParam param = new SubjectGroupParam()
+                {
+                    Gender = user.Gender,
+                    ProvinceId = user.ProvinceId,
+                    TranscriptTypeId = group.Key.Id,
+                    Marks = marks
+                };
+                Response<IEnumerable<SubjectGroupDataSet>> subjectGroupReponse = await GetCaculatedSubjectGroup(param);
+                if (!subjectGroupReponse.Succeeded)
+                {
+                    continue;
+                }
+                if (!subjectGroupReponse.Data.Any())
+                {
+                    continue;
+                }
+                bool isValid = false;
+                foreach (var subjectGroup in subjectGroupReponse.Data)
+                {
+                    if (subjectGroup.SuggestedMajors.Any())
+                    {
+                        isValid = true;
+                        break;
+                    }
+                }
+                if (!isValid)
+                {
+                    continue;
+                }
+                userSuggestionSubjectGroup = new UserSuggestionInformation()
+                {
+                    TranscriptTypeId = group.Key.Id,
+                    TranscriptTypeName = group.Key.Name,
+                    SubjectGroupDataSets = subjectGroupReponse.Data,
+                    TranscriptDetails = await _uow.TranscriptRepository.GetUserTranscripts(userId),
+                    Gender = user.Gender,
+                    ProvinceId = user.ProvinceId
+                };
+            }
+            response.Succeeded = true;
+            response.Data = userSuggestionSubjectGroup;
             return response;
         }
     }

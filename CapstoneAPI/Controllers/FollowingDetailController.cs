@@ -49,7 +49,7 @@ namespace CapstoneAPI.Controllers
         }
 
         [HttpGet("users-group-by-major-detail/{id}")]
-        public async Task<ActionResult<Response<IEnumerable<RankingUserInformationGroupByRankType>>>> GetUsersByFollowingDetailId([FromRoute] int id)
+        public async Task<ActionResult<Response<IEnumerable<RankingUserInformationGroupByTranscriptType>>>> GetUsersByFollowingDetailId([FromRoute] int id)
         {
             return Ok(await _service.GetUsersByFollowingDetailId(id));
         }

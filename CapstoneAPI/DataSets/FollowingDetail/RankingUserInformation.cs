@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace CapstoneAPI.DataSets.FollowingDetail
 {
-    public class RankingUserInformationGroupByRankType
+    public class RankingUserInformationGroupByTranscriptType
     {
         public int Id { get; set; }
         public string Name { get; set; }

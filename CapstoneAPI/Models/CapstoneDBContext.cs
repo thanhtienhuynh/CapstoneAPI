@@ -33,7 +33,6 @@ namespace CapstoneAPI.Models
         public virtual DbSet<Question> Questions { get; set; }
         public virtual DbSet<QuestionSubmisstion> QuestionSubmisstions { get; set; }
         public virtual DbSet<Rank> Ranks { get; set; }
-        public virtual DbSet<RankType> RankTypes { get; set; }
         public virtual DbSet<Region> Regions { get; set; }
         public virtual DbSet<Role> Roles { get; set; }
         public virtual DbSet<Season> Seasons { get; set; }
@@ -52,7 +51,7 @@ namespace CapstoneAPI.Models
         public virtual DbSet<University> Universities { get; set; }
         public virtual DbSet<UniversityArticle> UniversityArticles { get; set; }
         public virtual DbSet<User> Users { get; set; }
-       
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.HasAnnotation("Relational:Collation", "SQL_Latin1_General_CP1_CI_AS");
@@ -357,6 +356,8 @@ namespace CapstoneAPI.Models
                     .ValueGeneratedNever()
                     .HasColumnName("FollowingDetail_Id");
 
+                entity.Property(e => e.TranscriptTypeId).HasColumnName("TranscriptType_Id");
+
                 entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
 
                 entity.HasOne(d => d.FollowingDetail)
@@ -365,20 +366,11 @@ namespace CapstoneAPI.Models
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_Rank_FollowingDetail");
 
-                entity.HasOne(d => d.RankType)
+                entity.HasOne(d => d.TranscriptType)
                     .WithMany(p => p.Ranks)
-                    .HasForeignKey(d => d.RankTypeId)
+                    .HasForeignKey(d => d.TranscriptTypeId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_Rank_RankType");
-            });
-
-            modelBuilder.Entity<RankType>(entity =>
-            {
-                entity.ToTable("RankType");
-
-                entity.Property(e => e.Name)
-                    .IsRequired()
-                    .HasMaxLength(50);
+                    .HasConstraintName("FK_Rank_TranscriptType");
             });
 
             modelBuilder.Entity<Region>(entity =>

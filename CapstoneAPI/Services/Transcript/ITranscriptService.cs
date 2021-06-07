@@ -10,6 +10,6 @@ namespace CapstoneAPI.Services.Transcript
 {
     public interface ITranscriptService
     {
-        Task<Response<IEnumerable<UserTranscriptDataSet>>> GetMarkOfUser(string token);
+        Task<Response<IEnumerable<UserTranscriptTypeDataSet>>> GetMarkOfUser(string token);
     }
 }

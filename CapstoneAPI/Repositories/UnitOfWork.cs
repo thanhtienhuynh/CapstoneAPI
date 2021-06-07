@@ -1,6 +1,7 @@
 ﻿using CapstoneAPI.Models;
 using CapstoneAPI.Repositories.Rank;
 using CapstoneAPI.Repositories.Season;
+using CapstoneAPI.Repositories.Transcript;
 using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Threading.Tasks;
@@ -30,7 +31,7 @@ namespace CapstoneAPI.Repositories
         private IGenericRepository<TrainingProgram> _trainingProgramRepository;
         private IGenericRepository<AdmissionCriterion> _admissionCriterionRepository;
         private IGenericRepository<FollowingDetail> _followingRepository;
-        private IGenericRepository<Transcript> _transcriptRepository;
+        private ITranscriptRepository _transcriptRepository;
         private IGenericRepository<UniversityArticle> _universityArticleRepository;
         private IGenericRepository<SubAdmissionCriterion> _subAdmissionCriterionRepository;
         private IGenericRepository<MajorSubjectGroup> _majorSubjectGroupRepository;
@@ -128,9 +129,9 @@ namespace CapstoneAPI.Repositories
         {
             get { return _followingRepository ??= new GenericRepository<FollowingDetail>(_context); }
         }
-        public IGenericRepository<Transcript> TranscriptRepository
+        public ITranscriptRepository TranscriptRepository
         {
-            get { return _transcriptRepository ??= new GenericRepository<Transcript>(_context); }
+            get { return _transcriptRepository ??= new TranscriptRepository(_context); }
         }
         public IGenericRepository<UniversityArticle> UniversityArticleRepository
         {

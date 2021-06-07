@@ -137,7 +137,7 @@ namespace CapstoneAPI.Services.Article
             DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
 
             Response<ArticleDetailDataSet> result = null;
-            Models.Article article = await _uow.ArticleRepository.GetFirst(filter: a => a.Id == id && a.Status == 1
+            Models.Article article = await _uow.ArticleRepository.GetFirst(filter: a => a.Id == id && a.Status == 3
             && a.PublicFromDate != null && a.PublicToDate != null && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0);
             if (article == null)
             {

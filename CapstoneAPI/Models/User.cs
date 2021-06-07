@@ -25,6 +25,7 @@ namespace CapstoneAPI.Models
         public bool IsActive { get; set; }
         public int RoleId { get; set; }
         public int? ProvinceId { get; set; }
+        public int? Gender { get; set; }
 
         public virtual Province Province { get; set; }
         public virtual Role Role { get; set; }

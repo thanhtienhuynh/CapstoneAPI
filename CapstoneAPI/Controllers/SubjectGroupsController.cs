@@ -26,6 +26,13 @@ namespace CapstoneAPI.Controllers
             return Ok(await _service.GetCaculatedSubjectGroup(subjectGroupParam));
         }
 
+        [HttpGet("top-subject-group")]
+        public async Task<ActionResult<Response<IEnumerable<UserSuggestionInformation>>>> GetSuggestTopSubjectGroup()
+        {
+            string token = Request.Headers["Authorization"];
+            return Ok(await _service.GetUserSuggestTopSubjectGroup(token));
+        }
+
         [HttpGet()]
         public async Task<ActionResult<Response<IEnumerable<AdminSubjectGroupDataSet>>>> GetSubjectGroupsByAdmin()
         {

@@ -121,6 +121,7 @@
                     {
                         transcript.Mark = Math.Round(saveTestSubmissionParam.Mark, 2);
                         transcript.DateRecord = DateTime.UtcNow;
+                        transcript.IsUpdate = true;
                         _uow.TranscriptRepository.Update(transcript);
                     } else
                     {
@@ -130,7 +131,8 @@
                             DateRecord = DateTime.UtcNow,
                             Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
                             TranscriptTypeId = 3,
-                            SubjectId = subjectId
+                            SubjectId = subjectId,
+                            IsUpdate = true
                         });
                     }
                     

@@ -23,10 +23,10 @@ namespace CapstoneAPI.Controllers
             public string uidToken { get; set; }
         }
         [HttpGet()]
-        public async Task<ActionResult<Response<IEnumerable<UserTranscriptDataSet>>>> GetMarkOfUser()
+        public async Task<ActionResult<Response<IEnumerable<UserTranscriptTypeDataSet>>>> GetMarkOfUser()
         {
             string token = Request.Headers["Authorization"];
-            Response<IEnumerable<UserTranscriptDataSet>> result = await _service.GetMarkOfUser(token);
+            Response<IEnumerable<UserTranscriptTypeDataSet>> result = await _service.GetMarkOfUser(token);
             return Ok(result);
         }
     }

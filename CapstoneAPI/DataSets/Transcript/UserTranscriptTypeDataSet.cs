@@ -5,10 +5,10 @@ using System.Threading.Tasks;
 
 namespace CapstoneAPI.DataSets.Transcript
 {
-    public class UserTranscriptDataSet
+    public class UserTranscriptTypeDataSet
     {
-        public int TranscriptTypeId { get; set; }
-        public string TranscriptTypeName { get; set; }
+        public int Id { get; set; }
+        public string Name { get; set; }
         public int Priority { get; set; }
         public List<UserTranscriptDetailDataSet> TranscriptDetails { get;set; }
     }

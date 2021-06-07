@@ -1,11 +1,8 @@
 ﻿using CapstoneAPI.DataSets.Major;
 using CapstoneAPI.DataSets.SpecialSubjectGroup;
 using CapstoneAPI.DataSets.Subject;
-using CapstoneAPI.Models;
-using System;
+using CapstoneAPI.DataSets.Transcript;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace CapstoneAPI.DataSets.SubjectGroup
 {
@@ -17,5 +14,15 @@ namespace CapstoneAPI.DataSets.SubjectGroup
         public List<SpecialSubjectGroupDataSet> SpecialSubjectGroupDataSets { get; set; }
         public List<SubjectDataSet> SubjectDataSets { get; set; }
         public List<MajorDataSet> SuggestedMajors { get; set; }
+    }
+
+    public class UserSuggestionInformation
+    {
+        public int TranscriptTypeId { get; set; }
+        public string TranscriptTypeName { get; set; }
+        public int? ProvinceId { get; set; }
+        public int? Gender { get; set; }
+        public IEnumerable<SubjectGroupDataSet> SubjectGroupDataSets { get; set; }
+        public IEnumerable<UserTranscriptTypeDataSet> TranscriptDetails { get; set; }
     }
 }
