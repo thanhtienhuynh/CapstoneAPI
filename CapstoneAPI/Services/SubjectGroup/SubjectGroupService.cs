@@ -398,8 +398,7 @@ namespace CapstoneAPI.Services.SubjectGroup
                 createSubjectGroupParam.SpecicalSubjectGroupIds = new List<int?>();
             }
 
-            if ((createSubjectGroupParam.SubjectIds == null && createSubjectGroupParam.SpecicalSubjectGroupIds == null)
-                || (createSubjectGroupParam.SubjectIds.Count + createSubjectGroupParam.SpecicalSubjectGroupIds.Count) < Consts.REQUIRED_NUMBER_SUBJECTS)
+            if ((createSubjectGroupParam.SubjectIds.Count + createSubjectGroupParam.SpecicalSubjectGroupIds.Count) < Consts.REQUIRED_NUMBER_SUBJECTS)
             {
                 response.Succeeded = false;
                 if (response.Errors == null)
