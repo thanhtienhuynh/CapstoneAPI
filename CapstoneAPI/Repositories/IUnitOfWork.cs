@@ -37,6 +37,7 @@ namespace CapstoneAPI.Repositories
         IGenericRepository<MajorSubjectGroup> MajorSubjectGroupRepository { get; }
         IGenericRepository<Province> ProvinceRepository { get; }
         ISeasonRepository SeasonRepository { get; }
+        IGenericRepository<SpecialSubjectGroup> SpecialSubjectGroupRepository { get; }
         IGenericRepository<AdmissionMethod> AdmissionMethodRepository { get; }
         IGenericRepository<MajorArticle> MajorArticleRepository { get; }
         IRankRepository RankRepository { get; }

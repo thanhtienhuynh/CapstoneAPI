@@ -40,6 +40,7 @@ namespace CapstoneAPI.Repositories
         private ISeasonRepository _seasonRepository;
         private IGenericRepository<Province> _provinceRepository;
         private IGenericRepository<AdmissionMethod> _admissionMethodRepository;
+        private IGenericRepository<SpecialSubjectGroup> _specialSubjectGroupRepository;
         public IGenericRepository<SubjectGroup> SubjectGroupRepository
         {
             get { return _subjectGroupRepository ??= new GenericRepository<SubjectGroup>(_context); }
@@ -165,7 +166,10 @@ namespace CapstoneAPI.Repositories
         {
             get { return _admissionMethodRepository ??= new GenericRepository<AdmissionMethod>(_context); }
         }
-
+        public IGenericRepository<SpecialSubjectGroup> SpecialSubjectGroupRepository
+        {
+            get { return _specialSubjectGroupRepository ??= new GenericRepository<SpecialSubjectGroup>(_context); }
+        }
         public UnitOfWork(CapstoneDBContext context)
         {
             _context = context;

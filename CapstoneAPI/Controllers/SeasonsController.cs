@@ -1,4 +1,5 @@
 ﻿using CapstoneAPI.DataSets;
+using CapstoneAPI.DataSets.Season;
 using CapstoneAPI.Services.Season;
 using CapstoneAPI.Wrappers;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +20,7 @@ namespace CapstoneAPI.Controllers
             _service = service;
         }
         [HttpGet]
-        public async Task<ActionResult<Response<IEnumerable<Models.Season>>>> GetSubjects()
+        public async Task<ActionResult<Response<IEnumerable<AdminSeasonDataSet>>>> GetSeasons()
         {
             return Ok(await _service.GetAllSeasons());
         }

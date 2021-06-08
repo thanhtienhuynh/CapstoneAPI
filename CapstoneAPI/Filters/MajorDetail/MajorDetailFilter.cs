@@ -14,9 +14,10 @@ namespace CapstoneAPI.Filters.MajorDetail
         public int Order { get; set; }
         /*
          * 0: Sort by DESC Code
-         * 1: Sort by ASC Code
-         * 2: Sort by DESC Name
-         * 3: Sort by ASC Name
+         * 1: Sort by DESC Code
+         * 2: Sort by ASC Code
+         * 3: Sort by DESC Name
+         * 4: Sort by ASC Name
          */
     }
 }

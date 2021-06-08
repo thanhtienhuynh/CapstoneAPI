@@ -49,5 +49,71 @@ namespace CapstoneAPI.Services.MajorSubjectGroup
             response.Succeeded = true;
             return response;
         }
+
+        public async Task<Response<MajorSubjectGroupDataSet>> AddAMajorSubjectGroup(MajorSubjectGroupParam majorSubjectGroupParam)
+        {
+            Response<MajorSubjectGroupDataSet> response = new Response<MajorSubjectGroupDataSet>();
+            if (majorSubjectGroupParam.MajorId <= 0 || majorSubjectGroupParam.SubjectGroupId <= 0)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Id không hợp lệ!");
+                return response;
+            }
+            Models.MajorSubjectGroup majorSubjectGroup = await _uow.MajorSubjectGroupRepository.GetFirst(filter: m =>
+                    m.MajorId == majorSubjectGroupParam.MajorId && m.SubjectGroupId == majorSubjectGroupParam.SubjectGroupId);
+            if (majorSubjectGroup != null)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Ngành học đã có khối phù hợp!");
+                return response;
+            }
+            Models.Major major = await _uow.MajorRepository.GetById(majorSubjectGroupParam.MajorId);
+            Models.SubjectGroup subjectGroup = await _uow.SubjectGroupRepository.GetById(majorSubjectGroupParam.SubjectGroupId);
+            if(major == null || subjectGroup == null)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Khối hoặc ngành không tồn tại!");
+                return response;
+            }
+            Models.MajorSubjectGroup newMajorSubjectGroup = new Models.MajorSubjectGroup
+            {
+                MajorId = majorSubjectGroupParam.MajorId,
+                SubjectGroupId = majorSubjectGroupParam.SubjectGroupId
+            };
+            _uow.MajorSubjectGroupRepository.Insert(newMajorSubjectGroup);
+            if( await _uow.CommitAsync() <= 0)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống!");
+                return response;
+            }
+            MajorSubjectGroupDataSet result = new MajorSubjectGroupDataSet
+            {
+                Id = newMajorSubjectGroup.Id,
+                SubjectGroupName = subjectGroup.GroupCode,
+            };
+            response.Data = result;
+            response.Succeeded = true;
+
+
+
+            return response;
+        }
     }
 }

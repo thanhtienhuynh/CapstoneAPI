@@ -553,17 +553,20 @@ namespace CapstoneAPI.Services.University
             switch (majorDetailFilter.Order)
             {
                 case 0:
-                    order = order => order.OrderByDescending(a => a.Major.Code);
+                    order = order => order.OrderByDescending(a => a.UpdatedDate);
                     break;
                 case 1:
-                    order = order => order.OrderBy(a => a.Major.Code);
+                    order = order => order.OrderByDescending(a => a.Major.Code);
                     break;
                 case 2:
-                    order = order => order.OrderByDescending(a => a.Major.Name);
+                    order = order => order.OrderBy(a => a.Major.Code);
                     break;
                 case 3:
-                    order = order => order.OrderBy(a => a.Major.Name);
+                    order = order => order.OrderByDescending(a => a.Major.Name);
                     break;
+                case 4:
+                    order = order => order.OrderBy(a => a.Major.Name);
+                    break;                
             }
 
             IEnumerable<Models.MajorDetail> majorDetails = await _uow.MajorDetailRepository
@@ -574,6 +577,7 @@ namespace CapstoneAPI.Services.University
             foreach (IGrouping<Models.Major, Models.MajorDetail> item in groupbyMajor)
             {
                 UniMajorDataSet uniMajorDataSet = new UniMajorDataSet();
+                uniMajorDataSet.UniversityId = majorDetailFilter.UniversityId;
                 uniMajorDataSet.MajorId = item.Key.Id;
                 uniMajorDataSet.MajorName = item.Key.Name;
                 uniMajorDataSet.MajorCode = item.Key.Code;
@@ -913,6 +917,7 @@ namespace CapstoneAPI.Services.University
                     TrainingProgramId = addingMajorUniversityParam.TrainingProgramId,
                     SeasonId = addingMajorUniversityParam.SeasonId,
                     MajorCode = addingMajorUniversityParam.MajorCode,
+                    UpdatedDate = DateTime.UtcNow,
                     Status = Consts.STATUS_ACTIVE,
                 };
 
@@ -1044,7 +1049,7 @@ namespace CapstoneAPI.Services.University
                 {
                     response.Errors = new List<string>();
                 }
-                response.Errors.Add("Lỗi hệ thống!");
+                response.Errors.Add("Lỗi hệ thống!" +ex);
 
             }
 
@@ -1086,6 +1091,7 @@ namespace CapstoneAPI.Services.University
             try
             {
                 MajorDetailExisted.MajorCode = updatingMajorUniversityParam.MajorCode;
+                MajorDetailExisted.UpdatedDate = DateTime.Now;
                 MajorDetailExisted.Status = updatingMajorUniversityParam.Status;
                 _uow.MajorDetailRepository.Update(MajorDetailExisted);
                 if ((await _uow.CommitAsync()) <= 0)
@@ -1226,17 +1232,17 @@ namespace CapstoneAPI.Services.University
                             entryMark.Id = (int)entryMarkParam.EntryMarkId;
                             _uow.EntryMarkRepository.Update(entryMark);
                         }
-                    }
-                    if ((await _uow.CommitAsync()) <= 0)
-                    {
-                        response.Succeeded = false;
-                        if (response.Errors == null)
+                        if ((await _uow.CommitAsync()) <= 0)
                         {
-                            response.Errors = new List<string>();
+                            response.Succeeded = false;
+                            if (response.Errors == null)
+                            {
+                                response.Errors = new List<string>();
+                            }
+                            response.Errors.Add("Cập nhật điểm chuẩn bị lỗi!");
+                            return response;
                         }
-                        response.Errors.Add("Cập nhật điểm chuẩn bị lỗi!");
-                        return response;
-                    }
+                    }                    
                 }
 
                 tran.Commit();

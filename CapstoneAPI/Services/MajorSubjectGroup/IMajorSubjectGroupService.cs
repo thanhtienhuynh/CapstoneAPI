@@ -10,5 +10,7 @@ namespace CapstoneAPI.Services.MajorSubjectGroup
     public interface IMajorSubjectGroupService
     {
         Task<Response<IEnumerable<MajorSubjectGroupDataSet>>> GetMajorSubjectGourpByMajor(int majorId);
+        Task<Response<MajorSubjectGroupDataSet>> AddAMajorSubjectGroup(MajorSubjectGroupParam majorSubjectGroupParam);
+
     }
 }
