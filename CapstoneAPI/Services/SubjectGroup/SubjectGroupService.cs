@@ -294,7 +294,7 @@ namespace CapstoneAPI.Services.SubjectGroup
                                 totalSpecialGroupMark += 0;
                             }
                         }
-                        subjectMark += (totalSpecialGroupMark / subjects.Count());
+                        subjectMark += totalSpecialGroupMark / subjects.Count();
                     }
                 }
                 totalMark += subjectMark * subjectWeight.Weight;
@@ -865,6 +865,7 @@ namespace CapstoneAPI.Services.SubjectGroup
                     Gender = user.Gender,
                     ProvinceId = user.ProvinceId
                 };
+                break;
             }
             response.Succeeded = true;
             response.Data = userSuggestionSubjectGroup;
