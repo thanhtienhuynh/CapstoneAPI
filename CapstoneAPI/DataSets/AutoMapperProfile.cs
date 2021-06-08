@@ -8,6 +8,7 @@ using CapstoneAPI.DataSets.Province;
 using CapstoneAPI.DataSets.Question;
 using CapstoneAPI.DataSets.QuestionSubmission;
 using CapstoneAPI.DataSets.Rank;
+using CapstoneAPI.DataSets.Season;
 using CapstoneAPI.DataSets.SpecialSubjectGroup;
 using CapstoneAPI.DataSets.Subject;
 using CapstoneAPI.DataSets.SubjectGroup;
@@ -64,6 +65,8 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.Province, ProvinceDataSet>();
             CreateMap<Models.SpecialSubjectGroup, SpecialSubjectGroupDataSet>();
             CreateMap<Models.AdmissionMethod, AdmissionMethodDataSet>();
+            CreateMap<Models.Season, AdminSeasonDataSet>();
+            CreateMap<AdminSeasonDataSet, Models.Season>();
         }
     }
 }

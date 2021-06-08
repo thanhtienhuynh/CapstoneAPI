@@ -915,7 +915,7 @@ namespace CapstoneAPI.Services.University
                     TrainingProgramId = addingMajorUniversityParam.TrainingProgramId,
                     SeasonId = addingMajorUniversityParam.SeasonId,
                     MajorCode = addingMajorUniversityParam.MajorCode,
-                    UpdatedDate = DateTime.Now,
+                    UpdatedDate = DateTime.UtcNow,
                     Status = Consts.STATUS_ACTIVE,
                 };
 

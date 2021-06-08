@@ -363,19 +363,7 @@ namespace CapstoneAPI.Services.SubjectGroup
 
         public async Task<Response<CreateSubjectGroupDataset>> CreateNewSubjectGroup(CreateSubjectGroupParam createSubjectGroupParam)
         {
-            Response<CreateSubjectGroupDataset> response = new Response<CreateSubjectGroupDataset>();
-            if ((createSubjectGroupParam.SubjectIds == null && createSubjectGroupParam.SpecicalSubjectGroupIds == null)
-                || (createSubjectGroupParam.SubjectIds.Count + createSubjectGroupParam.SpecicalSubjectGroupIds.Count) < Consts.REQUIRED_NUMBER_SUBJECTS)
-            {
-                response.Succeeded = false;
-                if (response.Errors == null)
-                {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Danh sách môn học không hợp lệ!");
-                return response;
-            }
-
+            Response<CreateSubjectGroupDataset> response = new Response<CreateSubjectGroupDataset>();          
             if (createSubjectGroupParam.GroupCode == null || createSubjectGroupParam.GroupCode.Trim().Equals(""))
             {
                 response.Succeeded = false;
@@ -410,7 +398,17 @@ namespace CapstoneAPI.Services.SubjectGroup
                 createSubjectGroupParam.SpecicalSubjectGroupIds = new List<int?>();
             }
 
-
+            if ((createSubjectGroupParam.SubjectIds == null && createSubjectGroupParam.SpecicalSubjectGroupIds == null)
+                || (createSubjectGroupParam.SubjectIds.Count + createSubjectGroupParam.SpecicalSubjectGroupIds.Count) < Consts.REQUIRED_NUMBER_SUBJECTS)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Danh sách môn học không hợp lệ!");
+                return response;
+            }
             if (createSubjectGroupParam.SubjectIds.Count() != createSubjectGroupParam.SubjectIds.Distinct().Count() 
                 || createSubjectGroupParam.SpecicalSubjectGroupIds.Count() != createSubjectGroupParam.SpecicalSubjectGroupIds.Distinct().Count())
             {
