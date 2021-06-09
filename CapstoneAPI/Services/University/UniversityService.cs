@@ -63,7 +63,7 @@ namespace CapstoneAPI.Services.University
 
             //Lấy ra tất cả các trường va hệ có ngành đã chọn
             List<MajorDetail> majorDetails = (await _uow.MajorDetailRepository
-                .Get(filter: w => w.Status == Consts.STATUS_ACTIVE && w.MajorId == universityParam.MajorId, 
+                .Get(filter: w => w.Status == Consts.STATUS_ACTIVE && w.MajorId == universityParam.MajorId,
                     includeProperties: "University,TrainingProgram,AdmissionCriterion,AdmissionCriterion.SubAdmissionCriteria"))
                 .ToList();
             if (majorDetails == null || !majorDetails.Any())
@@ -380,7 +380,7 @@ namespace CapstoneAPI.Services.University
 
             return response; ;
         }
-        
+
         private async Task<double> CalculateSubjectGroupMark(List<MarkParam> marks, List<SubjectGroupDetail> subjectGroupDetails)
         {
             double totalMark = 0;
@@ -436,7 +436,7 @@ namespace CapstoneAPI.Services.University
             }
             return Math.Round(totalMark, 2);
         }
-        
+
         public async Task<Response<IEnumerable<AdminUniversityDataSet>>> GetAllUniversities()
         {
             Response<IEnumerable<AdminUniversityDataSet>> response = new Response<IEnumerable<AdminUniversityDataSet>>();
@@ -448,7 +448,7 @@ namespace CapstoneAPI.Services.University
             response.Succeeded = true;
             return response;
         }
-        
+
         public async Task<PagedResponse<List<AdminUniversityDataSet>>> GetUniversities(PaginationFilter validFilter,
             UniversityFilter universityFilter)
         {
@@ -538,7 +538,7 @@ namespace CapstoneAPI.Services.University
         }
         public async Task<PagedResponse<List<UniMajorDataSet>>> GetMajorDetailInUniversity(PaginationFilter validFilter, MajorDetailFilter majorDetailFilter)
         {
-            List<UniMajorDataSet> ListOfUniMajorDataSets = new List<UniMajorDataSet>();
+            List<UniMajorDataSet> uniMajorDataSets = new List<UniMajorDataSet>();
             PagedResponse<List<UniMajorDataSet>> result = new PagedResponse<List<UniMajorDataSet>>();
             Expression<Func<MajorDetail, bool>> filter = null;
 
@@ -566,13 +566,13 @@ namespace CapstoneAPI.Services.University
                     break;
                 case 4:
                     order = order => order.OrderBy(a => a.Major.Name);
-                    break;                
+                    break;
             }
 
             IEnumerable<Models.MajorDetail> majorDetails = await _uow.MajorDetailRepository
-                .Get(filter: filter, orderBy: order, includeProperties: "Major,Season,AdmissionCriterion,TrainingProgram," +
-                "Major.MajorSubjectGroups",
-                first: validFilter.PageSize, offset: (validFilter.PageNumber - 1) * validFilter.PageSize);
+            .Get(filter: filter, orderBy: order, includeProperties: "Major,Season,AdmissionCriterion,TrainingProgram," +
+            "Major.MajorSubjectGroups");
+
             IEnumerable<IGrouping<Models.Major, Models.MajorDetail>> groupbyMajor = majorDetails.GroupBy(m => m.Major);
             foreach (IGrouping<Models.Major, Models.MajorDetail> item in groupbyMajor)
             {
@@ -640,10 +640,11 @@ namespace CapstoneAPI.Services.University
                     }
                     uniMajorDataSet.MajorDetailUnies.Add(majorDetailUniDataSet);
                 }
-                ListOfUniMajorDataSets.Add(uniMajorDataSet);
+                uniMajorDataSets.Add(uniMajorDataSet);
             }
-            var totalRecords = _uow.MajorDetailRepository.Count(filter);
-            result = PaginationHelper.CreatePagedReponse(ListOfUniMajorDataSets, validFilter, totalRecords);
+            var totalRecords = uniMajorDataSets.Count;
+            List<UniMajorDataSet> a = uniMajorDataSets.Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).ToList();
+            result = PaginationHelper.CreatePagedReponse(uniMajorDataSets, validFilter, totalRecords);
             return result;
         }
 
@@ -1049,7 +1050,7 @@ namespace CapstoneAPI.Services.University
                 {
                     response.Errors = new List<string>();
                 }
-                response.Errors.Add("Lỗi hệ thống!" +ex);
+                response.Errors.Add("Lỗi hệ thống!" + ex);
 
             }
 
@@ -1242,7 +1243,7 @@ namespace CapstoneAPI.Services.University
                             response.Errors.Add("Cập nhật điểm chuẩn bị lỗi!");
                             return response;
                         }
-                    }                    
+                    }
                 }
 
                 tran.Commit();
@@ -1261,7 +1262,7 @@ namespace CapstoneAPI.Services.University
             return response;
         }
 
-        
+
     }
 
 }
