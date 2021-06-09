@@ -221,6 +221,8 @@ namespace CapstoneAPI.Models
 
                 entity.Property(e => e.UniversityId).HasColumnName("University_Id");
 
+                entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
                 entity.HasOne(d => d.Major)
                     .WithMany(p => p.MajorDetails)
                     .HasForeignKey(d => d.MajorId)
