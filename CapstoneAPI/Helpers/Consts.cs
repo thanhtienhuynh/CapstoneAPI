@@ -24,7 +24,7 @@ namespace CapstoneAPI.Helpers
         public static int NEAREST_YEAR = 2020;
         public static int CURRENT_YEAR = 2021;
         //Token
-        public static int TOKEN_EXPIRED_TIME = 60 * 60;
+        public static int TOKEN_EXPIRED_TIME = 60 * 60 * 60;
         //Suggestion
         public static int REQUIRED_NUMBER_SUBJECTS = 3;
         public static int NUMBER_OF_SUGGESTED_GROUP = 3;
@@ -45,5 +45,12 @@ namespace CapstoneAPI.Helpers
         public static string BUCKET = "unilinks-41d0e.appspot.com";
         public static string AUTH_MAIL = "storage@gmail.com";
         public static string AUTH_PASSWORD = "Matkhau123";
-    }                                             
+    }
+
+    public class LogEvent
+    {
+        //Subject
+        public const int GetAllSubjects = 1000;
+        public const int Login = 2000;
+    }
 }

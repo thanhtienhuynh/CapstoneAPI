@@ -5,6 +5,8 @@ using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
 using CapstoneAPI.Services.Major;
 using CapstoneAPI.Wrappers;
+using Microsoft.Extensions.Logging;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,21 +27,23 @@ namespace CapstoneAPI.Services.Subject
         public async Task<Response<IEnumerable<SubjectDataSet>>> GetAllSubjects()
         {
             Response<IEnumerable<SubjectDataSet>> response = new Response<IEnumerable<SubjectDataSet>>();
-            IEnumerable<SubjectDataSet> subjects = (await _uow.SubjectRepository.Get(filter: s => s.Status == Consts.STATUS_ACTIVE)).Select(s => _mapper.Map<SubjectDataSet>(s));
-            if (!subjects.Any())
+            try
             {
-                response.Succeeded = false;
+                IEnumerable<SubjectDataSet> subjects = (await _uow.SubjectRepository.Get(filter: s => s.Status == Consts.STATUS_ACTIVE)).Select(s => _mapper.Map<SubjectDataSet>(s));
+                response.Data = subjects;
+                response.Succeeded = true;
+                throw new Exception("Test lỗi");
+            } catch (Exception ex)
+            {
+                Log.Error(ex.Message);
+                response.Succeeded = true;
                 if (response.Errors == null)
                 {
                     response.Errors = new List<string>();
                 }
-                response.Errors.Add("Không có môn học nào thỏa mãn!");
-            } else
-            {
-                response.Data = subjects;
-                response.Message = "Thành công!";
-                response.Succeeded = true;
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
+            
             return response;
         }
     }
