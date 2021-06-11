@@ -2,6 +2,7 @@
 using CapstoneAPI.DataSets.AdmissionMethod;
 using CapstoneAPI.Repositories;
 using CapstoneAPI.Wrappers;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +14,8 @@ namespace CapstoneAPI.Services.AdmissionMethodService
     {
         private IMapper _mapper;
         private readonly IUnitOfWork _uow;
+        private readonly ILogger _log = Log.ForContext<AdmissitonMethodService>();
+
         public AdmissitonMethodService(IUnitOfWork uow, IMapper mapper)
         {
             _uow = uow;
@@ -22,21 +25,32 @@ namespace CapstoneAPI.Services.AdmissionMethodService
         public async Task<Response<IEnumerable<AdmissionMethodDataSet>>> GetAllAdmsstionMethods()
         {
             Response<IEnumerable<AdmissionMethodDataSet>> response = new Response<IEnumerable<AdmissionMethodDataSet>>();
-            IEnumerable<AdmissionMethodDataSet> subjects = (await _uow.AdmissionMethodRepository.Get()).Select(s => _mapper.Map<AdmissionMethodDataSet>(s));
-            if (!subjects.Any())
+            try
             {
+                IEnumerable<AdmissionMethodDataSet> subjects = (await _uow.AdmissionMethodRepository.Get()).Select(s => _mapper.Map<AdmissionMethodDataSet>(s));
+                if (!subjects.Any())
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Không có môn học nào thỏa mãn!");
+                }
+                else
+                {
+                    response.Data = subjects;
+                    response.Succeeded = true;
+                }
+            } catch (Exception ex)
+            {
+                _log.Error(ex.Message);
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
                     response.Errors = new List<string>();
                 }
-                response.Errors.Add("Không có môn học nào thỏa mãn!");
-            }
-            else
-            {
-                response.Data = subjects;
-                response.Message = "Thành công!";
-                response.Succeeded = true;
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
             return response;
         }

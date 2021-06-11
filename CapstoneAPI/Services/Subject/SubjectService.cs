@@ -1,11 +1,11 @@
 ﻿using AutoMapper;
+using CapstoneAPI.Controllers;
 using CapstoneAPI.DataSets.Subject;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
 using CapstoneAPI.Services.Major;
 using CapstoneAPI.Wrappers;
-using Microsoft.Extensions.Logging;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -18,6 +18,8 @@ namespace CapstoneAPI.Services.Subject
     {
         private IMapper _mapper;
         private readonly IUnitOfWork _uow;
+        private readonly ILogger _log = Log.ForContext<SubjectService>();
+
         public SubjectService(IUnitOfWork uow, IMapper mapper)
         {
             _uow = uow;
@@ -32,11 +34,10 @@ namespace CapstoneAPI.Services.Subject
                 IEnumerable<SubjectDataSet> subjects = (await _uow.SubjectRepository.Get(filter: s => s.Status == Consts.STATUS_ACTIVE)).Select(s => _mapper.Map<SubjectDataSet>(s));
                 response.Data = subjects;
                 response.Succeeded = true;
-                throw new Exception("Test lỗi");
             } catch (Exception ex)
             {
-                Log.Error(ex.Message);
-                response.Succeeded = true;
+                _log.Error(ex.Message);
+                response.Succeeded = false;
                 if (response.Errors == null)
                 {
                     response.Errors = new List<string>();

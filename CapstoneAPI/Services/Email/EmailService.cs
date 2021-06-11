@@ -1,8 +1,8 @@
 ﻿using CapstoneAPI.DataSets.Email;
 using MailKit.Security;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
+using Serilog;
 using System;
 using System.Threading.Tasks;
 
@@ -12,14 +12,12 @@ namespace CapstoneAPI.Services.Email
     {
         private readonly EmailSetting mailSettings;
 
-        private readonly ILogger<EmailService> logger;
+        private readonly ILogger _log = Log.ForContext<EmailService>();
 
 
-        public EmailService(IOptions<EmailSetting> _emailSetting, ILogger<EmailService> _logger)
+        public EmailService(IOptions<EmailSetting> _emailSetting)
         {
             mailSettings = _emailSetting.Value;
-            logger = _logger;
-            logger.LogInformation("Create SendMailService");
         }
 
         // Gửi email, theo nội dung trong mailContent
@@ -51,15 +49,10 @@ namespace CapstoneAPI.Services.Email
                 System.IO.Directory.CreateDirectory("mailssave");
                 var emailsavefile = string.Format(@"mailssave/{0}.eml", Guid.NewGuid());
                 await email.WriteToAsync(emailsavefile);
-
-                logger.LogInformation("Lỗi gửi mail, lưu tại - " + emailsavefile);
-                logger.LogError(ex.Message);
+                _log.Error(ex.Message);
             }
 
             smtp.Disconnect(true);
-
-            logger.LogInformation("send mail to " + mailContent.To);
-
         }
         public async Task SendEmailAsync(string email, string subject, string htmlMessage)
         {

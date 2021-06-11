@@ -7,6 +7,7 @@ using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
 using CapstoneAPI.Wrappers;
+using Serilog;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -19,6 +20,8 @@ namespace CapstoneAPI.Services.SubjectGroup
     {
         private IMapper _mapper;
         private readonly IUnitOfWork _uow;
+        private readonly ILogger _log = Log.ForContext<SubjectGroupService>();
+
         public SubjectGroupService(IUnitOfWork uow, IMapper mapper)
         {
             _uow = uow;
@@ -28,177 +31,189 @@ namespace CapstoneAPI.Services.SubjectGroup
         public async Task<Response<IEnumerable<SubjectGroupDataSet>>> GetCaculatedSubjectGroup(SubjectGroupParam subjectGroupParam)
         {
             Response<IEnumerable<SubjectGroupDataSet>> response = new Response<IEnumerable<SubjectGroupDataSet>>();
-            List<SubjectGroupDataSet> subjectGroupDataSets = new List<SubjectGroupDataSet>();
-            //Lấy danh sách khối
-            IEnumerable<Models.SubjectGroup> subjectGroups = await _uow.SubjectGroupRepository.Get(includeProperties: "SubjectGroupDetails,SubjectGroupDetails.Subject,SubjectGroupDetails.SpecialSubjectGroup");
-
-            if (!subjectGroups.Any())
+            try
             {
-                response.Succeeded = false;
-                if (response.Errors == null)
-                {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Hệ thống ghi nhận không có tổ hợp môn nào!");
-                return response;
-            }
+                List<SubjectGroupDataSet> subjectGroupDataSets = new List<SubjectGroupDataSet>();
+                //Lấy danh sách khối
+                IEnumerable<Models.SubjectGroup> subjectGroups = await _uow.SubjectGroupRepository.Get(includeProperties: "SubjectGroupDetails,SubjectGroupDetails.Subject,SubjectGroupDetails.SpecialSubjectGroup");
 
-            //Tính điểm mỗi khối
-            foreach (Models.SubjectGroup subjectGroup in subjectGroups)
-            {
-                double totalMark = await CalculateSubjectGroupMark(subjectGroupParam.Marks, subjectGroup.SubjectGroupDetails.ToList());
-                if (totalMark > 0)
+                if (!subjectGroups.Any())
                 {
-                    subjectGroupDataSets.Add(new SubjectGroupDataSet
+                    response.Succeeded = false;
+                    if (response.Errors == null)
                     {
-                        TotalMark = totalMark,
-                        Name = subjectGroup.GroupCode,
-                        Id = subjectGroup.Id,
-                        SubjectDataSets = subjectGroup.SubjectGroupDetails.Where(s => s.Subject != null).Select(s => _mapper.Map<SubjectDataSet>(s.Subject)).ToList(),
-                        SpecialSubjectGroupDataSets = subjectGroup.SubjectGroupDetails.Where(s => s.SpecialSubjectGroup != null).Select(s => _mapper.Map<SpecialSubjectGroupDataSet>(s.SpecialSubjectGroup)).ToList()
-                    });
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Hệ thống ghi nhận không có tổ hợp môn nào!");
+                    return response;
                 }
-            }
 
-            if (!subjectGroupDataSets.Any())
-            {
+                //Tính điểm mỗi khối
+                foreach (Models.SubjectGroup subjectGroup in subjectGroups)
+                {
+                    double totalMark = await CalculateSubjectGroupMark(subjectGroupParam.Marks, subjectGroup.SubjectGroupDetails.ToList());
+                    if (totalMark > 0)
+                    {
+                        subjectGroupDataSets.Add(new SubjectGroupDataSet
+                        {
+                            TotalMark = totalMark,
+                            Name = subjectGroup.GroupCode,
+                            Id = subjectGroup.Id,
+                            SubjectDataSets = subjectGroup.SubjectGroupDetails.Where(s => s.Subject != null).Select(s => _mapper.Map<SubjectDataSet>(s.Subject)).ToList(),
+                            SpecialSubjectGroupDataSets = subjectGroup.SubjectGroupDetails.Where(s => s.SpecialSubjectGroup != null).Select(s => _mapper.Map<SpecialSubjectGroupDataSet>(s.SpecialSubjectGroup)).ToList()
+                        });
+                    }
+                }
+
+                if (!subjectGroupDataSets.Any())
+                {
+                    response.Succeeded = true;
+                    response.Data = subjectGroupDataSets;
+                    return response;
+                }
+
+                Models.Season currentSeason = await _uow.SeasonRepository.GetCurrentSeason();
+                Models.Season previousSeason = await _uow.SeasonRepository.GetPreviousSeason();
+
+                if (currentSeason == null || previousSeason == null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Mùa tuyển sinh chưa được kích hoạt!");
+                    return response;
+                }
+
+                List<SubjectGroupDataSet> suggestedSubjectGroups = new List<SubjectGroupDataSet>();
+
+                foreach (SubjectGroupDataSet subjectGroupDataSet in subjectGroupDataSets)
+                {
+                    IEnumerable<Models.Major> majors = (await _uow.MajorSubjectGroupRepository
+                        .Get(filter: s => s.SubjectGroupId == subjectGroupDataSet.Id,
+                            includeProperties: "Major")).Select(s => s.Major);
+                    List<MajorDataSet> majorDataSets = new List<MajorDataSet>();
+                    foreach (Models.Major major in majors)
+                    {
+
+                        var groupsByMajorDetails = (await _uow.MajorDetailRepository
+                            .Get(filter: m => m.MajorId == major.Id && m.Status == Consts.STATUS_ACTIVE,
+                                includeProperties: "University,TrainingProgram,AdmissionCriterion,AdmissionCriterion.SubAdmissionCriteria"))
+                            .GroupBy(m => new { m.UniversityId, m.TrainingProgramId });
+
+                        bool isValid = false;
+                        double highestEntryMark = 0;
+                        foreach (var groupsByMajorDetail in groupsByMajorDetails)
+                        {
+                            MajorDetail currentMajorDetail = groupsByMajorDetail.Where(m => m.SeasonId == currentSeason.Id).FirstOrDefault();
+                            MajorDetail previousMajorDetail = groupsByMajorDetail.Where(m => m.SeasonId == previousSeason.Id).FirstOrDefault();
+                            if (currentMajorDetail == null || previousMajorDetail == null)
+                            {
+                                continue;
+                            }
+
+                            if (currentMajorDetail.AdmissionCriterion == null || previousMajorDetail.AdmissionCriterion == null)
+                            {
+                                continue;
+                            }
+
+                            if (currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria == null
+                                || !currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria.Where(s => s.Status == Consts.STATUS_ACTIVE).Any()
+                                || previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria == null
+                                || !previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria.Where(s => s.Status == Consts.STATUS_ACTIVE).Any())
+                            {
+                                continue;
+                            }
+
+                            List<SubAdmissionCriterion> currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                                .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == subjectGroupParam.Gender || a.Gender == null)
+                                 && (a.ProvinceId == subjectGroupParam.ProvinceId || a.ProvinceId == null)).ToList();
+                            List<SubAdmissionCriterion> previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                                .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == subjectGroupParam.Gender || a.Gender == null)
+                                 && (a.ProvinceId == subjectGroupParam.ProvinceId || a.ProvinceId == null)).ToList();
+
+                            if (!currentSubAdmissionCriterias.Any() || !previousSubAdmissionCriterias.Any())
+                            {
+                                continue;
+                            }
+
+                            List<EntryMark> currentEntryMarks = new List<EntryMark>();
+                            List<EntryMark> previousEntryMarks = new List<EntryMark>();
+
+                            foreach (SubAdmissionCriterion currentSubAdmissionCriteria in currentSubAdmissionCriterias)
+                            {
+                                List<EntryMark> entryMarks = (await _uow.EntryMarkRepository
+                                    .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == currentSubAdmissionCriteria.Id && e.MajorSubjectGroupId != null,
+                                        includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup,SubAdmissionCriterion"))
+                                    .ToList();
+                                currentEntryMarks.AddRange(entryMarks);
+                            }
+
+                            foreach (SubAdmissionCriterion previousSubAdmissionCriteria in previousSubAdmissionCriterias)
+                            {
+                                List<EntryMark> entryMarks = (await _uow.EntryMarkRepository
+                                    .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == previousSubAdmissionCriteria.Id && e.MajorSubjectGroupId != null,
+                                        includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup,SubAdmissionCriterion"))
+                                    .ToList();
+                                previousEntryMarks.AddRange(entryMarks);
+                            }
+
+                            if (!currentEntryMarks.Any() || !previousEntryMarks.Any())
+                            {
+                                continue;
+                            }
+
+                            if (!currentEntryMarks.Where(e => e.MajorSubjectGroup.SubjectGroupId == subjectGroupDataSet.Id).Any()
+                                || !previousEntryMarks.Where(e => e.MajorSubjectGroup.SubjectGroupId == subjectGroupDataSet.Id
+                                                            && e.Mark != null
+                                                            && e.Mark <= subjectGroupDataSet.TotalMark).Any())
+                            {
+                                continue;
+                            }
+                            isValid = true;
+                            double newMark = previousEntryMarks.First(e => e.MajorSubjectGroup.SubjectGroupId == subjectGroupDataSet.Id).Mark ?? 0;
+                            highestEntryMark = newMark > highestEntryMark ? newMark : highestEntryMark;
+                        }
+
+                        if (isValid)
+                        {
+                            MajorDataSet majorDataSet = _mapper.Map<MajorDataSet>(major);
+                            majorDataSet.HighestEntryMark = highestEntryMark;
+                            majorDataSets.Add(majorDataSet);
+                        }
+                    }
+
+                    if (majorDataSets.Any())
+                    {
+                        subjectGroupDataSet.SuggestedMajors = majorDataSets;
+                        suggestedSubjectGroups.Add(subjectGroupDataSet);
+                    }
+                }
+
+                suggestedSubjectGroups = suggestedSubjectGroups
+                    .OrderByDescending(o => o.TotalMark).Take(Consts.NUMBER_OF_SUGGESTED_GROUP).ToList();
+
+                foreach (SubjectGroupDataSet suggestGroup in suggestedSubjectGroups)
+                {
+                    //Tính trọng số từng ngành
+                    suggestGroup.SuggestedMajors = await GenerateListMajors(subjectGroupParam, suggestGroup.SuggestedMajors, suggestGroup.Id);
+                }
+
+                IEnumerable<SubjectGroupDataSet> results = suggestedSubjectGroups.Where(s => s.SuggestedMajors.Count() > 0);
+
                 response.Succeeded = true;
-                response.Data = subjectGroupDataSets;
-                return response;
-            }
-
-            Models.Season currentSeason = await _uow.SeasonRepository.GetCurrentSeason();
-            Models.Season previousSeason = await _uow.SeasonRepository.GetPreviousSeason();
-
-            if (currentSeason == null || previousSeason == null)
+                response.Data = results;
+            } catch (Exception ex)
             {
+                _log.Error(ex.Message);
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
                     response.Errors = new List<string>();
                 }
-                response.Errors.Add("Mùa tuyển sinh chưa được kích hoạt!");
-                return response;
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
-
-            List<SubjectGroupDataSet> suggestedSubjectGroups = new List<SubjectGroupDataSet>();
-
-            foreach (SubjectGroupDataSet subjectGroupDataSet in subjectGroupDataSets)
-            {
-                IEnumerable<Models.Major> majors = (await _uow.MajorSubjectGroupRepository
-                    .Get(filter: s => s.SubjectGroupId == subjectGroupDataSet.Id,
-                        includeProperties: "Major")).Select(s => s.Major);
-                List<MajorDataSet> majorDataSets = new List<MajorDataSet>();
-                foreach (Models.Major major in majors)
-                {
-
-                    var groupsByMajorDetails = (await _uow.MajorDetailRepository
-                        .Get(filter: m => m.MajorId == major.Id && m.Status == Consts.STATUS_ACTIVE,
-                            includeProperties: "University,TrainingProgram,AdmissionCriterion,AdmissionCriterion.SubAdmissionCriteria"))
-                        .GroupBy(m => new { m.UniversityId, m.TrainingProgramId });
-
-                    bool isValid = false;
-                    double highestEntryMark = 0;
-                    foreach (var groupsByMajorDetail in groupsByMajorDetails)
-                    {
-                        MajorDetail currentMajorDetail = groupsByMajorDetail.Where(m => m.SeasonId == currentSeason.Id).FirstOrDefault();
-                        MajorDetail previousMajorDetail = groupsByMajorDetail.Where(m => m.SeasonId == previousSeason.Id).FirstOrDefault();
-                        if (currentMajorDetail == null || previousMajorDetail == null)
-                        {
-                            continue;
-                        }
-
-                        if (currentMajorDetail.AdmissionCriterion == null || previousMajorDetail.AdmissionCriterion == null)
-                        {
-                            continue;
-                        }
-
-                        if (currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria == null
-                            || !currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria.Where(s => s.Status == Consts.STATUS_ACTIVE).Any()
-                            || previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria == null
-                            || !previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria.Where(s => s.Status == Consts.STATUS_ACTIVE).Any())
-                        {
-                            continue;
-                        }
-
-                        List<SubAdmissionCriterion> currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == subjectGroupParam.Gender || a.Gender == null)
-                             && (a.ProvinceId == subjectGroupParam.ProvinceId || a.ProvinceId == null)).ToList();
-                        List<SubAdmissionCriterion> previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == subjectGroupParam.Gender || a.Gender == null)
-                             && (a.ProvinceId == subjectGroupParam.ProvinceId || a.ProvinceId == null)).ToList();
-
-                        if (!currentSubAdmissionCriterias.Any() || !previousSubAdmissionCriterias.Any())
-                        {
-                            continue;
-                        }
-
-                        List<EntryMark> currentEntryMarks = new List<EntryMark>();
-                        List<EntryMark> previousEntryMarks = new List<EntryMark>();
-
-                        foreach (SubAdmissionCriterion currentSubAdmissionCriteria in currentSubAdmissionCriterias)
-                        {
-                            List<EntryMark> entryMarks = (await _uow.EntryMarkRepository
-                                .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == currentSubAdmissionCriteria.Id && e.MajorSubjectGroupId != null,
-                                    includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup,SubAdmissionCriterion"))
-                                .ToList();
-                            currentEntryMarks.AddRange(entryMarks);
-                        }
-
-                        foreach (SubAdmissionCriterion previousSubAdmissionCriteria in previousSubAdmissionCriterias)
-                        {
-                            List<EntryMark> entryMarks = (await _uow.EntryMarkRepository
-                                .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == previousSubAdmissionCriteria.Id && e.MajorSubjectGroupId != null,
-                                    includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup,SubAdmissionCriterion"))
-                                .ToList();
-                            previousEntryMarks.AddRange(entryMarks);
-                        }
-
-                        if (!currentEntryMarks.Any() || !previousEntryMarks.Any())
-                        {
-                            continue;
-                        }
-
-                        if (!currentEntryMarks.Where(e => e.MajorSubjectGroup.SubjectGroupId == subjectGroupDataSet.Id).Any()
-                            || !previousEntryMarks.Where(e => e.MajorSubjectGroup.SubjectGroupId == subjectGroupDataSet.Id
-                                                        && e.Mark != null
-                                                        && e.Mark <= subjectGroupDataSet.TotalMark).Any())
-                        {
-                            continue;
-                        }
-                        isValid = true;
-                        double newMark = previousEntryMarks.First(e => e.MajorSubjectGroup.SubjectGroupId == subjectGroupDataSet.Id).Mark ?? 0;
-                        highestEntryMark = newMark > highestEntryMark ? newMark : highestEntryMark;
-                    }
-
-                    if (isValid)
-                    {
-                        MajorDataSet majorDataSet = _mapper.Map<MajorDataSet>(major);
-                        majorDataSet.HighestEntryMark = highestEntryMark;
-                        majorDataSets.Add(majorDataSet);
-                    }
-                }
-
-                if (majorDataSets.Any())
-                {
-                    subjectGroupDataSet.SuggestedMajors = majorDataSets;
-                    suggestedSubjectGroups.Add(subjectGroupDataSet);
-                }
-            }
-
-            suggestedSubjectGroups = suggestedSubjectGroups
-                .OrderByDescending(o => o.TotalMark).Take(Consts.NUMBER_OF_SUGGESTED_GROUP).ToList();
-
-            foreach (SubjectGroupDataSet suggestGroup in suggestedSubjectGroups)
-            {
-                //Tính trọng số từng ngành
-                suggestGroup.SuggestedMajors = await GenerateListMajors(subjectGroupParam, suggestGroup.SuggestedMajors, suggestGroup.Id);
-            }
-
-            IEnumerable<SubjectGroupDataSet> results = suggestedSubjectGroups.Where(s => s.SuggestedMajors.Count() > 0);
-
-            response.Succeeded = true;
-            response.Data = results;
             return response;
         }
 
@@ -236,21 +251,33 @@ namespace CapstoneAPI.Services.SubjectGroup
         public async Task<Response<IEnumerable<AdminSubjectGroupDataSet>>> GetListSubjectGroups()
         {
             Response<IEnumerable<AdminSubjectGroupDataSet>> response = new Response<IEnumerable<AdminSubjectGroupDataSet>>();
-            IEnumerable<AdminSubjectGroupDataSet> subjectGroupDataSets = (await _uow.SubjectGroupRepository.Get(filter: s => s.Status == Consts.STATUS_ACTIVE))
-                .Select(s => _mapper.Map<AdminSubjectGroupDataSet>(s));
-            if (subjectGroupDataSets == null || !subjectGroupDataSets.Any())
+            try
             {
+                IEnumerable<AdminSubjectGroupDataSet> subjectGroupDataSets = (await _uow.SubjectGroupRepository.Get(filter: s => s.Status == Consts.STATUS_ACTIVE))
+                .Select(s => _mapper.Map<AdminSubjectGroupDataSet>(s));
+                if (subjectGroupDataSets == null || !subjectGroupDataSets.Any())
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Không có khối nào trong hệ thống!");
+                }
+                else
+                {
+                    response.Succeeded = true;
+                    response.Data = subjectGroupDataSets;
+                }
+            } catch (Exception ex)
+            {
+                _log.Error(ex.Message);
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
                     response.Errors = new List<string>();
                 }
-                response.Errors.Add("Không có khối nào trong hệ thống!");
-            }
-            else
-            {
-                response.Succeeded = true;
-                response.Data = subjectGroupDataSets;
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
             return response;
         }
@@ -364,215 +391,227 @@ namespace CapstoneAPI.Services.SubjectGroup
         public async Task<Response<CreateSubjectGroupDataset>> CreateNewSubjectGroup(CreateSubjectGroupParam createSubjectGroupParam)
         {
             Response<CreateSubjectGroupDataset> response = new Response<CreateSubjectGroupDataset>();          
-            if (createSubjectGroupParam.GroupCode == null || createSubjectGroupParam.GroupCode.Trim().Equals(""))
+            try
             {
-                response.Succeeded = false;
-                if (response.Errors == null)
-                {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Tên khối không được để trống!");
-                return response;
-            }
-            Models.SubjectGroup existSubjectGroup = await _uow.SubjectGroupRepository.GetFirst(filter: e => e.GroupCode.Equals(createSubjectGroupParam.GroupCode));
-            if (existSubjectGroup != null)
-            {
-                response.Succeeded = false;
-                if (response.Errors == null)
-                {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Tên khối đã tồn tại trong hệ thống!");
-                return response;
-            }
-
-
-            List<SubjectDataSet> ListOfSubject = new List<SubjectDataSet>();
-
-            if (createSubjectGroupParam.SubjectIds == null)
-            {
-                createSubjectGroupParam.SubjectIds = new List<int?>();
-            }
-            if(createSubjectGroupParam.SpecicalSubjectGroupIds == null)
-            {
-                createSubjectGroupParam.SpecicalSubjectGroupIds = new List<int?>();
-            }
-
-            if ((createSubjectGroupParam.SubjectIds.Count + createSubjectGroupParam.SpecicalSubjectGroupIds.Count) < Consts.REQUIRED_NUMBER_SUBJECTS)
-            {
-                response.Succeeded = false;
-                if (response.Errors == null)
-                {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Danh sách môn học không hợp lệ!");
-                return response;
-            }
-            if (createSubjectGroupParam.SubjectIds.Count() != createSubjectGroupParam.SubjectIds.Distinct().Count() 
-                || createSubjectGroupParam.SpecicalSubjectGroupIds.Count() != createSubjectGroupParam.SpecicalSubjectGroupIds.Distinct().Count())
-            {
-                response.Succeeded = false;
-                if (response.Errors == null)
-                {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Môn học trong một khối trùng nhau!");
-                return response;
-
-            }
-            foreach (int? id in createSubjectGroupParam.SpecicalSubjectGroupIds)
-            {
-                if(id == null)
+                if (createSubjectGroupParam.GroupCode == null || createSubjectGroupParam.GroupCode.Trim().Equals(""))
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Môn học không thể là null");
+                    response.Errors.Add("Tên khối không được để trống!");
                     return response;
                 }
-                Models.SpecialSubjectGroup specialSubjectGroup = await _uow.SpecialSubjectGroupRepository.GetById(id);
-                if (specialSubjectGroup == null)
+                Models.SubjectGroup existSubjectGroup = await _uow.SubjectGroupRepository.GetFirst(filter: e => e.GroupCode.Equals(createSubjectGroupParam.GroupCode));
+                if (existSubjectGroup != null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Môn học không tồn tại trong hệ thống!");
+                    response.Errors.Add("Tên khối đã tồn tại trong hệ thống!");
                     return response;
                 }
-                SubjectDataSet subjectDataSet = new SubjectDataSet();
-                subjectDataSet.Id = specialSubjectGroup.Id;
-                subjectDataSet.Name = specialSubjectGroup.Name;
-                subjectDataSet.SpecialSubjectGroupId = specialSubjectGroup.Id;
-                ListOfSubject.Add(subjectDataSet);
-            }
-            
-            foreach (int? id in createSubjectGroupParam.SubjectIds)
-            {
-                if (id == null)
+
+
+                List<SubjectDataSet> ListOfSubject = new List<SubjectDataSet>();
+
+                if (createSubjectGroupParam.SubjectIds == null)
+                {
+                    createSubjectGroupParam.SubjectIds = new List<int?>();
+                }
+                if (createSubjectGroupParam.SpecicalSubjectGroupIds == null)
+                {
+                    createSubjectGroupParam.SpecicalSubjectGroupIds = new List<int?>();
+                }
+
+                if ((createSubjectGroupParam.SubjectIds.Count + createSubjectGroupParam.SpecicalSubjectGroupIds.Count) < Consts.REQUIRED_NUMBER_SUBJECTS)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Môn học không thể là null");
+                    response.Errors.Add("Danh sách môn học không hợp lệ!");
                     return response;
                 }
-                Models.Subject subject = await _uow.SubjectRepository.GetById(id);
-                if (subject == null)
+                if (createSubjectGroupParam.SubjectIds.Count() != createSubjectGroupParam.SubjectIds.Distinct().Count()
+                    || createSubjectGroupParam.SpecicalSubjectGroupIds.Count() != createSubjectGroupParam.SpecicalSubjectGroupIds.Distinct().Count())
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Môn học không tồn tại trong hệ thống!");
+                    response.Errors.Add("Môn học trong một khối trùng nhau!");
                     return response;
+
                 }
-                SubjectDataSet subjectDataSet = new SubjectDataSet();
-                subjectDataSet.Id = subject.Id;
-                subjectDataSet.Name = subject.Name;
-                ListOfSubject.Add(subjectDataSet);
-            }
+                foreach (int? id in createSubjectGroupParam.SpecicalSubjectGroupIds)
+                {
+                    if (id == null)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Môn học không thể là null");
+                        return response;
+                    }
+                    Models.SpecialSubjectGroup specialSubjectGroup = await _uow.SpecialSubjectGroupRepository.GetById(id);
+                    if (specialSubjectGroup == null)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Môn học không tồn tại trong hệ thống!");
+                        return response;
+                    }
+                    SubjectDataSet subjectDataSet = new SubjectDataSet();
+                    subjectDataSet.Id = specialSubjectGroup.Id;
+                    subjectDataSet.Name = specialSubjectGroup.Name;
+                    subjectDataSet.SpecialSubjectGroupId = specialSubjectGroup.Id;
+                    ListOfSubject.Add(subjectDataSet);
+                }
+
+                foreach (int? id in createSubjectGroupParam.SubjectIds)
+                {
+                    if (id == null)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Môn học không thể là null");
+                        return response;
+                    }
+                    Models.Subject subject = await _uow.SubjectRepository.GetById(id);
+                    if (subject == null)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Môn học không tồn tại trong hệ thống!");
+                        return response;
+                    }
+                    SubjectDataSet subjectDataSet = new SubjectDataSet();
+                    subjectDataSet.Id = subject.Id;
+                    subjectDataSet.Name = subject.Name;
+                    ListOfSubject.Add(subjectDataSet);
+                }
 
 
 
-            
-            IEnumerable<IGrouping<int, Models.SubjectGroupDetail>> foundSubjectGroups = (await _uow.SubjecGroupDetailRepository.
-                 Get(filter: s => createSubjectGroupParam.SpecicalSubjectGroupIds.Contains(s.SpecialSubjectGroupId) || createSubjectGroupParam.SubjectIds.Contains(s.SubjectId))).
-                 GroupBy(g => g.SubjectGroupId).Where(g => g.Count() == (createSubjectGroupParam.SpecicalSubjectGroupIds.Count()+ createSubjectGroupParam.SubjectIds.Count()));
-            
-            IEnumerable<int> foundSubjectGroupIds = foundSubjectGroups.Select(s => s.Key);            
-            
-            foreach (int id in foundSubjectGroupIds)
-            {
-                bool isExisted = (await _uow.SubjecGroupDetailRepository.Get(
-                    filter: s => s.SubjectGroupId == id)).Count() == 
-                    (createSubjectGroupParam.SpecicalSubjectGroupIds.Count() + createSubjectGroupParam.SubjectIds.Count());
-                
-                if (isExisted)
+
+                IEnumerable<IGrouping<int, Models.SubjectGroupDetail>> foundSubjectGroups = (await _uow.SubjecGroupDetailRepository.
+                     Get(filter: s => createSubjectGroupParam.SpecicalSubjectGroupIds.Contains(s.SpecialSubjectGroupId) || createSubjectGroupParam.SubjectIds.Contains(s.SubjectId))).
+                     GroupBy(g => g.SubjectGroupId).Where(g => g.Count() == (createSubjectGroupParam.SpecicalSubjectGroupIds.Count() + createSubjectGroupParam.SubjectIds.Count()));
+
+                IEnumerable<int> foundSubjectGroupIds = foundSubjectGroups.Select(s => s.Key);
+
+                foreach (int id in foundSubjectGroupIds)
+                {
+                    bool isExisted = (await _uow.SubjecGroupDetailRepository.Get(
+                        filter: s => s.SubjectGroupId == id)).Count() ==
+                        (createSubjectGroupParam.SpecicalSubjectGroupIds.Count() + createSubjectGroupParam.SubjectIds.Count());
+
+                    if (isExisted)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Khối có những môn học trên đã tồn tại trong hệ thống!");
+                        return response;
+                    }
+                }
+                Models.SubjectGroup insertSubjectGroupModels = new Models.SubjectGroup
+                {
+                    GroupCode = createSubjectGroupParam.GroupCode,
+                    Status = Consts.STATUS_ACTIVE
+                };
+                _uow.SubjectGroupRepository.Insert(insertSubjectGroupModels);
+                int result = await _uow.CommitAsync();
+                if (result <= 0)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Khối có những môn học trên đã tồn tại trong hệ thống!");
+                    response.Errors.Add("Thêm khối bị lỗi!");
                     return response;
                 }
-            }
-            Models.SubjectGroup insertSubjectGroupModels = new Models.SubjectGroup
-            {
-                GroupCode = createSubjectGroupParam.GroupCode,
-                Status = Consts.STATUS_ACTIVE
-            };
-            _uow.SubjectGroupRepository.Insert(insertSubjectGroupModels);
-            int result = await _uow.CommitAsync();
-            if (result <= 0)
-            {
-                response.Succeeded = false;
-                if (response.Errors == null)
+
+                foreach (int specicalSubjectGroupId in createSubjectGroupParam.SpecicalSubjectGroupIds)
                 {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Thêm khối bị lỗi!");
-                return response;
-            }
 
-            foreach (int specicalSubjectGroupId in createSubjectGroupParam.SpecicalSubjectGroupIds)
-            {
-
-                Models.SubjectGroupDetail insertSubjectGroupDetailModel = new SubjectGroupDetail();
+                    Models.SubjectGroupDetail insertSubjectGroupDetailModel = new SubjectGroupDetail();
                     insertSubjectGroupDetailModel.SubjectGroupId = insertSubjectGroupModels.Id;
                     insertSubjectGroupDetailModel.SpecialSubjectGroupId = specicalSubjectGroupId;
-                            
-                _uow.SubjecGroupDetailRepository.Insert(insertSubjectGroupDetailModel);
-                result = await _uow.CommitAsync();
-                if (result <= 0)
-                {
-                    response.Succeeded = false;
-                    if (response.Errors == null)
+
+                    _uow.SubjecGroupDetailRepository.Insert(insertSubjectGroupDetailModel);
+                    result = await _uow.CommitAsync();
+                    if (result <= 0)
                     {
-                        response.Errors = new List<string>();
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Thêm chi tiết của khối bị lỗi!");
+                        return response;
                     }
-                    response.Errors.Add("Thêm chi tiết của khối bị lỗi!");
-                    return response;
                 }
-            }
 
-            foreach (int subjectId in createSubjectGroupParam.SubjectIds)
-            {
-
-                Models.SubjectGroupDetail insertSubjectGroupDetailModel = new SubjectGroupDetail();
-                insertSubjectGroupDetailModel.SubjectGroupId = insertSubjectGroupModels.Id;
-                insertSubjectGroupDetailModel.SubjectId = subjectId;
-
-                _uow.SubjecGroupDetailRepository.Insert(insertSubjectGroupDetailModel);
-                result = await _uow.CommitAsync();
-                if (result <= 0)
+                foreach (int subjectId in createSubjectGroupParam.SubjectIds)
                 {
-                    response.Succeeded = false;
-                    if (response.Errors == null)
+
+                    Models.SubjectGroupDetail insertSubjectGroupDetailModel = new SubjectGroupDetail();
+                    insertSubjectGroupDetailModel.SubjectGroupId = insertSubjectGroupModels.Id;
+                    insertSubjectGroupDetailModel.SubjectId = subjectId;
+
+                    _uow.SubjecGroupDetailRepository.Insert(insertSubjectGroupDetailModel);
+                    result = await _uow.CommitAsync();
+                    if (result <= 0)
                     {
-                        response.Errors = new List<string>();
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Thêm chi tiết của khối bị lỗi!");
+                        return response;
                     }
-                    response.Errors.Add("Thêm chi tiết của khối bị lỗi!");
-                    return response;
                 }
-            }
-            CreateSubjectGroupDataset createSubjectGroupDataset = new CreateSubjectGroupDataset
+                CreateSubjectGroupDataset createSubjectGroupDataset = new CreateSubjectGroupDataset
+                {
+                    Id = insertSubjectGroupModels.Id,
+                    GroupCode = insertSubjectGroupModels.GroupCode,
+                    Status = Consts.STATUS_ACTIVE,
+                    ListOfSubject = ListOfSubject,
+                };
+                response.Succeeded = true;
+                response.Data = createSubjectGroupDataset;
+            } catch (Exception ex)
             {
-                Id = insertSubjectGroupModels.Id,
-                GroupCode = insertSubjectGroupModels.GroupCode,
-                Status = Consts.STATUS_ACTIVE,
-                ListOfSubject = ListOfSubject,
-            };
-            response.Succeeded = true;
-            response.Data = createSubjectGroupDataset;
+                _log.Error(ex.Message);
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
             return response;
         }
 
@@ -769,106 +808,118 @@ namespace CapstoneAPI.Services.SubjectGroup
         public async Task<Response<UserSuggestionInformation>> GetUserSuggestTopSubjectGroup(string token)
         {
             Response<UserSuggestionInformation> response = new Response<UserSuggestionInformation>();
-            UserSuggestionInformation userSuggestionSubjectGroup = null;
-            if (token == null || token.Trim().Length == 0)
+            try
             {
-                response.Succeeded = false;
-                if (response.Errors == null)
+                UserSuggestionInformation userSuggestionSubjectGroup = null;
+                if (token == null || token.Trim().Length == 0)
                 {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Bạn chưa đăng nhập!");
-                return response;
-            }
-
-            string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-
-            if (userIdString == null || userIdString.Length <= 0)
-            {
-                response.Succeeded = false;
-                if (response.Errors == null)
-                {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Tài khoản của bạn không tồn tại!");
-                return response;
-            }
-
-            int userId = Int32.Parse(userIdString);
-
-            Models.User user = await _uow.UserRepository.GetFirst(filter: u => u.Id == userId && u.IsActive == true,
-                                                                includeProperties: "Transcripts.TranscriptType");
-            if (user == null)
-            {
-                response.Succeeded = false;
-                if (response.Errors == null)
-                {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Tài khoản của bạn không tồn tại!");
-                return response;
-            }
-
-            if (!user.Transcripts.Any())
-            {
-                response.Succeeded = true;
-                return response;
-            }
-
-            var transcriptGroups = user.Transcripts.GroupBy(s => s.TranscriptType).OrderByDescending(t => t.Key.Priority);
-            foreach (var group in transcriptGroups)
-            {
-                List<MarkParam> marks = new List<MarkParam>();
-                foreach (Models.Transcript transcript in group)
-                {
-                    marks.Add(new MarkParam()
+                    response.Succeeded = false;
+                    if (response.Errors == null)
                     {
-                        Mark = transcript.Mark,
-                        SubjectId = transcript.SubjectId
-                    });
-                }
-                SubjectGroupParam param = new SubjectGroupParam()
-                {
-                    Gender = user.Gender,
-                    ProvinceId = user.ProvinceId,
-                    TranscriptTypeId = group.Key.Id,
-                    Marks = marks
-                };
-                Response<IEnumerable<SubjectGroupDataSet>> subjectGroupReponse = await GetCaculatedSubjectGroup(param);
-                if (!subjectGroupReponse.Succeeded)
-                {
-                    continue;
-                }
-                if (!subjectGroupReponse.Data.Any())
-                {
-                    continue;
-                }
-                bool isValid = false;
-                foreach (var subjectGroup in subjectGroupReponse.Data)
-                {
-                    if (subjectGroup.SuggestedMajors.Any())
-                    {
-                        isValid = true;
-                        break;
+                        response.Errors = new List<string>();
                     }
+                    response.Errors.Add("Bạn chưa đăng nhập!");
+                    return response;
                 }
-                if (!isValid)
+
+                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
+
+                if (userIdString == null || userIdString.Length <= 0)
                 {
-                    continue;
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    return response;
                 }
-                userSuggestionSubjectGroup = new UserSuggestionInformation()
+
+                int userId = Int32.Parse(userIdString);
+
+                Models.User user = await _uow.UserRepository.GetFirst(filter: u => u.Id == userId && u.IsActive == true,
+                                                                    includeProperties: "Transcripts.TranscriptType");
+                if (user == null)
                 {
-                    TranscriptTypeId = group.Key.Id,
-                    TranscriptTypeName = group.Key.Name,
-                    SubjectGroupDataSets = subjectGroupReponse.Data,
-                    TranscriptDetails = await _uow.TranscriptRepository.GetUserTranscripts(userId),
-                    Gender = user.Gender,
-                    ProvinceId = user.ProvinceId
-                };
-                break;
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    return response;
+                }
+
+                if (!user.Transcripts.Any())
+                {
+                    response.Succeeded = true;
+                    return response;
+                }
+
+                var transcriptGroups = user.Transcripts.GroupBy(s => s.TranscriptType).OrderByDescending(t => t.Key.Priority);
+                foreach (var group in transcriptGroups)
+                {
+                    List<MarkParam> marks = new List<MarkParam>();
+                    foreach (Models.Transcript transcript in group)
+                    {
+                        marks.Add(new MarkParam()
+                        {
+                            Mark = transcript.Mark,
+                            SubjectId = transcript.SubjectId
+                        });
+                    }
+                    SubjectGroupParam param = new SubjectGroupParam()
+                    {
+                        Gender = user.Gender,
+                        ProvinceId = user.ProvinceId,
+                        TranscriptTypeId = group.Key.Id,
+                        Marks = marks
+                    };
+                    Response<IEnumerable<SubjectGroupDataSet>> subjectGroupReponse = await GetCaculatedSubjectGroup(param);
+                    if (!subjectGroupReponse.Succeeded)
+                    {
+                        continue;
+                    }
+                    if (!subjectGroupReponse.Data.Any())
+                    {
+                        continue;
+                    }
+                    bool isValid = false;
+                    foreach (var subjectGroup in subjectGroupReponse.Data)
+                    {
+                        if (subjectGroup.SuggestedMajors.Any())
+                        {
+                            isValid = true;
+                            break;
+                        }
+                    }
+                    if (!isValid)
+                    {
+                        continue;
+                    }
+                    userSuggestionSubjectGroup = new UserSuggestionInformation()
+                    {
+                        TranscriptTypeId = group.Key.Id,
+                        TranscriptTypeName = group.Key.Name,
+                        SubjectGroupDataSets = subjectGroupReponse.Data,
+                        TranscriptDetails = await _uow.TranscriptRepository.GetUserTranscripts(userId),
+                        Gender = user.Gender,
+                        ProvinceId = user.ProvinceId
+                    };
+                    break;
+                }
+                response.Succeeded = true;
+                response.Data = userSuggestionSubjectGroup;
+            } catch (Exception ex)
+            {
+                _log.Error(ex.Message);
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
-            response.Succeeded = true;
-            response.Data = userSuggestionSubjectGroup;
             return response;
         }
     }

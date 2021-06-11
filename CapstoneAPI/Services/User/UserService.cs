@@ -6,8 +6,8 @@
     using CapstoneAPI.Repositories;
     using CapstoneAPI.Wrappers;
     using FirebaseAdmin.Auth;
-    using Microsoft.Extensions.Logging;
     using Microsoft.IdentityModel.Tokens;
+    using Serilog;
     using System;
     using System.Collections.Generic;
     using System.IdentityModel.Tokens.Jwt;
@@ -19,15 +19,12 @@
     public class UserService : IUserService
     {
         private IMapper _mapper;
-
         private readonly IUnitOfWork _uow;
-
-        private readonly ILogger _logger;
-        public UserService(IUnitOfWork uow, IMapper mapper, ILogger<UserService> logger)
+        private readonly ILogger _log = Log.ForContext<UserService>();
+        public UserService(IUnitOfWork uow, IMapper mapper)
         {
             _uow = uow;
             _mapper = mapper;
-            _logger = logger; 
         }
 
         public async Task<Response<LoginResponse>> Login(Token firebaseToken)
@@ -95,7 +92,7 @@
                 response.Data = loginResponse;
             } catch (Exception ex)
             {
-                _logger.LogError(LogEvent.Login, ex.Message);
+                _log.Error(ex.Message);
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
