@@ -53,7 +53,7 @@ namespace CapstoneAPI
 
             FirebaseApp.Create(new AppOptions()
             {
-                Credential = GoogleCredential.FromFile(@"FirebaseKey\capstone-7071e-firebase-adminsdk-umiw1-2c95fcab0a.json")
+                Credential = GoogleCredential.FromFile(@"FirebaseKey\unilinks-41d0e-firebase-adminsdk-th8o0-c0b4d125e8.json")
             });
         }
 
