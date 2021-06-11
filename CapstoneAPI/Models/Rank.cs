@@ -7,13 +7,14 @@ namespace CapstoneAPI.Models
 {
     public partial class Rank
     {
-        public int Id { get; set; }
-        public int RankTypeId { get; set; }
+        public int FollowingDetailId { get; set; }
         public int Position { get; set; }
-        public int UserMajorDetailId { get; set; }
+        public double TotalMark { get; set; }
         public DateTime UpdatedDate { get; set; }
+        public bool IsUpdate { get; set; }
+        public int TranscriptTypeId { get; set; }
 
-        public virtual RankType RankType { get; set; }
-        public virtual UserMajorDetail UserMajorDetail { get; set; }
+        public virtual FollowingDetail FollowingDetail { get; set; }
+        public virtual TranscriptType TranscriptType { get; set; }
     }
 }

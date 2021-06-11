@@ -1,13 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using CapstoneAPI.Models;
 using CapstoneAPI.DataSets.University;
 using CapstoneAPI.Services.University;
+using CapstoneAPI.Wrappers;
+using CapstoneAPI.Filters;
+using CapstoneAPI.Filters.University;
+using CapstoneAPI.Filters.MajorDetail;
 
 namespace CapstoneAPI.Controllers
 {
@@ -15,7 +15,6 @@ namespace CapstoneAPI.Controllers
     [ApiController]
     public class UniversitiesController : ControllerBase
     {
-
         private readonly IUniversityService _service;
 
         public UniversitiesController(IUniversityService service)
@@ -24,78 +23,94 @@ namespace CapstoneAPI.Controllers
         }
 
         [HttpGet("suggestion")]
-        public async Task<ActionResult<IEnumerable<UniversityDataSetBaseOnTrainingProgram>>> GetUniversityBySubjectGroupAndMajor([FromQuery] UniversityParam universityParam)
+        public async Task<ActionResult<Response<IEnumerable<TrainingProgramBasedUniversityDataSet>>>> GetUniversityBySubjectGroupAndMajor([FromQuery] UniversityParam universityParam)
         {
             string token = Request.Headers["Authorization"];
-            IEnumerable<UniversityDataSetBaseOnTrainingProgram> result = await _service.GetUniversityBySubjectGroupAndMajor(universityParam, token);
-            if (result == null || !result.Any())
-            {
-                return NotFound();
-            }
-            return Ok(result);
+            return Ok(await _service.GetUniversityBySubjectGroupAndMajor(universityParam, token));
         }
 
-        [HttpGet()]
-        public async Task<ActionResult<IEnumerable<AdminUniversityDataSet>>> GetAllUniversities()
+        [HttpPost("suggestion")]
+        public async Task<ActionResult<Response<MockTestBasedUniversity>>> CalculattUniversityByMockTestMarks([FromBody] MockTestsUniversityParam universityParam)
         {
-            IEnumerable<AdminUniversityDataSet> result = await _service.GetUniversities();
-            if (result == null || !result.Any())
-            {
-                return NotFound();
-            }
-            return Ok(result);
+            string token = Request.Headers["Authorization"];
+            return Ok(await _service.CalculaterUniversityByMockTestMarks(universityParam, token));
         }
 
+        [HttpGet("admin-all")]
+        public async Task<ActionResult<PagedResponse<List<AdminUniversityDataSet>>>> GetAllUniversities([FromQuery] PaginationFilter filter,
+            [FromQuery] UniversityFilter universityFilter)
+        {
+            string token = Request.Headers["Authorization"];
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+
+            PagedResponse<List<AdminUniversityDataSet>> universities = await _service.GetUniversities(validFilter, universityFilter);
+
+            if (universities == null)
+                return NoContent();
+            return Ok(universities);
+        }
+        [HttpGet("admin-non-paging")]
+        public async Task<ActionResult<Response<IEnumerable<AdminUniversityDataSet>>>> GetAllUniversitiesWithOutPaging()
+        {
+            string token = Request.Headers["Authorization"];            
+            Response<IEnumerable<AdminUniversityDataSet>> universities = await _service.GetAllUniversities();
+
+            if (universities == null)
+                return NoContent();
+            return Ok(universities);
+        }
         [HttpGet("detail/{id}")]
-        public async Task<ActionResult<DetailUniversityDataSet>> GetDetailUniversity([FromRoute] int id)
+        public async Task<ActionResult<Response<DetailUniversityDataSet>>> GetDetailOfUniversityById(int id)
         {
-            DetailUniversityDataSet result = await _service.GetDetailUniversity(id);
-            if (result == null)
-            {
-                return NotFound();
-            }
+            string token = Request.Headers["Authorization"];
+
+            Response<DetailUniversityDataSet> result = await _service.GetDetailUniversity(id);
             return Ok(result);
         }
-        [HttpPost]
-        public async Task<ActionResult<AdminUniversityDataSet>> CreateAnUniversity([FromBody] CreateUniversityDataset createUniversityDataset)
+
+        [HttpGet("major-detail")]
+        public async Task<ActionResult<PagedResponse<UniMajorDataSet>>> GetMajorDetailInUniversity([FromQuery] PaginationFilter filter,
+            [FromQuery] MajorDetailFilter majorDetailFilter)
         {
-            AdminUniversityDataSet result = await _service.CreateNewAnUniversity(createUniversityDataset);
-            if (result == null)
-            {
-                return BadRequest();
-            }
+            string token = Request.Headers["Authorization"];
+
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+
+            PagedResponse<List<UniMajorDataSet>> result = await _service.GetMajorDetailInUniversity(validFilter, majorDetailFilter);
+            return Ok(result);
+        }
+
+        [HttpGet("major-detail-non-paging")]
+        public async Task<ActionResult<Response<UniMajorDataSet>>> GetMajorDetailWithOutPaging([FromQuery] MajorDetailParam majorDetailParam)
+        {
+            Response<List<UniMajorNonPagingDataSet>> result = await _service.GetMajorDetailInUniversityNonPaging(majorDetailParam);
+            return Ok(result);
+        }
+
+
+        [HttpPost]
+        public async Task<ActionResult<Response<AdminUniversityDataSet>>> CreateAnUniversity([FromForm] CreateUniversityDataset createUniversityDataset)
+        {
+            Response<AdminUniversityDataSet> result = await _service.CreateNewAnUniversity(createUniversityDataset);
             return Ok(result);
         }
         [HttpPut]
-        public async Task<ActionResult<AdminUniversityDataSet>> UpdateUniversity([FromBody] AdminUniversityDataSet adminUniversityDataSet)
+        public async Task<ActionResult<Response<AdminUniversityDataSet>>> UpdateUniversity([FromForm] AdminUniversityDataSet adminUniversityDataSet)
         {
-            AdminUniversityDataSet result = await _service.UpdateUniversity(adminUniversityDataSet);
-            if (result == null)
-            {
-                return BadRequest();
-            }
+            Response<AdminUniversityDataSet> result = await _service.UpdateUniversity(adminUniversityDataSet);
             return Ok(result);
         }
         [HttpPost("major-addition")]
-        public async Task<ActionResult<DetailUniversityDataSet>> AddMajorToUniversity([FromBody] AddingMajorUniversityParam addingMajorUniversityParam)
+        public async Task<ActionResult<Response<bool>>> AddMajorToUniversity([FromBody] AddingMajorUniversityParam addingMajorUniversityParam)
         {
-            DetailUniversityDataSet result = await _service.AddMajorToUniversity(addingMajorUniversityParam);
-            if (result == null)
-            {
-                return BadRequest();
-            }
+            Response<bool> result = await _service.AddMajorToUniversity(addingMajorUniversityParam);
             return Ok(result);
         }
         [HttpPut("major-updation")]
-        public async Task<ActionResult<DetailUniversityDataSet>> UpdateMajorOfUniversity([FromBody] UpdatingMajorUniversityParam updatingMajorUniversityParam)
+        public async Task<ActionResult<Response<bool>>> UpdateMajorOfUniversity([FromBody] UpdatingMajorUniversityParam updatingMajorUniversityParam)
         {
-            DetailUniversityDataSet result = await _service.UpdateMajorOfUniversity(updatingMajorUniversityParam);
-            if (result == null)
-            {
-                return BadRequest();
-            }
+            Response<bool> result = await _service.UpdateMajorOfUniversity(updatingMajorUniversityParam);
             return Ok(result);
         }
-
     }
 }

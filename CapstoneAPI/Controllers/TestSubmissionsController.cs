@@ -11,6 +11,7 @@ using CapstoneAPI.DataSets.TestSubmission;
 using CapstoneAPI.DataSets.Question;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.DataSets;
+using CapstoneAPI.Wrappers;
 
 namespace CapstoneAPI.Controllers
 {
@@ -27,55 +28,30 @@ namespace CapstoneAPI.Controllers
 
 
         [HttpPost]
-        public async Task<ActionResult<TestSubmissionDataSet>> ScoringTest(TestSubmissionParam testSubmissionParam)
+        public async Task<ActionResult<Response<TestSubmissionDataSet>>> ScoringTest(TestSubmissionParam testSubmissionParam)
         {
-            TestSubmissionDataSet result = await _service.ScoringTest(testSubmissionParam);
-            return Ok(result);
+            return Ok(await _service.ScoringTest(testSubmissionParam));
         }
 
         [HttpPost("saving")]
-        public async Task<ActionResult<BaseResponse<TestSubmission>>> SaveTestSubmission(SaveTestSubmissionParam saveTestSubmissionParam)
+        public async Task<ActionResult<Response<bool>>> SaveTestSubmission(List<SaveTestSubmissionParam> saveTestSubmissionParams)
         {
             string token = Request.Headers["Authorization"];
-            BaseResponse<TestSubmission> result = await _service.SaveTestSubmission(saveTestSubmissionParam, token);
-            if (result.IsSuccess)
-            {
-                return Ok(result);
-            }
-            else
-            {
-                return BadRequest(result);
-            }
+            return Ok(await _service.SaveTestSubmissions(saveTestSubmissionParams, token));
         }
 
         [HttpGet()]
-        public async Task<ActionResult<List<UserTestSubmissionDataSet>>> GetTestSubmissionsByUser()
+        public async Task<ActionResult<Response<List<UserTestSubmissionDataSet>>>> GetTestSubmissionsByUser()
         {
             string token = Request.Headers["Authorization"];
-            List<UserTestSubmissionDataSet> result = await _service.GetTestSubmissionsByUser(token);
-            if (result == null || !result.Any())
-            {
-                return NotFound();
-            }
-            else
-            {
-                return Ok(result);
-            }
+            return Ok(await _service.GetTestSubmissionsByUser(token));
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<DetailTestSubmissionDataSet>> GetDetailTestSubmissionByUser(int id)
+        public async Task<ActionResult<Response<DetailTestSubmissionDataSet>>> GetDetailTestSubmissionByUser(int id)
         {
             string token = Request.Headers["Authorization"];
-            DetailTestSubmissionDataSet result = await _service.GetDetailTestSubmissionByUser(id, token);
-            if (result == null)
-            {
-                return NotFound();
-            }
-            else
-            {
-                return Ok(result);
-            }
+            return Ok(await _service.GetDetailTestSubmissionByUser(id, token));
         }
 
         //[HttpGet]

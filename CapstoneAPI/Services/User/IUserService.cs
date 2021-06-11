@@ -1,4 +1,5 @@
 ﻿using CapstoneAPI.DataSets.User;
+using CapstoneAPI.Wrappers;
 using FirebaseAdmin.Auth;
 using System;
 using System.Collections.Generic;
@@ -11,6 +12,6 @@ namespace CapstoneAPI.Services.User
 {
     public interface IUserService
     {
-        Task<LoginResponse> Login(Token firebaseToken);
+        Task<Response<LoginResponse>> Login(Token firebaseToken);
     }
 }

@@ -9,8 +9,12 @@ namespace CapstoneAPI.DataSets.SubjectGroup
     {
         public int Id { get; set; }
         public string GroupCode { get; set; }
-
         public int Status { get; set; }
-        public List<int> ListOfSubjectId { get; set; }
+        public List<SubjectGroupDetailParam> ListOfSubject { get; set; }
+    }
+    public class SubjectGroupDetailParam
+    {
+        public int SubjectId { get; set; }
+        public bool IsSpecicSubject { get; set; }
     }
 }

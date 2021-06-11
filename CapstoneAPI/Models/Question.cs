@@ -14,13 +14,13 @@ namespace CapstoneAPI.Models
         }
 
         public int Id { get; set; }
-        public string QuestionContent { get; set; }
+        public string Content { get; set; }
         public int NumberOfOption { get; set; }
         public string Result { get; set; }
         public int Type { get; set; }
         public int TestId { get; set; }
         public bool IsAnnotate { get; set; }
-        public int? Ordinal { get; set; }
+        public int Ordinal { get; set; }
 
         public virtual Test Test { get; set; }
         public virtual ICollection<Option> Options { get; set; }

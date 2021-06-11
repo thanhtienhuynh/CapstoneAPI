@@ -1,4 +1,8 @@
 ﻿using CapstoneAPI.Models;
+using CapstoneAPI.Repositories.Rank;
+using CapstoneAPI.Repositories.Season;
+using CapstoneAPI.Repositories.Transcript;
+using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Threading.Tasks;
 
@@ -10,7 +14,7 @@ namespace CapstoneAPI.Repositories
         private bool disposed = false;
         private IGenericRepository<SubjectGroup> _subjectGroupRepository;
         private IGenericRepository<SubjectGroupDetail> _subjectGroupDetailRepository;
-        private IGenericRepository<WeightNumber> _weightNumberRepository;
+        private IGenericRepository<SubjectWeight> _subjectWeightRepository;
         private IGenericRepository<Major> _majorRepository;
         private IGenericRepository<Subject> _subjectRepository;
         private IGenericRepository<University> _universityRepository;
@@ -26,9 +30,17 @@ namespace CapstoneAPI.Repositories
         private IGenericRepository<QuestionSubmisstion> _questionSubmisstionRepository;
         private IGenericRepository<TrainingProgram> _trainingProgramRepository;
         private IGenericRepository<AdmissionCriterion> _admissionCriterionRepository;
-        private IGenericRepository<UserMajorDetail> _userMajorDetailRepository;
-        private IGenericRepository<Transcript> _transcriptRepository;
-
+        private IGenericRepository<FollowingDetail> _followingRepository;
+        private ITranscriptRepository _transcriptRepository;
+        private IGenericRepository<UniversityArticle> _universityArticleRepository;
+        private IGenericRepository<SubAdmissionCriterion> _subAdmissionCriterionRepository;
+        private IGenericRepository<MajorSubjectGroup> _majorSubjectGroupRepository;
+        private IGenericRepository<MajorArticle> _majorArticleRepository;
+        private IRankRepository _rankRepository;
+        private ISeasonRepository _seasonRepository;
+        private IGenericRepository<Province> _provinceRepository;
+        private IGenericRepository<AdmissionMethod> _admissionMethodRepository;
+        private IGenericRepository<SpecialSubjectGroup> _specialSubjectGroupRepository;
         public IGenericRepository<SubjectGroup> SubjectGroupRepository
         {
             get { return _subjectGroupRepository ??= new GenericRepository<SubjectGroup>(_context); }
@@ -47,9 +59,9 @@ namespace CapstoneAPI.Repositories
             get { return _subjectGroupDetailRepository ??= new GenericRepository<SubjectGroupDetail>(_context); }
         }
 
-        public IGenericRepository<WeightNumber> WeightNumberRepository
+        public IGenericRepository<SubjectWeight> SubjectWeightRepository
         {
-            get { return _weightNumberRepository ??= new GenericRepository<WeightNumber>(_context); }
+            get { return _subjectWeightRepository ??= new GenericRepository<SubjectWeight>(_context); }
         }
 
         public IGenericRepository<Subject> SubjectRepository
@@ -114,15 +126,50 @@ namespace CapstoneAPI.Repositories
         {
             get { return _admissionCriterionRepository ??= new GenericRepository<AdmissionCriterion>(_context); }
         }
-        public IGenericRepository<UserMajorDetail> UserMajorDetailRepository
+        public IGenericRepository<FollowingDetail> FollowingDetailRepository
         {
-            get { return _userMajorDetailRepository ??= new GenericRepository<UserMajorDetail>(_context); }
+            get { return _followingRepository ??= new GenericRepository<FollowingDetail>(_context); }
         }
-        public IGenericRepository<Transcript> TranscriptRepository
+        public ITranscriptRepository TranscriptRepository
         {
-            get { return _transcriptRepository ??= new GenericRepository<Transcript>(_context); }
+            get { return _transcriptRepository ??= new TranscriptRepository(_context); }
         }
-
+        public IGenericRepository<UniversityArticle> UniversityArticleRepository
+        {
+            get { return _universityArticleRepository ??= new GenericRepository<UniversityArticle>(_context); }
+        }
+        public IGenericRepository<SubAdmissionCriterion> SubAdmissionCriterionRepository
+        {
+            get { return _subAdmissionCriterionRepository ??= new GenericRepository<SubAdmissionCriterion>(_context); }
+        }
+        public IGenericRepository<MajorSubjectGroup> MajorSubjectGroupRepository
+        {
+            get { return _majorSubjectGroupRepository ??= new GenericRepository<MajorSubjectGroup>(_context); }
+        }
+        public ISeasonRepository SeasonRepository
+        {
+            get { return _seasonRepository ??= new SeasonRepository(_context); }
+        }
+        public IGenericRepository<MajorArticle> MajorArticleRepository
+        {
+            get { return _majorArticleRepository ??= new GenericRepository<MajorArticle>(_context); }
+        }
+        public IRankRepository RankRepository
+        {
+            get { return _rankRepository ??= new RankRepository(_context); }
+        }
+        public IGenericRepository<Province> ProvinceRepository
+        {
+            get { return _provinceRepository ??= new GenericRepository<Province>(_context); }
+        }
+        public IGenericRepository<AdmissionMethod> AdmissionMethodRepository
+        {
+            get { return _admissionMethodRepository ??= new GenericRepository<AdmissionMethod>(_context); }
+        }
+        public IGenericRepository<SpecialSubjectGroup> SpecialSubjectGroupRepository
+        {
+            get { return _specialSubjectGroupRepository ??= new GenericRepository<SpecialSubjectGroup>(_context); }
+        }
         public UnitOfWork(CapstoneDBContext context)
         {
             _context = context;
@@ -131,6 +178,11 @@ namespace CapstoneAPI.Repositories
         public async Task<int> CommitAsync()
         {
             return await _context.SaveChangesAsync();
+        }
+
+        public IDbContextTransaction GetTransaction()
+        {  
+            return _context.Database.BeginTransaction();
         }
 
         public void Dispose()

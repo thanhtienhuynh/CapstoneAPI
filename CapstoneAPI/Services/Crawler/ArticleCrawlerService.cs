@@ -3,9 +3,9 @@ using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
 using HtmlAgilityPack;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using Quartz;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -20,6 +20,7 @@ namespace CapstoneAPI.Services.Crawler
     {
         private readonly IUnitOfWork _uow;
         private readonly JObject configuration;
+        private readonly ILogger _log = Log.ForContext<ArticleCrawlerService>();
 
         public ArticleCrawlerService(IUnitOfWork uow)
         {
@@ -36,14 +37,14 @@ namespace CapstoneAPI.Services.Crawler
             {
                 HtmlDocument htmlDocument = await CrawlerHelper.GetHtmlDocument(url);
 
-                IEnumerable<Article> listArticleDB = (await _uow.ArticleRepository.Get(filter: article => article.PublishedPage.Equals(pageLink)));
+                IEnumerable<Models.Article> listArticleDB = (await _uow.ArticleRepository.Get(filter: article => article.PublishedPage.Equals(pageLink)));
                 
                 Dictionary<string, string> listArticles = new Dictionary<string, string>();
 
                 var articlesDiv = htmlDocument.GetElementbyId(configuration.SelectToken("GDTD.articlesDivId").ToString());
                 var newsDetails = articlesDiv.SelectNodes(configuration.SelectToken("GDTD.articleDetailDivs").ToString());
 
-                List<Article> articles = new List<Article>();
+                List<Models.Article> articles = new List<Models.Article>();
                 foreach (var news in newsDetails)
                 {
                     string title = news.GetAttributeValue("title", "");
@@ -72,14 +73,15 @@ namespace CapstoneAPI.Services.Crawler
                         }
                         if (!string.IsNullOrEmpty(title) && !string.IsNullOrEmpty(link))
                         {
-                            Article article = new Article()
+                            Models.Article article = new Models.Article()
                             {
-                                Title = title,
+                                Title = title?.Trim(),
                                 PostedDate = postedDate,
-                                RootUrl = link,
-                                PublishedPage = pageLink,
-                                PostImageUrl = imgUrl,
-                                ShortDescription = shortDescription
+                                RootUrl = link?.Trim(),
+                                PublishedPage = pageLink?.Trim(),
+                                PostImageUrl = imgUrl?.Trim(),
+                                ShortDescription = shortDescription?.Trim(),
+                                ImportantLevel = 0
                             };
                             articles.Add(article);
                         }
@@ -90,13 +92,14 @@ namespace CapstoneAPI.Services.Crawler
                 return result;
 
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
+                _log.Error(ex.Message);
             }
             return 0;
         }
 
-        private async Task<int> GetGDTDArticlesDetails(List<Article> articles)
+        private async Task<int> GetGDTDArticlesDetails(List<Models.Article> articles)
         {
             string pageLink = configuration.SelectToken("GDTD.pageLink").ToString();
             foreach (var article in articles)
@@ -136,7 +139,7 @@ namespace CapstoneAPI.Services.Crawler
 
 
                 article.HeaderConfig = headerConfig.InnerHtml.Trim();
-                article.Status = 1;
+                article.Status = 0;
                 article.CrawlerDate = DateTime.Now;
                 article.Content = detail.InnerHtml.Trim();
             }
@@ -163,7 +166,7 @@ namespace CapstoneAPI.Services.Crawler
                     .Where(node => !string.IsNullOrEmpty(node.GetAttributeValue(
                         configuration.SelectToken("VNExpress.articleDetailDivs.attribute").ToString(), "")));
 
-                List<Article> articles = new List<Article>();
+                List<Models.Article> articles = new List<Models.Article>();
                 foreach (var news in newsDetails)
                 {
                     string timeInSeconds = news.GetAttributeValue(
@@ -183,7 +186,7 @@ namespace CapstoneAPI.Services.Crawler
                             configuration.SelectToken("VNExpress.linkTag.attribute").ToString(), "");
                     }
 
-                    IEnumerable<Article> listArticleDB = (await _uow.ArticleRepository.Get(filter: article => article.PublishedPage.Equals(pageLink)));
+                    IEnumerable<Models.Article> listArticleDB = (await _uow.ArticleRepository.Get(filter: article => article.PublishedPage.Equals(pageLink)));
 
                     bool a = listArticleDB.Any(test => test.RootUrl.Equals(link));
                     bool isExist = (listArticleDB.Where(articleDB => articleDB.RootUrl.Equals(link)).Count() > 0);
@@ -222,14 +225,15 @@ namespace CapstoneAPI.Services.Crawler
                         }
                         if (!string.IsNullOrEmpty(title) && !string.IsNullOrEmpty(link))
                         {
-                            Article article = new Article()
+                            Models.Article article = new Models.Article()
                             {
-                                Title = title,
+                                Title = title?.Trim(),
                                 PostedDate = postedDate,
-                                RootUrl = link,
-                                PublishedPage = pageLink,
-                                ShortDescription = shortDescription,
-                                PostImageUrl = postImgUrl
+                                RootUrl = link?.Trim(),
+                                PublishedPage = pageLink?.Trim(),
+                                ShortDescription = shortDescription?.Trim(),
+                                PostImageUrl = postImgUrl?.Trim(),
+                                ImportantLevel = 0
                             };
                             articles.Add(article);
                         }
@@ -238,13 +242,14 @@ namespace CapstoneAPI.Services.Crawler
 
                 int result = await VNExpressDetailsCrawler(articles);
                 return result;
-            } catch
+            } catch (Exception ex)
             {
+                _log.Error(ex.Message);
             }
             return 0;
         }
 
-        private async Task<int> VNExpressDetailsCrawler(List<Article> articles)
+        private async Task<int> VNExpressDetailsCrawler(List<Models.Article> articles)
         {
             foreach (var article in articles)
             {
@@ -281,7 +286,7 @@ namespace CapstoneAPI.Services.Crawler
                 }
 
                 article.HeaderConfig = headerConfig.InnerHtml.Trim();
-                article.Status = 1;
+                article.Status = 0;
                 article.CrawlerDate = DateTime.Now;
                 article.Content = detail.InnerHtml.Trim();
 

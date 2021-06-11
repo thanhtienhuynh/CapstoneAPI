@@ -14,10 +14,13 @@ namespace CapstoneAPI.Repositories
                  Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null,
                  string includeProperties = "",
                  int first = 0, int offset = 0);
+        int Count(Expression<Func<T, bool>> filter = null);
         void Insert(T entity);
         void Update(T entity);
         void Delete(object id);
         void DeleteComposite(Expression<Func<T, bool>> filter = null);
         void InsertRange(IEnumerable<T> list);
+        void UpdateRange(IEnumerable<T> list);
+
     }
 }
