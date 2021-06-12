@@ -18,7 +18,7 @@ namespace CapstoneAPI.DataSets.Test
         public int? SubjectId { get; set; }
         public int TestTypeId { get; set; }
         public int? UniversityId { get; set; }
-
+        public int? TimeLimit { get; set; }
         public List<QuestionDataSet> Questions { get; set; }
     }
 }

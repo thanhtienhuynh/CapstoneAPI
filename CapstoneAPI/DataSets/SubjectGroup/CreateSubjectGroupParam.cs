@@ -9,7 +9,7 @@ namespace CapstoneAPI.DataSets.SubjectGroup
     public class CreateSubjectGroupParam
     {
         public string GroupCode { get; set; }
-        public List<int> ListOfSubjectId { get; set; }
-
+        public List<int?> SubjectIds { get; set; }
+        public List<int?> SpecicalSubjectGroupIds { get;set; }
     }
 }

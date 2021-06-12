@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CapstoneAPI.DataSets.TrainingProgram;
 using CapstoneAPI.Services.TrainingProgram;
+using CapstoneAPI.Wrappers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CapstoneAPI.Controllers
@@ -18,35 +19,22 @@ namespace CapstoneAPI.Controllers
             _service = service;
         }
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<AdminTrainingProgramDataSet>>> GetTrainingPrograms()
+        public async Task<ActionResult<Response<IEnumerable<AdminTrainingProgramDataSet>>>> GetTrainingPrograms()
         {
-            IEnumerable<AdminTrainingProgramDataSet> trainingPrograms = await _service.AdminGetAllTrainingPrograms();
-            if (!trainingPrograms.Any())
-            {
-                return NotFound();
-            }
+            Response<IEnumerable<AdminTrainingProgramDataSet>> trainingPrograms = await _service.AdminGetAllTrainingPrograms();
             return Ok(trainingPrograms);
         }
 
         [HttpPost]
-        public async Task<ActionResult<AdminTrainingProgramDataSet>> CreateNewTrainingProgram([FromBody] CreateTrainingProgramParam createTrainingProgramParam)
+        public async Task<ActionResult<Response<AdminTrainingProgramDataSet>>> CreateNewTrainingProgram([FromBody] CreateTrainingProgramParam createTrainingProgramParam)
         {
-            AdminTrainingProgramDataSet result = await _service.CreateATrainingProgram(createTrainingProgramParam);
-            if(result == null)
-            {
-                return NotFound();
-            }
+            Response<AdminTrainingProgramDataSet> result = await _service.CreateATrainingProgram(createTrainingProgramParam);
             return Ok(result);
         }
         [HttpPut]
-        public async Task<ActionResult<AdminTrainingProgramDataSet>> UpdateATrainingProgram([FromBody] AdminTrainingProgramDataSet updateTrainingProgramParam)
+        public async Task<ActionResult<Response<AdminTrainingProgramDataSet>>> UpdateATrainingProgram([FromBody] AdminTrainingProgramDataSet updateTrainingProgramParam)
         {
-
-            AdminTrainingProgramDataSet result = await _service.UpdateATrainingProgram(updateTrainingProgramParam);
-            if (result == null)
-            {
-                return NotFound();
-            }
+            Response<AdminTrainingProgramDataSet> result = await _service.UpdateATrainingProgram(updateTrainingProgramParam);
             return Ok(result);
         }
     }

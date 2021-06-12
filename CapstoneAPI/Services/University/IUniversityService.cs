@@ -1,4 +1,7 @@
 ﻿using CapstoneAPI.DataSets.University;
+using CapstoneAPI.Filters;
+using CapstoneAPI.Filters.MajorDetail;
+using CapstoneAPI.Filters.University;
 using CapstoneAPI.Wrappers;
 using System;
 using System.Collections.Generic;
@@ -9,12 +12,16 @@ namespace CapstoneAPI.Services.University
 {
     public interface IUniversityService
     {
-        Task<Response<IEnumerable<UniversityDataSetBaseOnTrainingProgram>>> GetUniversityBySubjectGroupAndMajor(UniversityParam universityParam, string token);
-        Task<IEnumerable<AdminUniversityDataSet>> GetUniversities();
-        Task<DetailUniversityDataSet> GetDetailUniversity(int universityId);
-        Task<AdminUniversityDataSet> CreateNewAnUniversity(CreateUniversityDataset createUniversityDataset);
-        Task<AdminUniversityDataSet> UpdateUniversity(AdminUniversityDataSet adminUniversityDataSet);
-        Task<DetailUniversityDataSet> AddMajorToUniversity(AddingMajorUniversityParam addingMajorUniversityParam);
-        Task<DetailUniversityDataSet> UpdateMajorOfUniversity(UpdatingMajorUniversityParam updatingMajorUniversityParam);
+        Task<Response<IEnumerable<TrainingProgramBasedUniversityDataSet>>> GetUniversityBySubjectGroupAndMajor(UniversityParam universityParam, string token);
+        Task<Response<MockTestBasedUniversity>> CalculaterUniversityByMockTestMarks(MockTestsUniversityParam universityParam, string token);
+        Task<PagedResponse<List<AdminUniversityDataSet>>> GetUniversities(PaginationFilter validFilter, UniversityFilter universityFilter);
+        Task<Response<IEnumerable<AdminUniversityDataSet>>> GetAllUniversities();
+        Task<Response<DetailUniversityDataSet>> GetDetailUniversity(int universityId);
+        Task<PagedResponse<List<UniMajorDataSet>>> GetMajorDetailInUniversity(PaginationFilter validFilter, MajorDetailFilter majorDetailFilter);
+        Task<Response<List<UniMajorNonPagingDataSet>>> GetMajorDetailInUniversityNonPaging(MajorDetailParam majorDetailParam);
+        Task<Response<AdminUniversityDataSet>> CreateNewAnUniversity(CreateUniversityDataset createUniversityDataset);
+        Task<Response<AdminUniversityDataSet>> UpdateUniversity(AdminUniversityDataSet adminUniversityDataSet);
+        Task<Response<bool>> AddMajorToUniversity(AddingMajorUniversityParam addingMajorUniversityParam);
+        Task<Response<bool>> UpdateMajorOfUniversity(UpdatingMajorUniversityParam updatingMajorUniversityParam);
     }
 }

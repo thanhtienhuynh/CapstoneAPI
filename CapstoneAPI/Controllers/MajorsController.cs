@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CapstoneAPI.DataSets.Major;
 using CapstoneAPI.Services.Major;
+using CapstoneAPI.Wrappers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CapstoneAPI.Controllers
@@ -19,37 +20,20 @@ namespace CapstoneAPI.Controllers
         }
 
         [HttpGet()]
-        public async Task<ActionResult<IEnumerable<AdminMajorDataSet>>> GetMajorsByAdmin()
+        public async Task<ActionResult<Response<IEnumerable<AdminMajorDataSet>>>> GetMajorsByAdmin()
         {
-            IEnumerable<AdminMajorDataSet> majors = await _service.GetActiveMajorsByAdmin();
-            if (!majors.Any())
-            {
-                return NotFound();
-            }
-            return Ok(majors);
+            return Ok(await _service.GetActiveMajorsByAdmin());
         }
 
         [HttpPost]
-        public async Task<ActionResult<ResultOfCreateMajorDataSet>> CreateAMajor([FromBody] CreateMajorDataSet createMajorDataSet)
+        public async Task<ActionResult<Response<ResultOfCreateMajorDataSet>>> CreateAMajor([FromBody] CreateMajorDataSet createMajorDataSet)
         {
-            ResultOfCreateMajorDataSet newMajor = await _service.CreateAMajor(createMajorDataSet);
-
-            if(newMajor == null)
-            {
-                return BadRequest();
-            }
-            return Ok(newMajor);
+            return Ok(await _service.CreateAMajor(createMajorDataSet));
         }
         [HttpPut]
-        public async Task<ActionResult<ResultOfCreateMajorDataSet>> UpdateMajor([FromBody] ResultOfCreateMajorDataSet updateMajorDataSet)
+        public async Task<ActionResult<Response<ResultOfCreateMajorDataSet>>> UpdateMajor([FromBody] ResultOfCreateMajorDataSet updateMajorDataSet)
         {
-            ResultOfCreateMajorDataSet updatedMajor = await _service.UpdateAMajor(updateMajorDataSet);
-
-            if (updatedMajor == null)
-            {
-                return BadRequest();
-            }
-            return Ok(updatedMajor);
+            return Ok(await _service.UpdateAMajor(updateMajorDataSet));
         }
     }
 }

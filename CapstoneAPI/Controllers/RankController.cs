@@ -18,7 +18,7 @@ namespace CapstoneAPI.Controllers
         }
 
 
-        [HttpGet("updation")]
+        [HttpPut("updation")]
         public async Task<IActionResult> UpdateRank()
         {
             return Ok(await _service.UpdateRank());

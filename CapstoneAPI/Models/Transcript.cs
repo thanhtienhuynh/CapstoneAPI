@@ -12,7 +12,8 @@ namespace CapstoneAPI.Models
         public DateTime DateRecord { get; set; }
         public int TranscriptTypeId { get; set; }
         public int UserId { get; set; }
-        public int? SubjectId { get; set; }
+        public int SubjectId { get; set; }
+        public bool IsUpdate { get; set; }
 
         public virtual Subject Subject { get; set; }
         public virtual TranscriptType TranscriptType { get; set; }

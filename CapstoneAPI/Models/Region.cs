@@ -5,17 +5,16 @@ using System.Collections.Generic;
 
 namespace CapstoneAPI.Models
 {
-    public partial class RankType
+    public partial class Region
     {
-        public RankType()
+        public Region()
         {
-            Ranks = new HashSet<Rank>();
+            Provinces = new HashSet<Province>();
         }
 
         public int Id { get; set; }
         public string Name { get; set; }
-        public int Status { get; set; }
 
-        public virtual ICollection<Rank> Ranks { get; set; }
+        public virtual ICollection<Province> Provinces { get; set; }
     }
 }

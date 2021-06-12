@@ -1,11 +1,12 @@
-﻿using System;
+﻿using CapstoneAPI.DataSets.FollowingDetail;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace CapstoneAPI.DataSets.University
 {
-    public class UniversityDataSet
+    public class TrainingProgramBasedUniversityDataSet
     {
         public int Id { get; set; }
         public string Code { get; set; }
@@ -19,17 +20,32 @@ namespace CapstoneAPI.DataSets.University
         public int? TuitionFrom { get; set; }
         public int? TuitionTo { get; set; }
         public int? Rating { get; set; }
-        public double NearestYearEntryMark { get; set; }
-        public int? NumberOfStudents { get; set; }
-        public int? NumberOfCaring { get; set; }
-        public bool IsCared { get; set; }
-        public int Rank { get; set; }
+        public List<TrainingProgramDataSet> TrainingProgramSets { get; set; }
     }
 
-    public class UniversityDataSetBaseOnTrainingProgram
+    public class TrainingProgramDataSet
     {
         public int Id { get; set; }
         public string Name { get; set; }
-        public List<UniversityDataSet> Universities { get; set; }
+        public int? NumberOfCaring { get; set; }
+        public FollowingDetailDataSet FollowingDetail { get; set; }
+        public int Rank { get; set; }
+        public List<SeasonDataSet> SeasonDataSets { get; set; }
+    }
+
+    public class SeasonDataSet
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public int? NumberOfStudents { get; set; }
+        public double? EntryMark { get; set; }
+    }
+
+    public class MockTestBasedUniversity
+    {
+        public int MajorId { get; set; }
+        public int SubjectGroupId { get; set; }
+        public double TotalMark { get; set; }
+        public List<TrainingProgramBasedUniversityDataSet> TrainingProgramBasedUniversityDataSets { get; set; }
     }
 }

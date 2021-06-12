@@ -10,7 +10,6 @@ namespace CapstoneAPI.DataSets.SubjectGroup
     {
         public int Id { get; set; }
         public string GroupCode { get; set; }
-
         public int Status { get; set; }
         public IEnumerable<SubjectDataSet> ListOfSubject { get; set; }
     }

@@ -10,9 +10,10 @@ namespace CapstoneAPI.Services.SubjectGroup
     public interface ISubjectGroupService
     {
         Task<Response<IEnumerable<SubjectGroupDataSet>>> GetCaculatedSubjectGroup(SubjectGroupParam subjectGroupParam);
-        Task<IEnumerable<AdminSubjectGroupDataSet>> GetListSubjectGroups();
-        Task<CreateSubjectGroupDataset> CreateNewSubjectGroup(CreateSubjectGroupParam createSubjectGroupParam);
-        Task<CreateSubjectGroupDataset> UpdateSubjectGroup(UpdateSubjectGroupParam updateSubjectGroupParam);
+        Task<Response<UserSuggestionInformation>> GetUserSuggestTopSubjectGroup(string token);
+        Task<Response<IEnumerable<AdminSubjectGroupDataSet>>> GetListSubjectGroups();
+        Task<Response<CreateSubjectGroupDataset>> CreateNewSubjectGroup(CreateSubjectGroupParam createSubjectGroupParam);
+        Task<Response<CreateSubjectGroupDataset>> UpdateSubjectGroup(UpdateSubjectGroupParam updateSubjectGroupParam);
 
     }
 }

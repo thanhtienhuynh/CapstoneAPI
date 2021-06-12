@@ -34,10 +34,10 @@ namespace CapstoneAPI.Controllers
         }
 
         [HttpPost("saving")]
-        public async Task<ActionResult<Response<TestSubmission>>> SaveTestSubmission(SaveTestSubmissionParam saveTestSubmissionParam)
+        public async Task<ActionResult<Response<bool>>> SaveTestSubmission(List<SaveTestSubmissionParam> saveTestSubmissionParams)
         {
             string token = Request.Headers["Authorization"];
-            return Ok(await _service.SaveTestSubmission(saveTestSubmissionParam, token));
+            return Ok(await _service.SaveTestSubmissions(saveTestSubmissionParams, token));
         }
 
         [HttpGet()]

@@ -7,6 +7,7 @@ using CapstoneAPI.Services.Article;
 using CapstoneAPI.Services.Configuration;
 using CapstoneAPI.Services.Crawler;
 using CapstoneAPI.Services.Email;
+using CapstoneAPI.Services.FollowingDetail;
 using CapstoneAPI.Services.FirebaseService;
 using CapstoneAPI.Services.Major;
 using CapstoneAPI.Services.Rank;
@@ -17,7 +18,6 @@ using CapstoneAPI.Services.TestSubmission;
 using CapstoneAPI.Services.TrainingProgram;
 using CapstoneAPI.Services.University;
 using CapstoneAPI.Services.User;
-using CapstoneAPI.Services.UserMajorDetail;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -37,6 +37,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using CapstoneAPI.Services.Season;
+using CapstoneAPI.Services.Province;
+using CapstoneAPI.Services.AdmissionMethodService;
+using CapstoneAPI.Services.MajorSubjectGroup;
+using CapstoneAPI.Services.Transcript;
 
 namespace CapstoneAPI
 {
@@ -83,14 +88,15 @@ namespace CapstoneAPI
                        ValidIssuer = AppSettings.Settings.Issuer,
                        ValidateAudience = true,
                        ValidAudience = AppSettings.Settings.Audience,
-                       RequireExpirationTime = false
-                   };
+                       RequireExpirationTime = false           
+                   };   
                });
 
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             AddServicesScoped(services);
             services.AddScoped<IUnitOfWork, UnitOfWork>();
-            services.AddCors();
+            services.AddCors(c => c.AddPolicy("AllowOrigin", options => options
+            .AllowAnyMethod().AllowCredentials().AllowAnyHeader().SetIsOriginAllowed(hostName => true)));
 
             services.AddSingleton<IJobFactory, SingletonJobFactory>();
             services.AddSingleton<ISchedulerFactory, StdSchedulerFactory>();
@@ -151,10 +157,15 @@ namespace CapstoneAPI
             services.AddScoped<IArticleCrawlerService, ArticleCrawlerService>();
             services.AddScoped<ITrainingProgramService, TrainingProgramService>();
             services.AddScoped<IArticleService, ArticleService>();
-            services.AddScoped<IUserMajorDetailService, UserMajorDetailService>();
+            services.AddScoped<IFollowingDetailService, FollowingDetailService>();
             services.AddScoped<IRankService, RankService>();
             services.AddScoped<IFCMService, FCMService>();
             services.AddScoped<IConfigurationService, ConfigurationService>();
+            services.AddScoped<ISeasonService, SeasonService>();
+            services.AddScoped<IProvinceService, ProvinceService>();
+            services.AddScoped<IAdmissionMethodService, AdmissitonMethodService>();
+            services.AddScoped<IMajorSubjectGroupService, MajorSubjectGroupService>();
+            services.AddScoped<ITranscriptService, TranscriptService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -178,7 +189,7 @@ namespace CapstoneAPI
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+            app.UseCors(x => x.SetIsOriginAllowed(hostName => true).AllowAnyMethod().AllowAnyHeader().AllowCredentials());
 
             app.UseEndpoints(endpoints =>
             {
