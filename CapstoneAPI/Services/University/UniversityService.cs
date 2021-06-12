@@ -1255,96 +1255,46 @@ namespace CapstoneAPI.Services.University
                     }
                 }
 
-
-                //UPDATE ADMISSION QUANTITY
-                MajorDetailExisted.AdmissionCriterion.Quantity = updatingMajorUniversityParam.TotalAdmissionQuantity;
-
-                _uow.AdmissionCriterionRepository.Update(MajorDetailExisted.AdmissionCriterion);
-
-
-                //SUB ASSMISSION CAN NOT NULL
-                if (updatingMajorUniversityParam.UpdatingUniSubAdmissionParams == null
-                    || updatingMajorUniversityParam.UpdatingUniSubAdmissionParams.Count < 1)
+                else
                 {
-                    response.Succeeded = false;
-                    if (response.Errors == null)
-                    {
-                        response.Errors = new List<string>();
-                    }
-                    response.Errors.Add("Một ngành học phải có chỉ tiêu!");
-                    return response;
-                }
+                    //UPDATE ADMISSION QUANTITY
+                    MajorDetailExisted.AdmissionCriterion.Quantity = updatingMajorUniversityParam.TotalAdmissionQuantity;
 
-                foreach (UpdatingUniSubAdmissionParam subAdmissionParam in updatingMajorUniversityParam.UpdatingUniSubAdmissionParams)
-                {
-                    Models.SubAdmissionCriterion newSubAdmissionCriterion = new SubAdmissionCriterion();
-                    newSubAdmissionCriterion.AdmissionCriterionId = MajorDetailExisted.Id;
-                    newSubAdmissionCriterion.AdmissionMethodId = subAdmissionParam.AdmissionMethodId;
-                    newSubAdmissionCriterion.Gender = subAdmissionParam.GenderId;
-                    newSubAdmissionCriterion.ProvinceId = subAdmissionParam.ProvinceId;
-                    newSubAdmissionCriterion.Quantity = subAdmissionParam.Quantity;
-                    newSubAdmissionCriterion.Status = subAdmissionParam.Status;
-                    if (subAdmissionParam.SubAdmissionId == null || subAdmissionParam.SubAdmissionId <= 0)
-                    {
-                        _uow.SubAdmissionCriterionRepository.Insert(newSubAdmissionCriterion);
-                    }
-                    else
-                    {
-                        newSubAdmissionCriterion.Id = (int)subAdmissionParam.SubAdmissionId;
-                        _uow.SubAdmissionCriterionRepository.Update(newSubAdmissionCriterion);
-                    }
+                    _uow.AdmissionCriterionRepository.Update(MajorDetailExisted.AdmissionCriterion);
 
-                    if ((await _uow.CommitAsync()) <= 0)
+
+                    //SUB ASSMISSION CAN NOT NULL
+                    if (updatingMajorUniversityParam.UpdatingUniSubAdmissionParams == null
+                        || updatingMajorUniversityParam.UpdatingUniSubAdmissionParams.Count < 1)
                     {
                         response.Succeeded = false;
                         if (response.Errors == null)
                         {
                             response.Errors = new List<string>();
                         }
-                        response.Errors.Add("Cập nhật chỉ tiêu phụ bị lỗi!");
+                        response.Errors.Add("Một ngành học phải có chỉ tiêu!");
                         return response;
                     }
-                    foreach (var entryMarkParam in subAdmissionParam.MajorDetailEntryMarkParams)
+
+                    foreach (UpdatingUniSubAdmissionParam subAdmissionParam in updatingMajorUniversityParam.UpdatingUniSubAdmissionParams)
                     {
-                        if (entryMarkParam.Mark < 0 || entryMarkParam.MajorSubjectGroupId <= 0)
+                        Models.SubAdmissionCriterion newSubAdmissionCriterion = new SubAdmissionCriterion();
+                        newSubAdmissionCriterion.AdmissionCriterionId = MajorDetailExisted.Id;
+                        newSubAdmissionCriterion.AdmissionMethodId = subAdmissionParam.AdmissionMethodId;
+                        newSubAdmissionCriterion.Gender = subAdmissionParam.GenderId;
+                        newSubAdmissionCriterion.ProvinceId = subAdmissionParam.ProvinceId;
+                        newSubAdmissionCriterion.Quantity = subAdmissionParam.Quantity;
+                        newSubAdmissionCriterion.Status = subAdmissionParam.Status;
+                        if (subAdmissionParam.SubAdmissionId == null || subAdmissionParam.SubAdmissionId <= 0)
                         {
-                            response.Succeeded = false;
-                            if (response.Errors == null)
-                            {
-                                response.Errors = new List<string>();
-                            }
-                            response.Errors.Add("Điểm chuẩn không hợp lệ");
-                            return response;
-                        }
-                        if (await _uow.MajorSubjectGroupRepository.GetById(entryMarkParam.MajorSubjectGroupId) == null)
-                        {
-                            response.Succeeded = false;
-                            if (response.Errors == null)
-                            {
-                                response.Errors = new List<string>();
-                            }
-                            response.Errors.Add("Khối không hợp lệ");
-                            return response;
-                        }
-
-
-                        Models.EntryMark entryMark = new EntryMark
-                        {
-                            SubAdmissionCriterionId = newSubAdmissionCriterion.Id,
-                            MajorSubjectGroupId = entryMarkParam.MajorSubjectGroupId,
-                            Mark = entryMarkParam.Mark,
-                            Status = entryMarkParam.Status
-                        };
-                        if (entryMarkParam.EntryMarkId == null || entryMarkParam.EntryMarkId <= 0)
-                        {
-                            _uow.EntryMarkRepository.Insert(entryMark);
-
+                            _uow.SubAdmissionCriterionRepository.Insert(newSubAdmissionCriterion);
                         }
                         else
                         {
-                            entryMark.Id = (int)entryMarkParam.EntryMarkId;
-                            _uow.EntryMarkRepository.Update(entryMark);
+                            newSubAdmissionCriterion.Id = (int)subAdmissionParam.SubAdmissionId;
+                            _uow.SubAdmissionCriterionRepository.Update(newSubAdmissionCriterion);
                         }
+
                         if ((await _uow.CommitAsync()) <= 0)
                         {
                             response.Succeeded = false;
@@ -1352,14 +1302,66 @@ namespace CapstoneAPI.Services.University
                             {
                                 response.Errors = new List<string>();
                             }
-                            response.Errors.Add("Cập nhật điểm chuẩn bị lỗi!");
+                            response.Errors.Add("Cập nhật chỉ tiêu phụ bị lỗi!");
                             return response;
                         }
-                    }
-                }
+                        foreach (var entryMarkParam in subAdmissionParam.MajorDetailEntryMarkParams)
+                        {
+                            if (entryMarkParam.Mark < 0 || entryMarkParam.MajorSubjectGroupId <= 0)
+                            {
+                                response.Succeeded = false;
+                                if (response.Errors == null)
+                                {
+                                    response.Errors = new List<string>();
+                                }
+                                response.Errors.Add("Điểm chuẩn không hợp lệ");
+                                return response;
+                            }
+                            if (await _uow.MajorSubjectGroupRepository.GetById(entryMarkParam.MajorSubjectGroupId) == null)
+                            {
+                                response.Succeeded = false;
+                                if (response.Errors == null)
+                                {
+                                    response.Errors = new List<string>();
+                                }
+                                response.Errors.Add("Khối không hợp lệ");
+                                return response;
+                            }
 
-                tran.Commit();
-                response.Succeeded = true;
+
+                            Models.EntryMark entryMark = new EntryMark
+                            {
+                                SubAdmissionCriterionId = newSubAdmissionCriterion.Id,
+                                MajorSubjectGroupId = entryMarkParam.MajorSubjectGroupId,
+                                Mark = entryMarkParam.Mark,
+                                Status = entryMarkParam.Status
+                            };
+                            if (entryMarkParam.EntryMarkId == null || entryMarkParam.EntryMarkId <= 0)
+                            {
+                                _uow.EntryMarkRepository.Insert(entryMark);
+
+                            }
+                            else
+                            {
+                                entryMark.Id = (int)entryMarkParam.EntryMarkId;
+                                _uow.EntryMarkRepository.Update(entryMark);
+                            }
+                            if ((await _uow.CommitAsync()) <= 0)
+                            {
+                                response.Succeeded = false;
+                                if (response.Errors == null)
+                                {
+                                    response.Errors = new List<string>();
+                                }
+                                response.Errors.Add("Cập nhật điểm chuẩn bị lỗi!");
+                                return response;
+                            }
+                        }
+                    }
+
+                    tran.Commit();
+                    response.Succeeded = true;
+                }                
             }
             catch (Exception ex)
             {
