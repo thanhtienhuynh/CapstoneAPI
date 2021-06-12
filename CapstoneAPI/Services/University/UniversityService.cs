@@ -709,8 +709,8 @@ namespace CapstoneAPI.Services.University
                     uniMajorDataSets.Add(uniMajorDataSet);
                 }
                 var totalRecords = uniMajorDataSets.Count;
-                List<UniMajorDataSet> a = uniMajorDataSets.Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).ToList();
-                result = PaginationHelper.CreatePagedReponse(uniMajorDataSets, validFilter, totalRecords);
+                List<UniMajorDataSet> responseData = uniMajorDataSets.Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).ToList();
+                result = PaginationHelper.CreatePagedReponse(responseData, validFilter, totalRecords);
             } catch (Exception ex)
             {
                 _log.Error(ex.Message);
