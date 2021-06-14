@@ -67,7 +67,7 @@ namespace CapstoneAPI.Services.Article
                 }
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 result.Succeeded = false;
                 if (result.Errors == null)
                 {
@@ -146,7 +146,7 @@ namespace CapstoneAPI.Services.Article
                 }
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 result.Succeeded = false;
                 if (result.Errors == null)
                 {
@@ -182,7 +182,7 @@ namespace CapstoneAPI.Services.Article
                 }
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 result.Succeeded = false;
                 if (result.Errors == null)
                 {
@@ -238,7 +238,7 @@ namespace CapstoneAPI.Services.Article
 
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 result.Succeeded = false;
                 if (result.Errors == null)
                 {
@@ -348,7 +348,7 @@ namespace CapstoneAPI.Services.Article
                 }
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -380,7 +380,7 @@ namespace CapstoneAPI.Services.Article
                 result.Succeeded = true;
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 result.Succeeded = false;
                 if (result.Errors == null)
                 {
@@ -420,7 +420,7 @@ namespace CapstoneAPI.Services.Article
                 }
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -498,7 +498,7 @@ namespace CapstoneAPI.Services.Article
                 }
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -529,7 +529,7 @@ namespace CapstoneAPI.Services.Article
                 result.Succeeded = true;
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 result.Succeeded = false;
                 if (result.Errors == null)
                 {
@@ -606,7 +606,7 @@ namespace CapstoneAPI.Services.Article
                 }
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 result.Succeeded = false;
                 if (result.Errors == null)
                 {

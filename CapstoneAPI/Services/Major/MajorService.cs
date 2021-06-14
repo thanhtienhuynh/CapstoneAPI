@@ -46,7 +46,7 @@ namespace CapstoneAPI.Services.Major
             }
             catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -115,7 +115,7 @@ namespace CapstoneAPI.Services.Major
             }
             catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -196,7 +196,7 @@ namespace CapstoneAPI.Services.Major
             }
             catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {

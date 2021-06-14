@@ -207,7 +207,7 @@ namespace CapstoneAPI.Services.University
                 response.Data = trainingProgramBasedUniversityDataSets;
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -399,7 +399,7 @@ namespace CapstoneAPI.Services.University
                 response.Data = mockTestBasedUniversity;
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -479,7 +479,7 @@ namespace CapstoneAPI.Services.University
                 response.Succeeded = true;
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -537,7 +537,7 @@ namespace CapstoneAPI.Services.University
                 result = PaginationHelper.CreatePagedReponse(adminUniversityDataSet, validFilter, totalRecords);
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 result.Succeeded = false;
                 if (result.Errors == null)
                 {
@@ -590,7 +590,7 @@ namespace CapstoneAPI.Services.University
                 result.Succeeded = true;
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 result.Succeeded = false;
                 if (result.Errors == null)
                 {
@@ -713,7 +713,7 @@ namespace CapstoneAPI.Services.University
                 result = PaginationHelper.CreatePagedReponse(responseData, validFilter, totalRecords);
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 result.Succeeded = false;
                 if (result.Errors == null)
                 {
@@ -747,7 +747,7 @@ namespace CapstoneAPI.Services.University
                 }
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -842,7 +842,7 @@ namespace CapstoneAPI.Services.University
                 }
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -961,7 +961,7 @@ namespace CapstoneAPI.Services.University
                 }
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -1156,14 +1156,14 @@ namespace CapstoneAPI.Services.University
             }
             catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 tran.Rollback();
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
                     response.Errors = new List<string>();
                 }
-                response.Errors.Add("Lỗi hệ thống!" + ex);
+                response.Errors.Add("Lỗi hệ thống!" + ex.Message);
 
             }
 
@@ -1368,14 +1368,14 @@ namespace CapstoneAPI.Services.University
             }
             catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 tran.Rollback();
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
                     response.Errors = new List<string>();
                 }
-                response.Errors.Add("Lỗi hệ thống! " + ex);
+                response.Errors.Add("Lỗi hệ thống! " + ex.Message);
             }
             return response;
         }

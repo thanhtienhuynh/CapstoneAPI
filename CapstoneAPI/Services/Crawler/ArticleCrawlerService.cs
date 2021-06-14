@@ -94,7 +94,7 @@ namespace CapstoneAPI.Services.Crawler
             }
             catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
             }
             return 0;
         }
@@ -244,7 +244,7 @@ namespace CapstoneAPI.Services.Crawler
                 return result;
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
             }
             return 0;
         }

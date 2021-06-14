@@ -55,7 +55,7 @@ namespace CapstoneAPI.Services.Transcript
                 response.Data = result;
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
