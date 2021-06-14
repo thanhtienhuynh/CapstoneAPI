@@ -88,14 +88,15 @@ namespace CapstoneAPI
                        ValidIssuer = AppSettings.Settings.Issuer,
                        ValidateAudience = true,
                        ValidAudience = AppSettings.Settings.Audience,
-                       RequireExpirationTime = false
-                   };
+                       RequireExpirationTime = false           
+                   };   
                });
 
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             AddServicesScoped(services);
             services.AddScoped<IUnitOfWork, UnitOfWork>();
-            services.AddCors();
+            services.AddCors(c => c.AddPolicy("AllowOrigin", options => options
+            .AllowAnyMethod().AllowCredentials().AllowAnyHeader().SetIsOriginAllowed(hostName => true)));
 
             services.AddSingleton<IJobFactory, SingletonJobFactory>();
             services.AddSingleton<ISchedulerFactory, StdSchedulerFactory>();
@@ -188,7 +189,7 @@ namespace CapstoneAPI
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+            app.UseCors(x => x.SetIsOriginAllowed(hostName => true).AllowAnyMethod().AllowAnyHeader().AllowCredentials());
 
             app.UseEndpoints(endpoints =>
             {

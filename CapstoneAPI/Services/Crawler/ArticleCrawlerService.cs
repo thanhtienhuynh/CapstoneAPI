@@ -3,9 +3,9 @@ using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
 using HtmlAgilityPack;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using Quartz;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -20,6 +20,7 @@ namespace CapstoneAPI.Services.Crawler
     {
         private readonly IUnitOfWork _uow;
         private readonly JObject configuration;
+        private readonly ILogger _log = Log.ForContext<ArticleCrawlerService>();
 
         public ArticleCrawlerService(IUnitOfWork uow)
         {
@@ -91,8 +92,9 @@ namespace CapstoneAPI.Services.Crawler
                 return result;
 
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
+                _log.Error(ex.Message);
             }
             return 0;
         }
@@ -240,8 +242,9 @@ namespace CapstoneAPI.Services.Crawler
 
                 int result = await VNExpressDetailsCrawler(articles);
                 return result;
-            } catch
+            } catch (Exception ex)
             {
+                _log.Error(ex.Message);
             }
             return 0;
         }

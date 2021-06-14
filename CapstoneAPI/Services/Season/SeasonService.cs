@@ -4,6 +4,7 @@ using CapstoneAPI.DataSets.Season;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Repositories;
 using CapstoneAPI.Wrappers;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,6 +16,8 @@ namespace CapstoneAPI.Services.Season
     {
         private readonly IUnitOfWork _uow;
         private IMapper _mapper;
+        private readonly ILogger _log = Log.ForContext<SeasonService>();
+
         public SeasonService(IUnitOfWork uow, IMapper mapper)
         {
             _uow = uow;
@@ -24,10 +27,22 @@ namespace CapstoneAPI.Services.Season
         public async Task<Response<IEnumerable<AdminSeasonDataSet>>> GetAllSeasons()
         {
             Response<IEnumerable<AdminSeasonDataSet>> response = new Response<IEnumerable<AdminSeasonDataSet>>();
-            IEnumerable<AdminSeasonDataSet> seasons =  (await _uow.SeasonRepository.Get(orderBy: s => s.OrderByDescending(o => o.FromDate)))
+            try
+            {
+                IEnumerable<AdminSeasonDataSet> seasons = (await _uow.SeasonRepository.Get(orderBy: s => s.OrderByDescending(o => o.FromDate)))
                                                             .Select(s => _mapper.Map<AdminSeasonDataSet>(s));
-            response.Data = seasons;
-            response.Succeeded = true;
+                response.Data = seasons;
+                response.Succeeded = true;
+            } catch (Exception ex)
+            {
+                _log.Error(ex.Message);
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
             return response;
         }
     }

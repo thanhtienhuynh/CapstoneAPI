@@ -2,6 +2,7 @@
 using CapstoneAPI.DataSets.Province;
 using CapstoneAPI.Repositories;
 using CapstoneAPI.Wrappers;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +14,8 @@ namespace CapstoneAPI.Services.Province
     {
         private IMapper _mapper;
         private readonly IUnitOfWork _uow;
+        private readonly ILogger _log = Log.ForContext<ProvinceService>();
+
         public ProvinceService(IUnitOfWork uow, IMapper mapper)
         {
             _uow = uow;
@@ -21,10 +24,22 @@ namespace CapstoneAPI.Services.Province
         public async Task<Response<IEnumerable<ProvinceDataSet>>> GetAllProvinces()
         {
             Response<IEnumerable<ProvinceDataSet>> response = new Response<IEnumerable<ProvinceDataSet>>();
-            IEnumerable<ProvinceDataSet> provinces = (await _uow.ProvinceRepository.Get()).Select(s => _mapper.Map<ProvinceDataSet>(s));
-            
+            try
+            {
+                IEnumerable<ProvinceDataSet> provinces = (await _uow.ProvinceRepository.Get()).Select(s => _mapper.Map<ProvinceDataSet>(s));
+
                 response.Data = provinces;
                 response.Succeeded = true;
+            } catch (Exception ex)
+            {
+                _log.Error(ex.Message);
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
             return response;
         }
     }

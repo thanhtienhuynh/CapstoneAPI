@@ -6,6 +6,11 @@ using Microsoft.AspNetCore.Mvc;
 using CapstoneAPI.Services.SubjectGroup;
 using CapstoneAPI.DataSets.SubjectGroup;
 using CapstoneAPI.Wrappers;
+using System.Net.Http;
+using Microsoft.Net.Http.Headers;
+using Microsoft.AspNetCore.Http;
+using Serilog;
+using Serilog.Context;
 
 namespace CapstoneAPI.Controllers
 {
@@ -14,6 +19,7 @@ namespace CapstoneAPI.Controllers
     public class SubjectGroupsController : Controller
     {
         private readonly ISubjectGroupService _service;
+        private readonly ILogger _log = Log.ForContext<SubjectGroupsController>();
 
         public SubjectGroupsController(ISubjectGroupService service)
         {
@@ -23,6 +29,26 @@ namespace CapstoneAPI.Controllers
         [HttpPost("top-subject-group")]
         public async Task<ActionResult<Response<IEnumerable<SubjectGroupDataSet>>>> SuggestTopSubjectGroup(SubjectGroupParam subjectGroupParam)
         {
+            var cookieToken = HttpContext.Request.Cookies["key-token"];
+            if (string.IsNullOrEmpty(cookieToken))
+            {
+                Guid guid = Guid.NewGuid();
+                cookieToken = guid.ToString();
+                HttpContext.Response.Cookies.Append("key-token", guid.ToString(),
+                    new CookieOptions
+                    {
+                        MaxAge = TimeSpan.FromDays(30),
+                        HttpOnly = false,
+                        SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None,
+                        Secure = true,
+                        IsEssential = true
+                    });
+            }
+            using (LogContext.PushProperty("cookie", true))
+            {
+                _log.Information("User: " + cookieToken);
+            }
+           
             return Ok(await _service.GetCaculatedSubjectGroup(subjectGroupParam));
         }
 
@@ -30,6 +56,7 @@ namespace CapstoneAPI.Controllers
         public async Task<ActionResult<Response<IEnumerable<UserSuggestionInformation>>>> GetSuggestTopSubjectGroup()
         {
             string token = Request.Headers["Authorization"];
+
             return Ok(await _service.GetUserSuggestTopSubjectGroup(token));
         }
 
