@@ -31,6 +31,12 @@ namespace CapstoneAPI
                 l => l.Filter.ByIncludingOnly(Matching.WithProperty("cookie"))
                         .WriteTo.File(@"D:\home\LogFiles\http\RawLogs\cookies.txt",
                         outputTemplate: "{Timestamp:o} [{Level:u3}] ({SourceContext}) {Message}{NewLine}{Exception}"))
+
+            .WriteTo.Logger(l => l.Filter.ByIncludingOnly(Matching.WithProperty("fe"))
+            .Enrich.FromLogContext()
+            .WriteTo.File(@"D:\home\LogFiles\http\RawLogs\fe-error-.txt", rollingInterval: RollingInterval.Day,
+                outputTemplate: "{Timestamp:o} [{Level:u3}] ({SourceContext}) {Message}{NewLine}{Exception}"))
+
             .WriteTo.Logger(l => l.Filter.ByIncludingOnly(e => e.Level == LogEventLevel.Error)
             .Enrich.FromLogContext()
             .WriteTo.File(@"D:\home\LogFiles\http\RawLogs\error-.txt", rollingInterval: RollingInterval.Day,

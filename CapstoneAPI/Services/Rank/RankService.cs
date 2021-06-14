@@ -175,7 +175,7 @@ namespace CapstoneAPI.Services.Rank
                 }
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 return false;
             }
 

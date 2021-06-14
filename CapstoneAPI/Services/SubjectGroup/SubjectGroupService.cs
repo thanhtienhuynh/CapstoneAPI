@@ -206,7 +206,7 @@ namespace CapstoneAPI.Services.SubjectGroup
                 response.Data = results;
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -271,7 +271,7 @@ namespace CapstoneAPI.Services.SubjectGroup
                 }
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -604,7 +604,7 @@ namespace CapstoneAPI.Services.SubjectGroup
                 response.Data = createSubjectGroupDataset;
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -912,7 +912,7 @@ namespace CapstoneAPI.Services.SubjectGroup
                 response.Data = userSuggestionSubjectGroup;
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {

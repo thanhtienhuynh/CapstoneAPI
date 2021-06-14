@@ -71,7 +71,7 @@
                 response.Data = testSubmissionDataSet;
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -188,7 +188,7 @@
                 tran.Commit();
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 tran.Rollback();
                 response.Succeeded = false;
                 if (response.Errors == null)
@@ -274,7 +274,7 @@
                 }
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {

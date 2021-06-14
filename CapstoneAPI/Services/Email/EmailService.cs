@@ -49,7 +49,7 @@ namespace CapstoneAPI.Services.Email
                 System.IO.Directory.CreateDirectory("mailssave");
                 var emailsavefile = string.Format(@"mailssave/{0}.eml", Guid.NewGuid());
                 await email.WriteToAsync(emailsavefile);
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
             }
 
             smtp.Disconnect(true);

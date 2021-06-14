@@ -187,7 +187,7 @@ namespace CapstoneAPI.Services.FollowingDetail
                 response.Data = followingDetail;
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -274,7 +274,7 @@ namespace CapstoneAPI.Services.FollowingDetail
             catch (Exception ex)
             {
                 tran.Rollback();
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -417,7 +417,7 @@ namespace CapstoneAPI.Services.FollowingDetail
                 }
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -563,7 +563,7 @@ namespace CapstoneAPI.Services.FollowingDetail
                 }
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -639,7 +639,7 @@ namespace CapstoneAPI.Services.FollowingDetail
                 response.Data = rankingUserInformationGroupByTranscriptTypes;
             } catch (Exception ex)
             {
-                _log.Error(ex.Message);
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
