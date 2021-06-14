@@ -43,7 +43,8 @@ namespace CapstoneAPI.Services.Major
                     response.Succeeded = true;
                     response.Data = adminMajorDataSets;
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 response.Succeeded = false;
@@ -71,7 +72,7 @@ namespace CapstoneAPI.Services.Major
                     response.Errors.Add("Mã ngành không được để trống!");
                     return response;
                 }
-                Models.Major existMajor = await _uow.MajorRepository.GetFirst(filter: m => m.Code.Equals(createMajorDataSet.Code));
+                Models.Major existMajor = await _uow.MajorRepository.GetFirst(filter: m => m.Code.Equals(createMajorDataSet.Code) && m.Status == Consts.STATUS_ACTIVE);
                 if (existMajor != null)
                 {
                     response.Succeeded = false;
@@ -82,7 +83,7 @@ namespace CapstoneAPI.Services.Major
                     response.Errors.Add("Mã ngành đã tồn tại!");
                     return response;
                 }
-                existMajor = await _uow.MajorRepository.GetFirst(filter: m => m.Name.Equals(createMajorDataSet.Name));
+                existMajor = await _uow.MajorRepository.GetFirst(filter: m => m.Name.Equals(createMajorDataSet.Name) && m.Status == Consts.STATUS_ACTIVE);
                 if (existMajor != null)
                 {
                     response.Succeeded = false;
@@ -111,7 +112,8 @@ namespace CapstoneAPI.Services.Major
                     response.Succeeded = false;
                     response.Data = _mapper.Map<ResultOfCreateMajorDataSet>(newMajor);
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 response.Succeeded = false;
@@ -139,7 +141,7 @@ namespace CapstoneAPI.Services.Major
                     response.Errors.Add("Dữ liệu bị thiếu!");
                     return response;
                 }
-                Models.Major existMajor = await _uow.MajorRepository.GetFirst(filter: m => m.Code.Equals(updateMajor.Code));
+                Models.Major existMajor = await _uow.MajorRepository.GetFirst(filter: m => m.Code.Equals(updateMajor.Code) && m.Status == Consts.STATUS_ACTIVE);
                 if (existMajor != null && existMajor.Id != updateMajor.Id)
                 {
                     response.Succeeded = false;
@@ -150,7 +152,7 @@ namespace CapstoneAPI.Services.Major
                     response.Errors.Add("Mã ngành cập nhật đã tồn tại!");
                     return response;
                 }
-                existMajor = await _uow.MajorRepository.GetFirst(filter: m => m.Name.Equals(updateMajor.Name));
+                existMajor = await _uow.MajorRepository.GetFirst(filter: m => m.Name.Equals(updateMajor.Name) && m.Status == Consts.STATUS_ACTIVE);
                 if (existMajor != null && existMajor.Id != updateMajor.Id)
                 {
                     response.Succeeded = false;
@@ -191,7 +193,8 @@ namespace CapstoneAPI.Services.Major
                     response.Succeeded = true;
                     response.Data = _mapper.Map<ResultOfCreateMajorDataSet>(objToUpdate);
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 response.Succeeded = false;
