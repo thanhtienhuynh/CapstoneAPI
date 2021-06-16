@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
 using CapstoneAPI.DataSets.Major;
+using CapstoneAPI.DataSets.Subject;
+using CapstoneAPI.DataSets.SubjectGroup;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Repositories;
 using CapstoneAPI.Wrappers;
@@ -43,7 +45,8 @@ namespace CapstoneAPI.Services.Major
                     response.Succeeded = true;
                     response.Data = adminMajorDataSets;
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 response.Succeeded = false;
@@ -111,7 +114,8 @@ namespace CapstoneAPI.Services.Major
                     response.Succeeded = false;
                     response.Data = _mapper.Map<ResultOfCreateMajorDataSet>(newMajor);
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 response.Succeeded = false;
@@ -191,7 +195,8 @@ namespace CapstoneAPI.Services.Major
                     response.Succeeded = true;
                     response.Data = _mapper.Map<ResultOfCreateMajorDataSet>(objToUpdate);
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 response.Succeeded = false;
@@ -201,6 +206,72 @@ namespace CapstoneAPI.Services.Major
                 }
                 response.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
+            return response;
+        }
+
+        public async Task<Response<IEnumerable<MajorSubjectWeightDataSet>>> GetMajorSubjectWeights(string majorName)
+        {
+            Response<IEnumerable<MajorSubjectWeightDataSet>> response = null;
+            List<MajorSubjectWeightDataSet> majors = (await _uow.MajorRepository
+                .Get(filter: m => (string.IsNullOrEmpty(majorName) || m.Name.Contains(majorName))
+                && m.Status == Consts.STATUS_ACTIVE)).Select(m => _mapper.Map<MajorSubjectWeightDataSet>(m)).ToList();
+
+            foreach (var item in majors)
+            {
+                List<Models.MajorSubjectGroup> majorSubjectGroups =
+                    (await _uow.MajorSubjectGroupRepository.Get(filter: ms => ms.MajorId == item.Id,
+                    includeProperties: "SubjectGroup,SubjectWeights,SubjectWeights.SubjectGroupDetail," +
+                    "SubjectWeights.SubjectGroupDetail.Subject,SubjectWeights.SubjectGroupDetail.SpecialSubjectGroup")).ToList();
+
+                if (majorSubjectGroups != null && majorSubjectGroups.Count() > 0)
+                {
+
+                    List<SubjectGroupWeightDataSet> subjectGroupWeightDataSets = new List<SubjectGroupWeightDataSet>();
+
+                    foreach (var majorSubjectGroup in majorSubjectGroups)
+                    {
+                        int subjectGroupWeightDataSetId = majorSubjectGroup.SubjectGroup.Id;
+                        string subjectGroupWeightDataSetGroupCode = majorSubjectGroup.SubjectGroup.GroupCode;
+
+                        if (majorSubjectGroup.SubjectWeights != null && majorSubjectGroup.SubjectWeights.Count > 0)
+                        {
+                            List<SubjectWeightDataSet> subjectWeightDataSets = new List<SubjectWeightDataSet>();
+                            SubjectWeightDataSet subjectWeightDataSet = new SubjectWeightDataSet();
+
+                            foreach (var subjectWeight in majorSubjectGroup.SubjectWeights)
+                            {
+                                int weight = subjectWeight.Weight;
+                                string name = "";
+                                bool isSpecialSubjectGroup = false;
+
+                                if (subjectWeight.SubjectGroupDetail.Subject != null)
+                                    name = subjectWeight.SubjectGroupDetail.Subject.Name;
+                                else if (subjectWeight.SubjectGroupDetail.SpecialSubjectGroup != null)
+                                {
+                                    name = subjectWeight.SubjectGroupDetail.SpecialSubjectGroup.Name;
+                                    isSpecialSubjectGroup = true;
+                                }
+
+                                subjectWeightDataSets.Add(new SubjectWeightDataSet()
+                                {
+                                    Weight = weight,
+                                    Name = name,
+                                    IsSpecialSubjectGroup = isSpecialSubjectGroup
+                                });
+                            }
+                            subjectGroupWeightDataSets.Add(new SubjectGroupWeightDataSet()
+                            {
+                                Id = subjectGroupWeightDataSetId,
+                                GroupCode = subjectGroupWeightDataSetGroupCode,
+                                SubjectWeights = subjectWeightDataSets
+                            });
+                        }
+                    }
+                    item.SubjectGroups = subjectGroupWeightDataSets;
+                }
+
+            }
+            response = new Response<IEnumerable<MajorSubjectWeightDataSet>>(majors);
             return response;
         }
     }

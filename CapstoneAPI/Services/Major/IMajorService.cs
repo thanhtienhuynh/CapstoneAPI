@@ -10,6 +10,7 @@ namespace CapstoneAPI.Services.Major
     public interface IMajorService
     {
         Task<Response<IEnumerable<AdminMajorDataSet>>> GetActiveMajorsByAdmin();
+        Task<Response<IEnumerable<MajorSubjectWeightDataSet>>> GetMajorSubjectWeights(string majorName);
         Task<Response<ResultOfCreateMajorDataSet>> CreateAMajor(CreateMajorDataSet createMajorDataSet);
         Task<Response<ResultOfCreateMajorDataSet>> UpdateAMajor(ResultOfCreateMajorDataSet updateMajor);
     }
