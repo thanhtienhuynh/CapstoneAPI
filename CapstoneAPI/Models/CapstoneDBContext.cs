@@ -539,8 +539,6 @@ namespace CapstoneAPI.Models
 
                 entity.Property(e => e.UserId).HasColumnName("User_Id");
 
-                entity.Property(e => e.Year).HasColumnType("date");
-
                 entity.HasOne(d => d.Subject)
                     .WithMany(p => p.Tests)
                     .HasForeignKey(d => d.SubjectId)

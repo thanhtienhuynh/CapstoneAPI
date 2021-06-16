@@ -24,7 +24,11 @@ namespace CapstoneAPI.Controllers
         {
             return Ok(await _service.GetActiveMajorsByAdmin());
         }
-
+        [HttpGet("subject-weight")]
+        public async Task<ActionResult<Response<IEnumerable<MajorSubjectWeightDataSet>>>> GetMajorWeightNumber(string majorName)
+        {
+            return Ok(await _service.GetMajorSubjectWeights(majorName));
+        }
         [HttpPost]
         public async Task<ActionResult<Response<ResultOfCreateMajorDataSet>>> CreateAMajor([FromBody] CreateMajorDataSet createMajorDataSet)
         {

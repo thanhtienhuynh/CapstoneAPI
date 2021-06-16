@@ -62,11 +62,18 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.Article, AdminArticleDetailDataSet>();
             CreateMap<Models.Article, ApprovingArticleDataSet>();
             CreateMap<Models.University, ApprovingArticleUniversityResponse>();
+            CreateMap<NewQuestionParam, Models.Question>();
+            CreateMap<NewTestParam, Models.Test>();
+            CreateMap<NewOptionParam, Models.Option>();
+
             CreateMap<Models.Province, ProvinceDataSet>();
             CreateMap<Models.SpecialSubjectGroup, SpecialSubjectGroupDataSet>();
             CreateMap<Models.AdmissionMethod, AdmissionMethodDataSet>();
             CreateMap<Models.Season, AdminSeasonDataSet>();
             CreateMap<AdminSeasonDataSet, Models.Season>();
+
+            CreateMap<Models.Major, MajorSubjectWeightDataSet>();
+
         }
     }
 }

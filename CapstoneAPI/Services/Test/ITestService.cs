@@ -11,5 +11,6 @@ namespace CapstoneAPI.Services.Test
     {
         Task<Response<List<SubjectBasedTestDataSet>>> GetFilteredTests(TestParam testParam);
         Task<Response<TestDataSet>> GetTestById(int id);
+        Task<Response<bool>> AddNewTest(NewTestParam testParam, string token);
     }
 }

@@ -35,5 +35,12 @@ namespace CapstoneAPI.Controllers
             return Ok(await _service.GetTestById(id));
         }
 
+        [HttpPost]
+        public async Task<ActionResult<Response<bool>>> AddNewTest([FromBody] NewTestParam testParam)
+        {
+            string token = Request.Headers["Authorization"];
+
+            return Ok(await _service.AddNewTest(testParam, token));
+        }
     }
 }

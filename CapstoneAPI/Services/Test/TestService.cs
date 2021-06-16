@@ -2,15 +2,21 @@
 {
     using AutoMapper;
     using CapstoneAPI.DataSets.Question;
+    using CapstoneAPI.DataSets.Option;
     using CapstoneAPI.DataSets.Test;
     using CapstoneAPI.Helpers;
     using CapstoneAPI.Models;
     using CapstoneAPI.Repositories;
     using CapstoneAPI.Wrappers;
+    using Newtonsoft.Json.Linq;
+    using System;
+    using System.Collections;
     using Serilog;
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
+    using System.Reflection;
     using System.Threading.Tasks;
 
     public class TestService : ITestService
@@ -150,6 +156,67 @@
                 }
                 response.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
+            return response;
+        }
+
+        public async Task<Response<bool>> AddNewTest(NewTestParam testParam, string token)
+        {
+            Response<bool> response = new Response<bool>();
+
+            if (token == null || token.Trim().Length == 0)
+            {
+                if (response.Errors == null)
+                    response.Errors = new List<string>();
+                response.Errors.Add("Bạn chưa đăng nhập!");
+                return response;
+            }
+
+            string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
+
+            if (userIdString == null || userIdString.Length <= 0)
+            {
+                if (response.Errors == null)
+                    response.Errors = new List<string>();
+                response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                return response;
+            }
+
+            int userId = Int32.Parse(userIdString);
+
+            string path = Path.Combine(Path
+                .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
+            JObject configuration = JObject.Parse(File.ReadAllText(path));
+
+            Test t = _mapper.Map<Test>(testParam);
+            t.UserId = userId;
+            t.NumberOfQuestion = t.Questions.Count();
+
+            foreach (var item in t.Questions)
+            {
+                item.NumberOfOption = item.Options.Count();
+            }
+            var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
+
+            DateTime currentDate = DateTime.UtcNow.AddHours(double.Parse(currentTimeZone));
+            t.CreateDate = currentDate;
+
+
+            _uow.TestRepository.Insert(t);
+
+            int result = await _uow.CommitAsync();
+            if (result > 0)
+            {
+                response.Succeeded = true;
+                response.Message = "Tạo mới đề thi thành công!";
+            }
+
+            else
+            {
+                if (response.Errors == null)
+                    response.Errors = new List<string>();
+                response.Errors.Add("Tạo mới đề thi không thành công!");
+            }
+
             return response;
         }
     }
