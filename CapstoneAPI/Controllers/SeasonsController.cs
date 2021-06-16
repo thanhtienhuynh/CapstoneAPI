@@ -24,5 +24,11 @@ namespace CapstoneAPI.Controllers
         {
             return Ok(await _service.GetAllSeasons());
         }
+
+        [HttpPost]
+        public async Task<ActionResult<Response<AdminSeasonDataSet>>> CreateSeason([FromBody] CreateSeasonParam createSeasonParam)
+        {
+            return Ok(await _service.CreateSeason(createSeasonParam));
+        }
     }
 }

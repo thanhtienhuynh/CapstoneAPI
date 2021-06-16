@@ -7,6 +7,8 @@ namespace CapstoneAPI.Helpers
 {
     public class Consts
     {
+        //Article
+        public static int STATUS_PUBLISHED = 3;
         //Status
         public static int STATUS_ACTIVE = 1;
         public static int STATUS_INACTIVE = 0;

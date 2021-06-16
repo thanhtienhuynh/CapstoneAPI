@@ -65,7 +65,8 @@ namespace CapstoneAPI.Services.Article
                         .Count(filter: filter);
                     result = PaginationHelper.CreatePagedReponse(articleCollapseDataSet, validFilter, totalRecords);
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 result.Succeeded = false;
@@ -75,7 +76,7 @@ namespace CapstoneAPI.Services.Article
                 }
                 result.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
-           
+
             return result;
         }
 
@@ -144,7 +145,8 @@ namespace CapstoneAPI.Services.Article
                     var totalRecords = _uow.ArticleRepository.Count(filter);
                     result = PaginationHelper.CreatePagedReponse(articleCollapseDataSet, validFilter, totalRecords);
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 result.Succeeded = false;
@@ -155,7 +157,7 @@ namespace CapstoneAPI.Services.Article
                 result.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
 
-           
+
 
             return result;
         }
@@ -180,7 +182,8 @@ namespace CapstoneAPI.Services.Article
                     var data = _mapper.Map<ArticleDetailDataSet>(article);
                     result = new Response<ArticleDetailDataSet>(data);
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 result.Succeeded = false;
@@ -190,7 +193,7 @@ namespace CapstoneAPI.Services.Article
                 }
                 result.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
-            
+
             return result;
         }
 
@@ -236,7 +239,8 @@ namespace CapstoneAPI.Services.Article
                     result = new Response<AdminArticleDetailDataSet>(data);
                 }
 
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 result.Succeeded = false;
@@ -246,7 +250,7 @@ namespace CapstoneAPI.Services.Article
                 }
                 result.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
-            
+
             return result;
         }
 
@@ -255,6 +259,7 @@ namespace CapstoneAPI.Services.Article
             Response<ApprovingArticleDataSet> response = new Response<ApprovingArticleDataSet>();
             try
             {
+                int? oldStatus = null;
                 if (token == null || token.Trim().Length == 0)
                 {
                     if (response.Errors == null)
@@ -287,6 +292,9 @@ namespace CapstoneAPI.Services.Article
                     }
                     else
                     {
+                        //FIND USER TO SEND NOTI
+                        oldStatus = articleToUpdate.Status;
+
                         articleToUpdate.PublicFromDate = approvingArticleDataSet?.PublicFromDate;
                         articleToUpdate.PublicToDate = approvingArticleDataSet?.PublicToDate;
                         articleToUpdate.Status = approvingArticleDataSet?.Status;
@@ -343,10 +351,44 @@ namespace CapstoneAPI.Services.Article
                             {
                                 Message = "Duyệt tin tức thành công!"
                             };
+
+                            //FIND USER TO SEND NOTI
+                            if (oldStatus != approvingArticleDataSet.Status && approvingArticleDataSet.Status == Consts.STATUS_PUBLISHED)
+                            {
+                                Dictionary<int, Models.User> dictionaryUsers = new Dictionary<int, Models.User>();
+                                IEnumerable<Models.MajorArticle> majorArticles = await _uow.MajorArticleRepository.Get(filter: m => m.ArticleId == articleToUpdate.Id);
+                                IEnumerable<Models.UniversityArticle> universityArticles = await _uow.UniversityArticleRepository.Get(filter: u => u.ArticleId == articleToUpdate.Id);
+                                IEnumerable<int> majorIds = majorArticles.Select(s => s.MajorId);
+                                IEnumerable<int> universityIds = universityArticles.Select(s => s.UniversityId);
+
+                                IEnumerable<Models.FollowingDetail> followingDetails = await _uow.FollowingDetailRepository
+                                    .Get(filter: f => f.IsReceiveNotification == true,
+                                    includeProperties: "User,EntryMark,EntryMark.MajorSubjectGroup,EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail");
+                                if (followingDetails.Count() > 0)
+                                {
+                                    foreach (var followingDetail in followingDetails)
+                                    {
+                                        int majorId = followingDetail.EntryMark.MajorSubjectGroup.MajorId;
+                                        int universityId = followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.UniversityId;
+                                        if (majorIds.Contains(majorId) || universityIds.Contains(universityId))
+                                        {
+                                            if (!dictionaryUsers.ContainsKey(followingDetail.UserId))
+                                            {
+                                                dictionaryUsers.Add(followingDetail.UserId, followingDetail.User);
+                                            }
+                                        }
+
+                                    }
+                                }
+                                //FIND USER TO SEND NOTI
+                                //RESULT
+                                IEnumerable<Models.User> users = dictionaryUsers.Values;
+                            }
                         }
                     }
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 response.Succeeded = false;
@@ -356,7 +398,7 @@ namespace CapstoneAPI.Services.Article
                 }
                 response.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
-           
+
 
             return response;
         }
@@ -378,7 +420,8 @@ namespace CapstoneAPI.Services.Article
 
                 result.Data = articles.Select(a => a.Id).ToList();
                 result.Succeeded = true;
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 result.Succeeded = false;
@@ -418,7 +461,8 @@ namespace CapstoneAPI.Services.Article
                     var articleCollapseDataSet = articles.Select(m => _mapper.Map<AdminArticleCollapseDataSet>(m)).ToList();
                     response = new Response<List<AdminArticleCollapseDataSet>>(articleCollapseDataSet);
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 response.Succeeded = false;
@@ -496,7 +540,8 @@ namespace CapstoneAPI.Services.Article
                         response = new Response<List<AdminArticleCollapseDataSet>>(articleCollapseDataSet);
                     }
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 response.Succeeded = false;
@@ -506,7 +551,7 @@ namespace CapstoneAPI.Services.Article
                 }
                 response.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
-            
+
             return response;
         }
 
@@ -527,7 +572,8 @@ namespace CapstoneAPI.Services.Article
 
                 result.Data = articles.Select(a => a.Id).ToList();
                 result.Succeeded = true;
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 result.Succeeded = false;
@@ -604,7 +650,8 @@ namespace CapstoneAPI.Services.Article
                     result.Succeeded = true;
                     result.Data = articleCollapseDataSet;
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 result.Succeeded = false;
@@ -616,6 +663,116 @@ namespace CapstoneAPI.Services.Article
             }
 
             return result;
+        }
+
+        public async Task<PagedResponse<List<ArticleCollapseDataSet>>> GetListFollowingArticle(PaginationFilter validFilter, string token)
+        {
+            PagedResponse<List<ArticleCollapseDataSet>> response = new PagedResponse<List<ArticleCollapseDataSet>>();
+
+            try
+            {
+                //GET USER ID
+                if (token == null || token.Trim().Length == 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Bạn chưa đăng nhập!");
+                    return response;
+                }
+
+
+                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
+
+                if (userIdString == null || userIdString.Length <= 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    return response;
+                }
+                int userId = Int32.Parse(userIdString);
+
+                //GET CURRENT TIME
+                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
+                DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
+
+
+                //GET LIST ARTICLE
+                Dictionary<int, Models.Article> articlesByUser = new Dictionary<int, Models.Article>();
+                IEnumerable<Models.FollowingDetail> followingDetailPerUser = await _uow.FollowingDetailRepository
+                .Get(filter: f => f.IsReceiveNotification == true && f.UserId == userId,
+                includeProperties: "EntryMark,EntryMark.MajorSubjectGroup,EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail");
+                if (followingDetailPerUser.Count() > 0)
+                {
+                    foreach (var followingDetail in followingDetailPerUser)
+                    {
+                        int majorId = followingDetail.EntryMark.MajorSubjectGroup.MajorId;
+                        int universityId = followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.UniversityId;
+
+                        IEnumerable<Models.Article> articlesByMajor = (await _uow.MajorArticleRepository.
+                            Get(filter: m => m.MajorId == majorId, includeProperties: "Article")).Select(s => s.Article).
+                            Where(a => a.Status == 3 && a.PublicFromDate != null && a.PublicToDate != null
+                    && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0);
+
+
+                        foreach (var article in articlesByMajor)
+                        {
+                            if (!articlesByUser.ContainsKey(article.Id))
+                            {
+                                articlesByUser.Add(article.Id, article);
+                            }
+                        }
+                        IEnumerable<Models.Article> articlesByUniversity = (await _uow.UniversityArticleRepository.
+                            Get(filter: m => m.UniversityId == universityId, includeProperties: "Article"))
+                            .Select(s => s.Article).
+                            Where(a => a.Status == 3 && a.PublicFromDate != null && a.PublicToDate != null
+                    && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0);
+
+
+                        foreach (var article in articlesByUniversity)
+                        {
+                            if (!articlesByUser.ContainsKey(article.Id))
+                            {
+                                articlesByUser.Add(article.Id, article);
+                            }
+                        }
+                    }
+                }
+
+                IEnumerable<Models.Article> articlesResult = articlesByUser.Values.OrderByDescending(o => o.PostedDate)
+                    .Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).ToList();
+
+
+                if (articlesResult.Count() <= 0)
+                {
+                    response.Succeeded = true;
+                    response.Message = "Không có tin tức nào để hiển thị!";
+                }
+                else
+                {
+                    var articleCollapseDataSet = articlesResult.Select(m => _mapper.Map<ArticleCollapseDataSet>(m)).ToList();
+                    var totalRecords = articlesByUser.Count();
+                    response = PaginationHelper.CreatePagedReponse(articleCollapseDataSet, validFilter, totalRecords);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+
+            return response;
         }
     }
 }
