@@ -127,5 +127,18 @@ namespace CapstoneAPI.Controllers
                 return NoContent();
             return Ok(articles);
         }
+
+        [HttpGet("following-article")]
+        public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListFollowingArticle([FromQuery] PaginationFilter filter)
+        {
+            string token = Request.Headers["Authorization"];
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+
+            PagedResponse<List<ArticleCollapseDataSet>> articles = await _service.GetListFollowingArticle(validFilter,token);
+
+            if (articles == null)
+                return NoContent();
+            return Ok(articles);
+        }
     }
 }

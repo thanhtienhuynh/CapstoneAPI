@@ -554,7 +554,7 @@ namespace CapstoneAPI.Services.University
             try
             {
                 IEnumerable<MajorDetail> majorDetails = await _uow.MajorDetailRepository
-                    .Get(filter: m => m.UniversityId == majorDetailParam.UniversityId && m.SeasonId == majorDetailParam.SeasonId,
+                    .Get(filter: m => m.UniversityId == majorDetailParam.UniversityId && m.SeasonId == majorDetailParam.SeasonId && m.Status == Consts.STATUS_ACTIVE,
                     includeProperties: "Major,Season,AdmissionCriterion,TrainingProgram");
 
                 IEnumerable<IGrouping<Models.Major, MajorDetail>> groupbyMajor = majorDetails.GroupBy(m => m.Major);
