@@ -16,6 +16,6 @@ namespace CapstoneAPI.Services.Major
         Task<Response<List<MajorSubjectWeightDataSet>>> GetMajorSubjectWeights(string majorName);
         Task<PagedResponse<List<MajorSubjectWeightDataSet>>> GetMajorSubjectWeights(PaginationFilter validFilter, string majorName);
         Task<Response<CreateMajorSubjectWeightDataSet>> CreateAMajor(CreateMajorSubjectWeightDataSet createMajor);
-
+        Task<Response<UpdateMajorParam>> UpdateMajor(UpdateMajorParam updateMajor);
     }
 }

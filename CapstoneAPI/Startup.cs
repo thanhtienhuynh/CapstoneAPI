@@ -105,7 +105,8 @@ namespace CapstoneAPI
             services.AddSingleton<ArticleCrawlerCronJob>();
             services.AddSingleton(new JobSchedule(
                 jobType: typeof(ArticleCrawlerCronJob),
-                cronExpression: "0 */30 * ? * *"));
+                cronExpression: "0 0 */4 ? * *"));
+
             services.AddHostedService<QuartzHostedService>();
             services.AddSwaggerGen(c =>
             {
