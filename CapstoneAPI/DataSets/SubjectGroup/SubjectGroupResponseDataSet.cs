@@ -3,10 +3,11 @@ using System.Collections.Generic;
 
 namespace CapstoneAPI.DataSets.SubjectGroup
 {
-    public class SubjectGroupWeightDataSet
+    public class SubjectGroupResponseDataSet
     {
         public int Id { get; set; }
         public string GroupCode { get; set; }
-        public List<SubjectWeightDataSet> SubjectWeights { get; set; }
+        public List<SubjectResponseDataSet> Subjects { get; set; }
+
     }
 }

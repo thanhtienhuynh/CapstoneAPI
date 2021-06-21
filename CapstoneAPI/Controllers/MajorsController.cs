@@ -45,5 +45,10 @@ namespace CapstoneAPI.Controllers
         {
             return Ok(await _service.UpdateAMajor(updateMajorDataSet));
         }
+        [HttpPost("subject-weight")]
+        public async Task<ActionResult<Response<CreateMajorSubjectWeightDataSet>>> CreateAMajorWeightNumber([FromBody] CreateMajorSubjectWeightDataSet createMajorDataSet)
+        {
+            return Ok(await _service.CreateAMajor(createMajorDataSet));
+        }
     }
 }

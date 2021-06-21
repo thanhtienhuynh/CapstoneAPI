@@ -204,7 +204,8 @@ namespace CapstoneAPI.Services.SubjectGroup
 
                 response.Succeeded = true;
                 response.Data = results;
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 response.Succeeded = false;
@@ -269,7 +270,8 @@ namespace CapstoneAPI.Services.SubjectGroup
                     response.Succeeded = true;
                     response.Data = subjectGroupDataSets;
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 response.Succeeded = false;
@@ -390,7 +392,7 @@ namespace CapstoneAPI.Services.SubjectGroup
 
         public async Task<Response<CreateSubjectGroupDataset>> CreateNewSubjectGroup(CreateSubjectGroupParam createSubjectGroupParam)
         {
-            Response<CreateSubjectGroupDataset> response = new Response<CreateSubjectGroupDataset>();          
+            Response<CreateSubjectGroupDataset> response = new Response<CreateSubjectGroupDataset>();
             try
             {
                 if (createSubjectGroupParam.GroupCode == null || createSubjectGroupParam.GroupCode.Trim().Equals(""))
@@ -602,7 +604,8 @@ namespace CapstoneAPI.Services.SubjectGroup
                 };
                 response.Succeeded = true;
                 response.Data = createSubjectGroupDataset;
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 response.Succeeded = false;
@@ -910,7 +913,8 @@ namespace CapstoneAPI.Services.SubjectGroup
                 }
                 response.Succeeded = true;
                 response.Data = userSuggestionSubjectGroup;
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.Message);
                 response.Succeeded = false;
@@ -920,6 +924,89 @@ namespace CapstoneAPI.Services.SubjectGroup
                 }
                 response.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
+            return response;
+        }
+
+        public async Task<Response<SubjectGroupResponseDataSet>> GetSubjectGroupWeight(int id)
+        {
+            Response<SubjectGroupResponseDataSet> response = new Response<SubjectGroupResponseDataSet>();
+            try
+            {
+                Models.SubjectGroup subjectGroup = await _uow.SubjectGroupRepository.GetById(id);
+                if (subjectGroup == null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Không thể tìm thấy khối!");
+                    return response;
+                }
+
+                List<Models.SubjectGroupDetail> subjectGroupDetails =
+                    (await _uow.SubjecGroupDetailRepository.Get(filter: s => s.SubjectGroupId == id,
+                    includeProperties: "Subject,SpecialSubjectGroup"))?.ToList();
+
+                if (subjectGroupDetails == null || subjectGroupDetails.Count() == 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Không có môn học tương ứng với khối!");
+                    return response;
+                }
+                List<SubjectResponseDataSet> subjectResponseDataSets = new List<SubjectResponseDataSet>();
+                SubjectGroupWeightDataSet subjectGroupWeightDataSet = new SubjectGroupWeightDataSet();
+
+                foreach (var item in subjectGroupDetails)
+                {
+                    bool isSpecialGroup = false;
+                    string name = "";
+                    int newId = 0;
+                    if (item.SpecialSubjectGroupId != null)
+                    {
+                        isSpecialGroup = true;
+                        name = item.SpecialSubjectGroup.Name;
+                        newId = item.SpecialSubjectGroup.Id;
+                    }
+                    else
+                    {
+                        name = item.Subject.Name;
+                        newId = item.Subject.Id;
+                    }
+                    SubjectResponseDataSet subjectResponse = new SubjectResponseDataSet()
+                    {
+                        Id = newId,
+                        Name = name,
+                        IsSpecialSubjectGroup = isSpecialGroup
+                    };
+                    subjectResponseDataSets.Add(subjectResponse);
+                }
+                SubjectGroupResponseDataSet subjectGroupResponseDataSet = new SubjectGroupResponseDataSet()
+                {
+                    Id = id,
+                    GroupCode = subjectGroup.GroupCode,
+                    Subjects = subjectResponseDataSets
+                };
+
+                response.Succeeded = true;
+                response.Data = subjectGroupResponseDataSet;
+
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.Message);
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+
             return response;
         }
     }

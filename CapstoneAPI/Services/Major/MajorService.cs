@@ -113,7 +113,7 @@ namespace CapstoneAPI.Services.Major
                 }
                 else
                 {
-                    response.Succeeded = false;
+                    response.Succeeded = true;
                     response.Data = _mapper.Map<ResultOfCreateMajorDataSet>(newMajor);
                 }
             }
@@ -315,7 +315,7 @@ namespace CapstoneAPI.Services.Major
 
 
                 List<MajorSubjectWeightDataSet> majors = (await _uow.MajorRepository
-                    .Get(filter: filter, first: validFilter.PageSize, 
+                    .Get(filter: filter, first: validFilter.PageSize,
                     offset: (validFilter.PageNumber - 1) * validFilter.PageSize, orderBy: o => o.OrderBy(m => m.Name)))
                     .Select(m => _mapper.Map<MajorSubjectWeightDataSet>(m)).ToList();
 
@@ -398,6 +398,123 @@ namespace CapstoneAPI.Services.Major
                 }
                 response.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
+            return response;
+        }
+
+        public async Task<Response<CreateMajorSubjectWeightDataSet>> CreateAMajor(CreateMajorSubjectWeightDataSet createMajor)
+        {
+            Response<CreateMajorSubjectWeightDataSet> response = new Response<CreateMajorSubjectWeightDataSet>();
+            try
+            {
+                if (createMajor.Name.Equals("") || createMajor.Code.Trim().Equals(""))
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Mã ngành không được để trống!");
+                    return response;
+                }
+                Models.Major existMajor = await _uow.MajorRepository.GetFirst(filter: m => m.Code.Equals(createMajor.Code));
+                if (existMajor != null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Mã ngành đã tồn tại!");
+                    return response;
+                }
+                existMajor = await _uow.MajorRepository.GetFirst(filter: m => m.Name.Equals(createMajor.Name));
+                if (existMajor != null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Tên ngành đã tồn tại!");
+                    return response;
+                }
+                Models.Major newMajor = _mapper.Map<Models.Major>(createMajor);
+                newMajor.Status = Consts.STATUS_ACTIVE;
+                _uow.MajorRepository.Insert(newMajor);
+
+                if (createMajor.SubjectGroups != null && createMajor.SubjectGroups.Count() > 0)
+                {
+                    foreach (var subjectGroup in createMajor.SubjectGroups)
+                    {
+                        Models.MajorSubjectGroup majorSubjectGroup = new Models.MajorSubjectGroup()
+                        {
+                            Major = newMajor,
+                            SubjectGroupId = subjectGroup.Id
+                        };
+                        //Có thể có lỗi ko đúng SubjectGroupId
+                        _uow.MajorSubjectGroupRepository.Insert(majorSubjectGroup);
+
+                        List<SubjectWeightDataSet> subjectWeights = subjectGroup.SubjectWeights;
+                        List<Models.SubjectWeight> newSubjectWeights = new List<Models.SubjectWeight>();
+
+                        foreach (var subjectWeight in subjectWeights)
+                        {
+                            var subjectGroupDetail = await _uow.SubjecGroupDetailRepository
+                                .GetFirst(filter: s => (s.SubjectGroupId == subjectGroup.Id)
+                                && (subjectWeight.IsSpecialSubjectGroup ? s.SpecialSubjectGroupId == subjectWeight.Id
+                                : s.SubjectId == subjectWeight.Id));
+
+                            if (subjectGroupDetail == null)
+                            {
+                                response.Succeeded = false;
+                                if (response.Errors == null)
+                                {
+                                    response.Errors = new List<string>();
+                                }
+                                response.Errors.Add("Môn học hoặc tổ hợp không phù hợp!");
+                                return response;
+                            }
+                            int subjectGroupDetailId = subjectGroupDetail.Id;
+                            newSubjectWeights.Add(new Models.SubjectWeight()
+                            {
+                                SubjectGroupDetailId = subjectGroupDetailId,
+                                Weight = subjectWeight.Weight,
+                                MajorSubjectGroup = majorSubjectGroup
+                            });
+                        }
+
+                        _uow.SubjectWeightRepository.InsertRange(newSubjectWeights);
+                    }
+                }
+
+                int result = await _uow.CommitAsync();
+                if (result <= 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Hiện tại Không thể thêm ngành!");
+                }
+                else
+                {
+                    response.Succeeded = true;
+                    response.Data = createMajor;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.Message);
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+
             return response;
         }
     }
