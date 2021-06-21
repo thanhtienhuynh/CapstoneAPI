@@ -347,15 +347,19 @@ namespace CapstoneAPI.Services.Major
 
                                     foreach (var subjectWeight in majorSubjectGroup.SubjectWeights)
                                     {
-                                        int id = subjectWeight.Id;
+                                        int id = 0;
                                         int weight = subjectWeight.Weight;
                                         string name = "";
                                         bool isSpecialSubjectGroup = false;
 
                                         if (subjectWeight.SubjectGroupDetail.Subject != null)
+                                        {
+                                            id = subjectWeight.SubjectGroupDetail.Subject.Id;
                                             name = subjectWeight.SubjectGroupDetail.Subject.Name;
+                                        }
                                         else if (subjectWeight.SubjectGroupDetail.SpecialSubjectGroup != null)
                                         {
+                                            id = subjectWeight.SubjectGroupDetail.SpecialSubjectGroup.Id;
                                             name = subjectWeight.SubjectGroupDetail.SpecialSubjectGroup.Name;
                                             isSpecialSubjectGroup = true;
                                         }
@@ -503,6 +507,175 @@ namespace CapstoneAPI.Services.Major
                     response.Data = createMajor;
                 }
 
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.Message);
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+
+            return response;
+        }
+
+        public async Task<Response<UpdateMajorParam>> UpdateMajor(UpdateMajorParam updateMajor)
+        {
+            Response<UpdateMajorParam> response = new Response<UpdateMajorParam>();
+
+            try
+            {
+                if (updateMajor.Name.Trim().Equals("") || updateMajor.Code.Trim().Equals("") ||
+                    (updateMajor.Status != Consts.STATUS_ACTIVE && updateMajor.Status != Consts.STATUS_INACTIVE))
+                {
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Dữ liệu bị thiếu!");
+                    return response;
+                }
+                Models.Major existMajor = await _uow.MajorRepository.GetFirst(filter: m => m.Code.Equals(updateMajor.Code));
+                if (existMajor != null && existMajor.Id != updateMajor.Id)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Mã ngành cập nhật đã tồn tại!");
+                    return response;
+                }
+                existMajor = await _uow.MajorRepository.GetFirst(filter: m => m.Name.Equals(updateMajor.Name));
+                if (existMajor != null && existMajor.Id != updateMajor.Id)
+                {
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Tên ngành cập nhật đã tồn tại!");
+                    return response;
+                }
+                Models.Major objToUpdate = await _uow.MajorRepository.GetFirst(filter: m => m.Id.Equals(updateMajor.Id));
+                if (objToUpdate == null)
+                {
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Ngành này không tồn tại trong hệ thống!");
+                    return response;
+                }
+                objToUpdate.Code = updateMajor.Code;
+                objToUpdate.Name = updateMajor.Name;
+                objToUpdate.Status = updateMajor.Status;
+                _uow.MajorRepository.Update(objToUpdate);
+
+
+                if (updateMajor.SubjectGroup != null)
+                {
+                    Models.MajorSubjectGroup marjorSubjectGroup = await _uow.MajorSubjectGroupRepository
+                        .GetFirst(filter: m => m.MajorId == updateMajor.Id && m.SubjectGroupId == updateMajor.SubjectGroup.Id);
+
+                    if (marjorSubjectGroup != null)
+                    {
+                        foreach (var subjectWeight in updateMajor.SubjectGroup.SubjectWeights)
+                        {
+                            Models.SubjectGroupDetail subjectGroupDetail = await _uow.SubjecGroupDetailRepository
+                                .GetFirst(s => (s.SubjectGroupId == updateMajor.SubjectGroup.Id) && (subjectWeight.IsSpecialSubjectGroup 
+                                ? s.SpecialSubjectGroupId == subjectWeight.SubjectId : s.SubjectId == subjectWeight.SubjectId));
+
+                            if (subjectGroupDetail == null)
+                            {
+                                if (response.Errors == null)
+                                {
+                                    response.Errors = new List<string>();
+                                }
+                                response.Errors.Add("Không thể cập nhật ngành!");
+                                return response;
+                            }
+
+                            int subjectGroupDetailId = subjectGroupDetail.Id;
+
+                            Models.SubjectWeight updateSubjectWeight = await _uow.SubjectWeightRepository
+                                .GetFirst(s => s.MajorSubjectGroupId == marjorSubjectGroup.Id && s.SubjectGroupDetailId == subjectGroupDetailId);
+
+                            if (updateSubjectWeight == null)
+                            {
+                                if (response.Errors == null)
+                                {
+                                    response.Errors = new List<string>();
+                                }
+                                response.Errors.Add("Không thể cập nhật ngành!");
+                                return response;
+                            }
+
+                            updateSubjectWeight.Weight = subjectWeight.Weight;
+                            _uow.SubjectWeightRepository.Update(updateSubjectWeight);
+                        }
+
+                    }
+                    else
+                    {
+                        Models.MajorSubjectGroup majorSubjectGroup = new Models.MajorSubjectGroup()
+                        {
+                            MajorId = updateMajor.Id,
+                            SubjectGroupId = updateMajor.SubjectGroup.Id
+                        };
+
+                        _uow.MajorSubjectGroupRepository.Insert(majorSubjectGroup);
+
+                        List<CreateMajorSubjectWeight> subjectWeights = updateMajor.SubjectGroup.SubjectWeights;
+                        List<Models.SubjectWeight> newSubjectWeights = new List<Models.SubjectWeight>();
+
+                        foreach (var subjectWeight in subjectWeights)
+                        {
+                            var subjectGroupDetail = await _uow.SubjecGroupDetailRepository
+                                .GetFirst(filter: s => (s.SubjectGroupId == updateMajor.SubjectGroup.Id)
+                                && (subjectWeight.IsSpecialSubjectGroup ? s.SpecialSubjectGroupId == subjectWeight.SubjectId
+                                : s.SubjectId == subjectWeight.SubjectId));
+
+                            if (subjectGroupDetail == null)
+                            {
+                                response.Succeeded = false;
+                                if (response.Errors == null)
+                                {
+                                    response.Errors = new List<string>();
+                                }
+                                response.Errors.Add("Môn học hoặc tổ hợp không phù hợp!");
+                                return response;
+                            }
+                            int subjectGroupDetailId = subjectGroupDetail.Id;
+                            newSubjectWeights.Add(new Models.SubjectWeight()
+                            {
+                                SubjectGroupDetailId = subjectGroupDetailId,
+                                Weight = subjectWeight.Weight,
+                                MajorSubjectGroup = majorSubjectGroup
+                            });
+                        }
+
+                        _uow.SubjectWeightRepository.InsertRange(newSubjectWeights);
+                    }
+                }
+
+                int result = await _uow.CommitAsync();
+                if (result <= 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Không thể cập nhật ngành!");
+                }
+                else
+                {
+                    response.Succeeded = true;
+                    response.Data = updateMajor;
+                }
             }
             catch (Exception ex)
             {
