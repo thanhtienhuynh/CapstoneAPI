@@ -10,6 +10,6 @@ namespace CapstoneAPI.DataSets.Major
     {
         public string Name { get; set; }
         public string Code { get; set; }
-        public List<SubjectGroupWeightDataSet> SubjectGroups { get; set; }
+        public List<CreateMajorSubjectGroup> SubjectGroups { get; set; }
     }
 }

@@ -454,15 +454,15 @@ namespace CapstoneAPI.Services.Major
                         //Có thể có lỗi ko đúng SubjectGroupId
                         _uow.MajorSubjectGroupRepository.Insert(majorSubjectGroup);
 
-                        List<SubjectWeightDataSet> subjectWeights = subjectGroup.SubjectWeights;
+                        List<CreateMajorSubjectWeight> subjectWeights = subjectGroup.SubjectWeights;
                         List<Models.SubjectWeight> newSubjectWeights = new List<Models.SubjectWeight>();
 
                         foreach (var subjectWeight in subjectWeights)
                         {
                             var subjectGroupDetail = await _uow.SubjecGroupDetailRepository
                                 .GetFirst(filter: s => (s.SubjectGroupId == subjectGroup.Id)
-                                && (subjectWeight.IsSpecialSubjectGroup ? s.SpecialSubjectGroupId == subjectWeight.Id
-                                : s.SubjectId == subjectWeight.Id));
+                                && (subjectWeight.IsSpecialSubjectGroup ? s.SpecialSubjectGroupId == subjectWeight.SubjectId
+                                : s.SubjectId == subjectWeight.SubjectId));
 
                             if (subjectGroupDetail == null)
                             {
