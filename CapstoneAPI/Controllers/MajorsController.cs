@@ -55,5 +55,10 @@ namespace CapstoneAPI.Controllers
         {
             return Ok(await _service.UpdateMajor(updateMajor));
         }
+        [HttpPut("subject-weight2")]
+        public async Task<ActionResult<Response<UpdateMajorParam>>> UpdateMajor([FromBody] UpdateMajorParam2 updateMajor)
+        {
+            return Ok(await _service.UpdateMajor(updateMajor));
+        }
     }
 }
