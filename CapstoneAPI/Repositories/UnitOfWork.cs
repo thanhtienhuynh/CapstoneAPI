@@ -41,6 +41,7 @@ namespace CapstoneAPI.Repositories
         private IGenericRepository<Province> _provinceRepository;
         private IGenericRepository<AdmissionMethod> _admissionMethodRepository;
         private IGenericRepository<SpecialSubjectGroup> _specialSubjectGroupRepository;
+        private IGenericRepository<TestType> _testTypeRepository;
         public IGenericRepository<SubjectGroup> SubjectGroupRepository
         {
             get { return _subjectGroupRepository ??= new GenericRepository<SubjectGroup>(_context); }
@@ -170,6 +171,11 @@ namespace CapstoneAPI.Repositories
         {
             get { return _specialSubjectGroupRepository ??= new GenericRepository<SpecialSubjectGroup>(_context); }
         }
+
+        public IGenericRepository<TestType> TestTypeRepository
+        {
+            get { return _testTypeRepository ??= new GenericRepository<TestType>(_context); }
+        }
         public UnitOfWork(CapstoneDBContext context)
         {
             _context = context;
@@ -181,7 +187,7 @@ namespace CapstoneAPI.Repositories
         }
 
         public IDbContextTransaction GetTransaction()
-        {  
+        {
             return _context.Database.BeginTransaction();
         }
 

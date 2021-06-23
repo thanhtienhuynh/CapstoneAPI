@@ -140,5 +140,18 @@ namespace CapstoneAPI.Controllers
                 return NoContent();
             return Ok(articles);
         }
+
+        [HttpPost]
+        public async Task<ActionResult<Response<ArticleCollapseDataSet>>> CreateANewArticle([FromForm] CreateArticleParam createArticleParam)
+        {
+            string token = Request.Headers["Authorization"];
+
+            Response<ArticleCollapseDataSet> result = await _service.CreateNewArticle(createArticleParam, token);
+            if(result == null)
+            {
+                return NoContent();
+            }
+            return Ok(result);
+        }
     }
 }

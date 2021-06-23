@@ -25,7 +25,7 @@ namespace CapstoneAPI.Models
         public int TestTypeId { get; set; }
         public int? UniversityId { get; set; }
         public int? TimeLimit { get; set; }
-        public bool? IsSuggestedTest { get; set; }
+        public bool IsSuggestedTest { get; set; }
 
         public virtual Subject Subject { get; set; }
         public virtual TestType TestType { get; set; }

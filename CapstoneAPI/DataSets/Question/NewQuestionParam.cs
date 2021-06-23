@@ -8,7 +8,7 @@ namespace CapstoneAPI.DataSets.Question
 {
     public class NewQuestionParam
     {
-        public string QuestionContent { get; set; }
+        public string Content { get; set; }
         public int Type { get; set; }
         public bool IsAnnotate { get; set; }
         public int? Ordinal { get; set; }
