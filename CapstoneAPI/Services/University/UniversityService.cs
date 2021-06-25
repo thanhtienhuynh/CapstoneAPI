@@ -168,7 +168,7 @@ namespace CapstoneAPI.Services.University
                             }
                         }
 
-                        if (currentEntryMark == null || previousEntryMark == null || previousEntryMark.Mark > universityParam.TotalMark)
+                        if (currentEntryMark == null || previousEntryMark == null || previousEntryMark.Mark == null || previousEntryMark.Mark > universityParam.TotalMark)
                         {
                             continue;
                         }
@@ -183,14 +183,16 @@ namespace CapstoneAPI.Services.University
                         seasonDataSets.Add(currentSeasonDataSet);
                         trainingProgramDataSet.SeasonDataSets = seasonDataSets;
                         trainingProgramDataSet.NumberOfCaring = (await _uow.FollowingDetailRepository
-                            .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId))).Count();
+                            .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE)).Count();
                         if (userId > 0)
                         {
-                            trainingProgramDataSet.FollowingDetail = _mapper.Map<FollowingDetailDataSet>(await _uow.FollowingDetailRepository.GetFirst(filter: f => f.UserId == userId
+                            trainingProgramDataSet.FollowingDetail = _mapper.Map<FollowingDetailDataSet>(await _uow.FollowingDetailRepository
+                                                                                        .GetFirst(filter: f => f.UserId == userId
+                                                                                        && f.Status == Consts.STATUS_ACTIVE
                                                                                         && f.EntryMarkId == currentEntryMark.Id));
                         }
                         IEnumerable<Models.Rank> ranks = (await _uow.FollowingDetailRepository
-                                                                .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId),
+                                                                .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE,
                                                                     includeProperties: "Rank"))
                                                                 .Select(u => u.Rank).Where(r => r != null);
                         trainingProgramDataSet.Rank = _uow.RankRepository.CalculateRank(universityParam.TranscriptTypeId, universityParam.TotalMark, ranks);
@@ -249,7 +251,7 @@ namespace CapstoneAPI.Services.University
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Điểm của bạn không đủ điều kiện xét tuyển đại học!");
+                    response.Errors.Add("Điểm thi thử của bạn không đủ điều kiện xét tuyển đại học!");
                     return response;
                 }
 
@@ -355,7 +357,7 @@ namespace CapstoneAPI.Services.University
                             }
                         }
 
-                        if (currentEntryMark == null || previousEntryMark == null || previousEntryMark.Mark > totalMark)
+                        if (currentEntryMark == null || previousEntryMark == null || previousEntryMark.Mark == null || previousEntryMark.Mark > totalMark)
                         {
                             continue;
                         }
@@ -370,14 +372,15 @@ namespace CapstoneAPI.Services.University
                         seasonDataSets.Add(currentSeasonDataSet);
                         trainingProgramDataSet.SeasonDataSets = seasonDataSets;
                         trainingProgramDataSet.NumberOfCaring = (await _uow.FollowingDetailRepository
-                            .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId))).Count();
+                            .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE)).Count();
                         if (userId > 0)
                         {
                             trainingProgramDataSet.FollowingDetail = _mapper.Map<FollowingDetailDataSet>(await _uow.FollowingDetailRepository.GetFirst(filter: f => f.UserId == userId
+                                                                                        && f.Status == Consts.STATUS_ACTIVE
                                                                                         && f.EntryMarkId == currentEntryMark.Id));
                         }
                         IEnumerable<Models.Rank> ranks = (await _uow.FollowingDetailRepository
-                                                                .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId),
+                                                                .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE,
                                                                     includeProperties: "Rank"))
                                                                 .Select(u => u.Rank).Where(r => r != null);
                         trainingProgramDataSet.Rank = _uow.RankRepository.CalculateRank(universityParam.TranscriptTypeId, totalMark, ranks);
