@@ -78,5 +78,11 @@ namespace CapstoneAPI.Controllers
             Response<CreateSubjectGroupDataset> response = await _service.UpdateSubjectGroup(updateSubjectGroupParam);
             return Ok(response);
         }
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Response<SubjectGroupResponseDataSet>>> GetSubjectGroupWeight(int id)
+        {
+            Response<SubjectGroupResponseDataSet> response = await _service.GetSubjectGroupWeight(id);
+            return Ok(response);
+        }
     }
 }

@@ -8,11 +8,13 @@ namespace CapstoneAPI.Helpers
     public class Consts
     {
         //Article
+        public static string ARTICLE_FOLDER = "Article";
         public static int STATUS_PUBLISHED = 3;
         //Status
         public static int STATUS_ACTIVE = 1;
         public static int STATUS_INACTIVE = 0;
         //Test
+        public static string QUESTION_FOLDER = "Question";
         public static int TEST_HT_TYPE_ID = 2;
         public static int TEST_THPTQG_TYPE_ID = 1;
         //Role

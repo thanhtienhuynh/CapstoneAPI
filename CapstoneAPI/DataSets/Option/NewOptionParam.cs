@@ -7,7 +7,7 @@ namespace CapstoneAPI.DataSets.Option
 {
     public class NewOptionParam
     {
-        public string OptionContent { get; set; }
+        public string Content { get; set; }
         public int? Ordinal { get; set; }
     }
 }

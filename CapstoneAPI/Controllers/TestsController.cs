@@ -9,6 +9,8 @@ using CapstoneAPI.Models;
 using CapstoneAPI.Services.Test;
 using CapstoneAPI.DataSets.Test;
 using CapstoneAPI.Wrappers;
+using CapstoneAPI.Filters.Test;
+using CapstoneAPI.Filters;
 
 namespace CapstoneAPI.Controllers
 {
@@ -29,6 +31,18 @@ namespace CapstoneAPI.Controllers
             return Ok(await _service.GetFilteredTests(testParam));
         }
 
+        [HttpGet("test-by-subject")]
+        public async Task<ActionResult<PagedResponse<List<TestPagingDataSet>>>> GetTestsByFilter([FromQuery] PaginationFilter filter,
+            [FromQuery] TestFilter testFilter)
+        {
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+            PagedResponse<List<TestPagingDataSet>> tests = await _service.GetTestsByFilter(validFilter, testFilter);
+            if (tests == null)
+                return NoContent();
+            return Ok(tests);
+        }
+
+
         [HttpGet("{id}")]
         public async Task<ActionResult<Response<TestDataSet>>> GetTestById(int id)
         {
@@ -41,6 +55,13 @@ namespace CapstoneAPI.Controllers
             string token = Request.Headers["Authorization"];
 
             return Ok(await _service.AddNewTest(testParam, token));
+        }
+
+        [HttpPut]
+        public async Task<ActionResult<Response<bool>>> UpdateTestImage()
+        {
+            Response<bool> result = await _service.UpdateTestImage();
+            return Ok(result);
         }
     }
 }

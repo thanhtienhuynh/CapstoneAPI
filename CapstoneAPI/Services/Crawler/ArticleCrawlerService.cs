@@ -38,7 +38,7 @@ namespace CapstoneAPI.Services.Crawler
                 HtmlDocument htmlDocument = await CrawlerHelper.GetHtmlDocument(url);
 
                 IEnumerable<Models.Article> listArticleDB = (await _uow.ArticleRepository.Get(filter: article => article.PublishedPage.Equals(pageLink)));
-                
+
                 Dictionary<string, string> listArticles = new Dictionary<string, string>();
 
                 var articlesDiv = htmlDocument.GetElementbyId(configuration.SelectToken("GDTD.articlesDivId").ToString());
@@ -137,10 +137,11 @@ namespace CapstoneAPI.Services.Crawler
                         configuration.SelectToken("GDTD.articleDetails.detailTag.attribute").ToString(), "").
                     Contains(configuration.SelectToken("GDTD.articleDetails.detailTag.attibuteValue").ToString())).First();
 
+                double currentTimeZone = 7;
 
                 article.HeaderConfig = headerConfig.InnerHtml.Trim();
                 article.Status = 0;
-                article.CrawlerDate = DateTime.Now;
+                article.CrawlerDate = DateTime.UtcNow.AddHours(currentTimeZone);
                 article.Content = detail.InnerHtml.Trim();
             }
 
@@ -242,7 +243,8 @@ namespace CapstoneAPI.Services.Crawler
 
                 int result = await VNExpressDetailsCrawler(articles);
                 return result;
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.ToString());
             }
@@ -287,9 +289,8 @@ namespace CapstoneAPI.Services.Crawler
 
                 article.HeaderConfig = headerConfig.InnerHtml.Trim();
                 article.Status = 0;
-                article.CrawlerDate = DateTime.Now;
+                article.CrawlerDate = DateTime.UtcNow.AddHours(7);
                 article.Content = detail.InnerHtml.Trim();
-
             }
 
             _uow.ArticleRepository.InsertRange(articles);

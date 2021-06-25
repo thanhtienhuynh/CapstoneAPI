@@ -818,8 +818,14 @@ namespace CapstoneAPI.Services.University
                                     .Child(Consts.LOGO_FOLDER)
                                     .Child(createUniversityDataset.Code + Path.GetExtension(logoImage.FileName))
                                     .PutAsync(ms, cancellation.Token);
-
-                                createUniversityDataset.LogoUrl = await task;
+                                try
+                                {
+                                    createUniversityDataset.LogoUrl = await task;
+                                }
+                                catch
+                                {
+                                    createUniversityDataset.LogoUrl = null;
+                                }
                             }
 
                         }
@@ -924,8 +930,15 @@ namespace CapstoneAPI.Services.University
                                     .Child(Consts.LOGO_FOLDER)
                                     .Child(adminUniversityDataSet.Code + Path.GetExtension(logoImage.FileName))
                                     .PutAsync(ms, cancellation.Token);
+                                try
+                                {
+                                    adminUniversityDataSet.LogoUrl = await task;
+                                }
+                                catch(Exception ex)
+                                {
+                                    _log.Error(ex.ToString());
 
-                                adminUniversityDataSet.LogoUrl = await task;
+                                }
                             }
 
                         }

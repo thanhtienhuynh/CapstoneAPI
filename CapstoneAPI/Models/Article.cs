@@ -27,7 +27,7 @@ namespace CapstoneAPI.Models
         public string PostImageUrl { get; set; }
         public DateTime? PublicFromDate { get; set; }
         public DateTime? PublicToDate { get; set; }
-        public int? Status { get; set; }
+        public int Status { get; set; }
 
         public virtual ICollection<MajorArticle> MajorArticles { get; set; }
         public virtual ICollection<UniversityArticle> UniversityArticles { get; set; }
