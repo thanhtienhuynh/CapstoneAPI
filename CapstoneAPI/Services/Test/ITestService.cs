@@ -1,4 +1,6 @@
 ﻿using CapstoneAPI.DataSets.Test;
+using CapstoneAPI.Filters;
+using CapstoneAPI.Filters.Test;
 using CapstoneAPI.Wrappers;
 using System;
 using System.Collections.Generic;
@@ -12,5 +14,7 @@ namespace CapstoneAPI.Services.Test
         Task<Response<List<SubjectBasedTestDataSet>>> GetFilteredTests(TestParam testParam);
         Task<Response<TestDataSet>> GetTestById(int id);
         Task<Response<bool>> AddNewTest(NewTestParam testParam, string token);
+        Task<PagedResponse<List<TestPagingDataSet>>> GetTestsByFilter(PaginationFilter validFilter, TestFilter testFilter);
+        Task<Response<bool>> UpdateTestImage();
     }
 }

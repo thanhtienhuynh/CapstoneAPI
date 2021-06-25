@@ -21,5 +21,6 @@ namespace CapstoneAPI.Services.Article
         Task<Response<List<int>>> GetApprovedArticleIds();
         Task<Response<List<AdminArticleCollapseDataSet>>> GetListArticleNotPagination(AdminArticleFilter articleFilter);
         Task<PagedResponse<List<ArticleCollapseDataSet>>> GetListFollowingArticle(PaginationFilter validFilter, string token);
+        Task<Response<ArticleCollapseDataSet>> CreateNewArticle(CreateArticleParam createArticleParam, string token);
     }
 }

@@ -40,6 +40,7 @@ namespace CapstoneAPI.Repositories
         IGenericRepository<SpecialSubjectGroup> SpecialSubjectGroupRepository { get; }
         IGenericRepository<AdmissionMethod> AdmissionMethodRepository { get; }
         IGenericRepository<MajorArticle> MajorArticleRepository { get; }
+        IGenericRepository<TestType> TestTypeRepository { get; }
         IRankRepository RankRepository { get; }
         IDbContextTransaction GetTransaction();
         Task<int> CommitAsync();

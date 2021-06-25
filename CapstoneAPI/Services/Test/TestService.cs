@@ -12,12 +12,18 @@
     using System;
     using System.Collections;
     using Serilog;
-    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using System.Reflection;
     using System.Threading.Tasks;
+    using System.Text.RegularExpressions;
+    using System.Threading;
+    using Firebase.Storage;
+    using Firebase.Auth;
+    using CapstoneAPI.Filters;
+    using CapstoneAPI.Filters.Test;
+    using System.Linq.Expressions;
 
     public class TestService : ITestService
     {
@@ -103,7 +109,8 @@
                     }
                     response.Errors.Add("Không có bài thi phù hợp");
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.ToString());
                 response.Succeeded = false;
@@ -146,7 +153,8 @@
                 }
                 response.Succeeded = true;
                 response.Data = testDataSet;
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.ToString());
                 response.Succeeded = false;
@@ -162,62 +170,206 @@
         public async Task<Response<bool>> AddNewTest(NewTestParam testParam, string token)
         {
             Response<bool> response = new Response<bool>();
-
-            if (token == null || token.Trim().Length == 0)
+            try
             {
+                if (token == null || token.Trim().Length == 0)
+                {
+                    if (response.Errors == null)
+                        response.Errors = new List<string>();
+                    response.Errors.Add("Bạn chưa đăng nhập!");
+                    return response;
+                }
+
+                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
+
+                if (userIdString == null || userIdString.Length <= 0)
+                {
+                    if (response.Errors == null)
+                        response.Errors = new List<string>();
+                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    return response;
+                }
+
+                int userId = Int32.Parse(userIdString);
+
+                string path = Path.Combine(Path
+                    .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
+                JObject configuration = JObject.Parse(File.ReadAllText(path));
+
+                Test t = _mapper.Map<Test>(testParam);
+                t.NumberOfQuestion = t.Questions.Count();
+                t.UserId = userId;
+                foreach (var item in t.Questions)
+                {
+                    item.NumberOfOption = item.Options.Count();
+                    if (item.NumberOfOption != item.Result.Length)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                            response.Errors = new List<string>();
+                        response.Errors.Add("Đáp án không hợp lệ!");
+                        return response;
+                    }
+                    if (item.Content != null)
+                    {
+                        item.Content = await FirebaseHelper.UploadBase64ImgToFirebase(item.Content);
+                        foreach (var option in item.Options)
+                        {
+                            if (option.Content != null)
+                            {
+                                option.Content = await FirebaseHelper.UploadBase64ImgToFirebase(option.Content);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                            response.Errors = new List<string>();
+                        response.Errors.Add("Câu hỏi số " + item.Ordinal + 1 + " không hợp lệ!");
+                        return response;
+                    }
+
+                }
+                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
+
+                DateTime currentDate = DateTime.UtcNow.AddHours(double.Parse(currentTimeZone));
+                t.CreateDate = currentDate;
+
+
+                _uow.TestRepository.Insert(t);
+
+                int result = await _uow.CommitAsync();
+                if (result > 0)
+                {
+                    response.Succeeded = true;
+                    response.Message = "Tạo mới đề thi thành công!";
+                }
+
+                else
+                {
+
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                        response.Errors = new List<string>();
+                    response.Errors.Add("Tạo mới đề thi không thành công!");
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                response.Succeeded = false;
                 if (response.Errors == null)
+                {
                     response.Errors = new List<string>();
-                response.Errors.Add("Bạn chưa đăng nhập!");
-                return response;
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
-
-            string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-
-            if (userIdString == null || userIdString.Length <= 0)
-            {
-                if (response.Errors == null)
-                    response.Errors = new List<string>();
-                response.Errors.Add("Tài khoản của bạn không tồn tại!");
-                return response;
-            }
-
-            int userId = Int32.Parse(userIdString);
-
-            string path = Path.Combine(Path
-                .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
-            JObject configuration = JObject.Parse(File.ReadAllText(path));
-
-            Test t = _mapper.Map<Test>(testParam);
-            t.UserId = userId;
-            t.NumberOfQuestion = t.Questions.Count();
-
-            foreach (var item in t.Questions)
-            {
-                item.NumberOfOption = item.Options.Count();
-            }
-            var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
-
-            DateTime currentDate = DateTime.UtcNow.AddHours(double.Parse(currentTimeZone));
-            t.CreateDate = currentDate;
-
-
-            _uow.TestRepository.Insert(t);
-
-            int result = await _uow.CommitAsync();
-            if (result > 0)
-            {
-                response.Succeeded = true;
-                response.Message = "Tạo mới đề thi thành công!";
-            }
-
-            else
-            {
-                if (response.Errors == null)
-                    response.Errors = new List<string>();
-                response.Errors.Add("Tạo mới đề thi không thành công!");
-            }
-
             return response;
+        }
+
+        public async Task<PagedResponse<List<TestPagingDataSet>>> GetTestsByFilter(PaginationFilter validFilter, TestFilter testFilter)
+        {
+            PagedResponse<List<TestPagingDataSet>> result = new PagedResponse<List<TestPagingDataSet>>();
+
+            try
+            {
+                Expression<Func<Models.Test, bool>> filter = null;
+
+                filter = t => (string.IsNullOrEmpty(testFilter.Name) || t.Name.Contains(testFilter.Name))
+                && (testFilter.Year == null || testFilter.Year == t.Year)
+                && (testFilter.SubjectId == null || testFilter.SubjectId == t.SubjectId)
+                && (testFilter.TestTypeId == null || testFilter.TestTypeId == t.TestTypeId)
+                && (t.Status == Consts.STATUS_ACTIVE)
+                && (t.IsSuggestedTest == false);
+
+                Func<IQueryable<Models.Test>, IOrderedQueryable<Models.Test>> order = null;
+                switch (testFilter.Order)
+                {
+                    case 0:
+                        order = order => order.OrderByDescending(a => a.TestTypeId);
+                        break;
+                    case 1:
+                        order = order => order.OrderBy(a => a.TestTypeId);
+                        break;
+                    case 2:
+                        order = order => order.OrderBy(a => a.Name);
+                        break;
+                    case 3:
+                        order = order => order.OrderByDescending(a => a.Name);
+                        break;
+                    case 4:
+                        order = order => order.OrderBy(a => a.Year);
+                        break;
+                    case 5:
+                        order = order => order.OrderByDescending(a => a.Year);
+                        break;
+                }
+
+
+                IEnumerable<Models.Test> tests = await _uow.TestRepository
+                    .Get(filter: filter, orderBy: order,includeProperties: "Subject,TestType",
+                    first: validFilter.PageSize, offset: (validFilter.PageNumber - 1) * validFilter.PageSize);
+
+                if (tests.Count() == 0)
+                {
+                    result.Succeeded = true;
+                    result.Message = "Không có bài thi nào!";
+                }
+                else
+                {
+                    var testPagingDataSets = new List<TestPagingDataSet>();
+
+                    foreach (var test in tests)
+                    {
+                        var testPagingDataSet = _mapper.Map<TestPagingDataSet>(test);
+                        testPagingDataSet.TestTypeName = test.TestType.Name;
+                        testPagingDataSet.SubjectName = test.Subject.Name;
+                        testPagingDataSets.Add(testPagingDataSet);
+                    }
+                    var totalRecords = _uow.TestRepository.Count(filter);
+                    result = PaginationHelper.CreatePagedReponse(testPagingDataSets, validFilter, totalRecords);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                result.Succeeded = false;
+                if (result.Errors == null)
+                {
+                    result.Errors = new List<string>();
+                }
+                result.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+            return result;
+        }
+
+        public async Task<Response<bool>> UpdateTestImage()
+        {
+            Response<bool> result = new Response<bool>();
+            try
+            {
+                IEnumerable<Models.Question> questions = await _uow.QuestionRepository.Get(q => q.Content != null);
+                foreach (var item in questions)
+                {
+                    item.Content = await FirebaseHelper.uploadImageLinkToFirebase(item.Content);
+                }
+                _uow.QuestionRepository.UpdateRange(questions);
+                if( await _uow.CommitAsync() == 0)
+                {
+                    result.Data = false;
+                }
+                else
+                {
+                    result.Data = true;
+                }
+            }
+            catch
+            {
+                result.Data = false;
+            }
+            
+            return result;
         }
     }
 }

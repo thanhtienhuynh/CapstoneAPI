@@ -75,6 +75,11 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.Major, MajorSubjectWeightDataSet>();
             CreateMap<CreateMajorSubjectWeightDataSet, Models.Major>();
 
+
+
+
+            CreateMap<Models.Test, TestPagingDataSet>();
+
         }
     }
 }
