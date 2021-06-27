@@ -103,6 +103,11 @@ namespace CapstoneAPI
 
             // Add our job
             services.AddSingleton<ArticleCrawlerCronJob>();
+            services.AddSingleton<RankingCronJob>();
+            //0 */2 * ? * *
+            services.AddSingleton(new JobSchedule(
+                jobType: typeof(RankingCronJob),
+                cronExpression: "0 */59 * ? * *"));
             services.AddSingleton(new JobSchedule(
                 jobType: typeof(ArticleCrawlerCronJob),
                 cronExpression: "0 0 */4 ? * *"));

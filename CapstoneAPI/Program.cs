@@ -27,6 +27,7 @@ namespace CapstoneAPI
             Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()
             .Enrich.FromLogContext()
+            .WriteTo.Console(restrictedToMinimumLevel: LogEventLevel.Information)
             .WriteTo.Logger(
                 l => l.Filter.ByIncludingOnly(Matching.WithProperty("cookie"))
                         .WriteTo.File(@"D:\home\LogFiles\http\RawLogs\cookies.txt",

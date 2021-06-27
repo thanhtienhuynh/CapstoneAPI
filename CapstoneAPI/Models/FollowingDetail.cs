@@ -11,6 +11,7 @@ namespace CapstoneAPI.Models
         public int UserId { get; set; }
         public int EntryMarkId { get; set; }
         public bool IsReceiveNotification { get; set; }
+        public int Status { get; set; }
 
         public virtual EntryMark EntryMark { get; set; }
         public virtual User User { get; set; }

@@ -81,7 +81,8 @@ namespace CapstoneAPI.Services.Rank
                 await _uow.CommitAsync();
 
                 IEnumerable<int> changedSubAdmissionIds = (await _uow.FollowingDetailRepository
-                                                            .Get(includeProperties: "Rank,EntryMark")).Where(u => u.Rank != null && u.Rank.IsUpdate)
+                                                            .Get(includeProperties: "Rank,EntryMark"))
+                                                            .Where(u => u.Rank != null && u.Rank.IsUpdate)
                                                             .Select(u => u.EntryMark.SubAdmissionCriterionId).Distinct();
                 if (!changedSubAdmissionIds.Any())
                 {
@@ -93,7 +94,7 @@ namespace CapstoneAPI.Services.Rank
                 foreach (int subAdmissionId in changedSubAdmissionIds)
                 {
                     IEnumerable<Models.FollowingDetail> sameSubAdmissionFollowingDetails = await _uow.FollowingDetailRepository
-                                                                        .Get(filter: u => u.EntryMark.SubAdmissionCriterionId == subAdmissionId, includeProperties: "Rank,User");
+                                                                        .Get(filter: u => u.EntryMark.SubAdmissionCriterionId == subAdmissionId && u.Status == Consts.STATUS_ACTIVE, includeProperties: "Rank,User");
                     IEnumerable<RankDataSet> rankDataSets = sameSubAdmissionFollowingDetails.Select(u => _mapper.Map<RankDataSet>(u.Rank));
                     foreach (RankDataSet rankDataSet in rankDataSets)
                     {
@@ -119,6 +120,13 @@ namespace CapstoneAPI.Services.Rank
                     }
                 }
 
+                IEnumerable<Models.Rank> updateUnfollowRank = await _uow.RankRepository.Get(r => r.IsUpdate && r.FollowingDetail.Status == Consts.STATUS_INACTIVE);
+                foreach(Models.Rank rank in updateUnfollowRank)
+                {
+                    rank.IsUpdate = false;
+                    _uow.RankRepository.Update(rank);
+                }
+
                 foreach (RankDataSet updatedRankDataSet in updatedRankDataSets)
                 {
                     Models.Rank rank = await _uow.RankRepository.GetById(updatedRankDataSet.FollowingDetailId);
@@ -138,7 +146,7 @@ namespace CapstoneAPI.Services.Rank
                 foreach (RankDataSet rankDataSet in emailedRankDataSets)
                 {
                     RankFollowingDetailDataSet rankFollowingDetailDataSet = _mapper.Map<RankFollowingDetailDataSet>(await _uow.FollowingDetailRepository
-                                                                .GetFirst(filter: u => u.Id == rankDataSet.FollowingDetailId,
+                                                                .GetFirst(filter: u => u.Id == rankDataSet.FollowingDetailId && u.Status == Consts.STATUS_ACTIVE,
                                                                 includeProperties: "EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.University," +
                                                                 "EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.TrainingProgram," +
                                                                 "EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.Major," +
@@ -171,7 +179,7 @@ namespace CapstoneAPI.Services.Rank
                                                 rankingFollowingDetailDataSet.RankDataSet.NewPosition);
                     }
                     string completedMessage = string.Format(message, emailedUserGroup.Key.Fullname, content);
-                    await _emailService.SendEmailAsync(emailedUserGroup.Key.Email, "MOHS RANK UPDATION", completedMessage);
+                    _emailService.SendEmailAsync(emailedUserGroup.Key.Email, "MOHS RANK UPDATION", completedMessage);
                 }
             } catch (Exception ex)
             {

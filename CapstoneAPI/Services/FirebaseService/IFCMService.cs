@@ -1,4 +1,5 @@
 ﻿using CapstoneAPI.DataSets.FCM;
+using FirebaseAdmin.Messaging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,5 +12,6 @@ namespace CapstoneAPI.Services.FirebaseService
         Task<FCMResponse> SendNotification(List<string> clientToken, string title, string body);
         Task<FCMResponse> SendToTopic(string topic, string title,
                                         string body, Dictionary<string, string> data);
+        Task<BatchResponse> SendBatchMessage(List<Message> messages);
     }
 }

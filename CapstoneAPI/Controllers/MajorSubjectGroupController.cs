@@ -28,7 +28,7 @@ namespace CapstoneAPI.Controllers
         }
 
         [HttpPost]
-       public async Task<ActionResult<Response<MajorSubjectGroupDataSet>>> AddAMajorSubjectGroup([FromBody] MajorSubjectGroupParam majorSubjectGroupParam)
+        public async Task<ActionResult<Response<MajorSubjectGroupDataSet>>> AddAMajorSubjectGroup([FromBody] MajorSubjectGroupParam majorSubjectGroupParam)
         {
             return Ok(await _service.AddAMajorSubjectGroup(majorSubjectGroupParam));
         }

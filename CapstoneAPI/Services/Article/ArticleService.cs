@@ -5,7 +5,9 @@ using CapstoneAPI.Filters.Article;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
+using CapstoneAPI.Services.FirebaseService;
 using CapstoneAPI.Wrappers;
+using FirebaseAdmin.Messaging;
 using Firebase.Auth;
 using Firebase.Storage;
 using Microsoft.AspNetCore.Http;
@@ -28,13 +30,15 @@ namespace CapstoneAPI.Services.Article
     {
         private IMapper _mapper;
         private readonly IUnitOfWork _uow;
+        private readonly IFCMService _firebaseService;
         private readonly JObject configuration;
         private readonly ILogger _log = Log.ForContext<ArticleService>();
 
-        public ArticleService(IUnitOfWork uow, IMapper mapper)
+        public ArticleService(IUnitOfWork uow, IMapper mapper, IFCMService firebaseService)
         {
             _uow = uow;
             _mapper = mapper;
+            _firebaseService = firebaseService;
             string path = Path.Combine(Path
                 .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
             configuration = JObject.Parse(File.ReadAllText(path));
@@ -314,10 +318,7 @@ namespace CapstoneAPI.Services.Article
                                 ArticleId = approvingArticleDataSet.Id
                             };
                             _uow.UniversityArticleRepository.Insert(universityArticle);
-
                         }
-
-
 
                         _uow.MajorArticleRepository.DeleteComposite(filter: majorArt => majorArt.ArticleId == approvingArticleDataSet.Id);
 
@@ -367,7 +368,7 @@ namespace CapstoneAPI.Services.Article
                                 IEnumerable<int> universityIds = universityArticles.Select(s => s.UniversityId);
 
                                 IEnumerable<Models.FollowingDetail> followingDetails = await _uow.FollowingDetailRepository
-                                    .Get(filter: f => f.IsReceiveNotification == true,
+                                    .Get(filter: f => f.IsReceiveNotification == true && f.Status == Consts.STATUS_ACTIVE,
                                     includeProperties: "User,EntryMark,EntryMark.MajorSubjectGroup,EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail");
                                 if (followingDetails.Count() > 0)
                                 {
@@ -388,6 +389,26 @@ namespace CapstoneAPI.Services.Article
                                 //FIND USER TO SEND NOTI
                                 //RESULT
                                 IEnumerable<Models.User> users = dictionaryUsers.Values;
+                                var messages = new List<Message>();
+                                foreach (Models.User user in users)
+                                {
+                                    messages.Add(new Message()
+                                    {
+                                        Notification = new Notification()
+                                        {
+                                            Title = articleToUpdate.Title,
+                                            Body = articleToUpdate.ShortDescription,
+                                            ImageUrl = articleToUpdate.PostImageUrl
+                                        },
+                                        Data = new Dictionary<string, string>()
+                                        {
+                                            {"id" , articleToUpdate.Id.ToString()},
+                                            {"title" , articleToUpdate.Title},
+                                        },
+                                        Topic = user.Id.ToString()
+                                    });
+                                }
+                                _firebaseService.SendBatchMessage(messages);
                             }
                         }
                     }
@@ -711,7 +732,7 @@ namespace CapstoneAPI.Services.Article
                 //GET LIST ARTICLE
                 Dictionary<int, Models.Article> articlesByUser = new Dictionary<int, Models.Article>();
                 IEnumerable<Models.FollowingDetail> followingDetailPerUser = await _uow.FollowingDetailRepository
-                .Get(filter: f => f.IsReceiveNotification == true && f.UserId == userId,
+                .Get(filter: f => f.IsReceiveNotification == true && f.UserId == userId && f.Status == Consts.STATUS_ACTIVE,
                 includeProperties: "EntryMark,EntryMark.MajorSubjectGroup,EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail");
                 if (followingDetailPerUser.Count() > 0)
                 {

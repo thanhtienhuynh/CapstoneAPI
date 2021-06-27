@@ -74,15 +74,14 @@
                         subjectIds.AddRange(subjectGroupDetail.SpecialSubjectGroup.Subjects.Select(s => s.Id));
                     }
                 }
-                if (subjectIds != null && subjectIds.Any())
+                if (subjectIds.Any())
                 {
                     foreach (int subjectId in subjectIds)
                     {
                         IEnumerable<Test> clasifiedTests = await _uow.TestRepository
                                                     .Get(filter: test => test.Status == Consts.STATUS_ACTIVE
-                                                        && test.TestTypeId == Consts.TEST_HT_TYPE_ID
-                                                        && test.SubjectId == subjectId
-                                                        && test.UniversityId == null);
+                                                        && test.IsSuggestedTest
+                                                        && test.SubjectId == subjectId);
                         if (clasifiedTests.Any())
                         {
                             testsReponse.Add(new SubjectBasedTestDataSet()

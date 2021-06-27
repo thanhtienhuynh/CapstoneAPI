@@ -1,5 +1,7 @@
 ﻿using CapstoneAPI.DataSets.FCM;
+using FirebaseAdmin;
 using FirebaseAdmin.Messaging;
+using Google.Apis.Auth.OAuth2;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,10 +17,10 @@ namespace CapstoneAPI.Services.FirebaseService
             {
                 Tokens = clientToken,
                 Data = new Dictionary<string, string>()
-                 {
+                {
                      {"title" , title},
                      {"body" , body }
-                 },
+                },
                 Notification = new Notification
                 {
                     Title = title,
@@ -60,6 +62,20 @@ namespace CapstoneAPI.Services.FirebaseService
             };
 
             return res;
+        }
+
+        public async Task<BatchResponse> SendBatchMessage(List<Message> messages)
+        {
+
+            var response = await FirebaseMessaging.DefaultInstance
+                .SendAllAsync(messages).ConfigureAwait(true);
+
+            var res = new FCMResponse
+            {
+                Message = response.SuccessCount.ToString()
+            };
+
+            return response;
         }
     }
 }
