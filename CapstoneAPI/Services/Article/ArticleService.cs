@@ -844,7 +844,7 @@ namespace CapstoneAPI.Services.Article
                     }
                     response.Errors.Add("Tiêu đề/ Nội dung không được để trống!");
                     return response;
-                }               
+                }
                 Models.Article article = new Models.Article
                 {
                     Title = createArticleParam.Title,
@@ -887,7 +887,8 @@ namespace CapstoneAPI.Services.Article
                                 }
                                 catch
                                 {
-                                    article.PostImageUrl = null;
+                                    //up không được ảnh thì lấy ảnh đầu tiên trong bài
+                                    article.PostImageUrl = Regex.Match(article.Content, "https://firebase(.*?)(?=\")").Value.ToString();
                                 }
                             }
 
@@ -931,6 +932,16 @@ namespace CapstoneAPI.Services.Article
                             UniversityId = id
                         });
                     }
+                    if ((await _uow.CommitAsync()) <= 0)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Thêm bài viết không thành công, lỗi hệ thống!");
+                        return response;
+                    }
                 }
                 if (createArticleParam.MajorIds != null && createArticleParam.MajorIds.Count > 0)
                 {
@@ -953,7 +964,160 @@ namespace CapstoneAPI.Services.Article
                             MajorId = id
                         });
                     }
+                    if ((await _uow.CommitAsync()) <= 0)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Thêm bài viết không thành công, lỗi hệ thống!");
+                        return response;
+                    }
+                }               
+                response.Data = _mapper.Map<ArticleCollapseDataSet>(article);
+                response.Succeeded = true;
+                tran.Commit();
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                tran.Rollback();
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
                 }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+            return response;
+        }
+
+        public async Task<Response<AdminArticleDetailDataSet>> UpdateArticle(UpdateArticleParam updateArticleParam, string token)
+        {
+            Response<AdminArticleDetailDataSet> response = new Response<AdminArticleDetailDataSet>();
+            // status 0 hoặc 1 mới được update
+            // chỉ được update nội dung
+            //Update Block
+            using var tran = _uow.GetTransaction();
+            try
+            {
+                //GET USER ID
+                if (token == null || token.Trim().Length == 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Bạn chưa đăng nhập!");
+                    return response;
+                }
+                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
+
+                if (userIdString == null || userIdString.Length <= 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    return response;
+                }
+                int userId = Int32.Parse(userIdString);
+
+
+                if (updateArticleParam.Content == null || updateArticleParam.Content.Trim().Length == 0 ||
+                    updateArticleParam.Title == null || updateArticleParam.Title.Trim().Length == 0 ||
+                    updateArticleParam.ShortDescription == null || updateArticleParam.ShortDescription.Trim().Length == 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Tiêu đề/ Nội dung không được để trống!");
+                    return response;
+                }
+
+
+                Models.Article article = await _uow.ArticleRepository.GetById(updateArticleParam.Id);
+                if (article == null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Bài viết không tồn tại!");
+                    return response;
+                }
+                if (article.Status != 0 && article.Status != 1)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Không thể cập nhật bài viết đang được đăng!");
+                    return response;
+                }
+                    //update nội dung
+                    article.Title = updateArticleParam.Title;
+                article.Content = await FirebaseHelper.UploadBase64ImgToFirebase(updateArticleParam.Content);
+                article.ShortDescription = updateArticleParam.ShortDescription;
+
+                IFormFile postImage = updateArticleParam.PostImage;
+                if (postImage != null)
+                {
+                    if (Consts.IMAGE_EXTENSIONS.Contains(Path.GetExtension(postImage.FileName).ToUpperInvariant()))
+                    {
+
+                        using (var ms = new MemoryStream())
+                        {
+                            postImage.CopyTo(ms);
+                            ms.Position = 0;
+                            if (ms != null && ms.Length > 0)
+                            {
+                                var auth = new FirebaseAuthProvider(new FirebaseConfig(Consts.API_KEY));
+                                var firebaseAuth = await auth.SignInWithEmailAndPasswordAsync(Consts.AUTH_MAIL, Consts.AUTH_PASSWORD);
+
+                                // you can use CancellationTokenSource to cancel the upload midway
+                                var cancellation = new CancellationTokenSource();
+
+                                var task = new FirebaseStorage(
+                                    Consts.BUCKET,
+                                    new FirebaseStorageOptions
+                                    {
+                                        ThrowOnCancel = true, // when you cancel the upload, exception is thrown. By default no exception is thrown
+                                        AuthTokenAsyncFactory = () => Task.FromResult(firebaseAuth.FirebaseToken),
+                                    })
+                                    .Child(Consts.ARTICLE_FOLDER)
+                                    .Child(DateTime.UtcNow.ToString("yyyyMMddHHmmssFFF") + Path.GetExtension(postImage.FileName))
+                                    .PutAsync(ms, cancellation.Token);
+                                try
+                                {
+                                    article.PostImageUrl = await task;
+                                }
+                                catch (Exception ex)
+                                {
+                                    _log.Error(ex.ToString());
+                                    //up k được thì lấy hình cũ
+                                    //hình cũ k có luôn thì lấy hình đầu tiên trong bài
+                                    if (String.IsNullOrEmpty(article.PostImageUrl))
+                                    {
+                                        article.PostImageUrl = Regex.Match(article.Content, "https://firebase(.*?)(?=\")").Value.ToString();
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+                }
+
+
+                _uow.ArticleRepository.Update(article);
                 if ((await _uow.CommitAsync()) <= 0)
                 {
                     response.Succeeded = false;
@@ -961,10 +1125,77 @@ namespace CapstoneAPI.Services.Article
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Thêm bài viết không thành công, lỗi hệ thống!");
+                    response.Errors.Add("Cập nhật bài viết không thành công, lỗi hệ thống!");
                     return response;
                 }
-                response.Data = _mapper.Map<ArticleCollapseDataSet>(article);
+                _uow.UniversityArticleRepository.DeleteComposite(filter: u => u.ArticleId == article.Id);
+                _uow.MajorArticleRepository.DeleteComposite(filter: u => u.ArticleId == article.Id);
+                if (updateArticleParam.UniversityIds != null && updateArticleParam.UniversityIds.Count > 0)
+                {
+                    foreach (var id in updateArticleParam.UniversityIds)
+                    {
+                        if (await _uow.UniversityRepository.GetById(id) == null)
+                        {
+
+                            response.Succeeded = false;
+                            if (response.Errors == null)
+                            {
+                                response.Errors = new List<string>();
+                            }
+                            response.Errors.Add("Danh sách trường không hợp lệ!");
+                            return response;
+                        }
+                        _uow.UniversityArticleRepository.Insert(new Models.UniversityArticle
+                        {
+                            ArticleId = article.Id,
+                            UniversityId = id
+                        });
+                    }
+                    if ((await _uow.CommitAsync()) <= 0)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Thêm bài viết không thành công, lỗi hệ thống!");
+                        return response;
+                    }
+                }
+                if (updateArticleParam.MajorIds != null && updateArticleParam.MajorIds.Count > 0)
+                {
+                    foreach (var id in updateArticleParam.MajorIds)
+                    {
+                        if (await _uow.MajorRepository.GetById(id) == null)
+                        {
+
+                            response.Succeeded = false;
+                            if (response.Errors == null)
+                            {
+                                response.Errors = new List<string>();
+                            }
+                            response.Errors.Add("Danh sách ngành không hợp lệ!");
+                            return response;
+                        }
+                        _uow.MajorArticleRepository.Insert(new Models.MajorArticle
+                        {
+                            ArticleId = article.Id,
+                            MajorId = id
+                        });
+                    }
+                    if ((await _uow.CommitAsync()) <= 0)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Thêm bài viết không thành công, lỗi hệ thống!");
+                        return response;
+                    }
+                }
+                
+                response.Data = _mapper.Map<AdminArticleDetailDataSet>(article);
                 response.Succeeded = true;
                 tran.Commit();
             }

@@ -153,5 +153,18 @@ namespace CapstoneAPI.Controllers
             }
             return Ok(result);
         }
+
+        [HttpPut("update-article")]
+        public async Task<ActionResult<Response<AdminArticleDetailDataSet>>> UpdateArticle([FromForm] UpdateArticleParam updateArticleParam)
+        {
+            string token = Request.Headers["Authorization"];
+
+            Response<AdminArticleDetailDataSet> result = await _service.UpdateArticle(updateArticleParam, token);
+            if (result == null)
+            {
+                return NoContent();
+            }
+            return Ok(result);
+        }
     }
 }

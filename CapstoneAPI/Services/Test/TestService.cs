@@ -169,6 +169,7 @@
         public async Task<Response<bool>> AddNewTest(NewTestParam testParam, string token)
         {
             Response<bool> response = new Response<bool>();
+            using var tran = _uow.GetTransaction();
             try
             {
                 if (token == null || token.Trim().Length == 0)
@@ -195,20 +196,43 @@
                     .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
                 JObject configuration = JObject.Parse(File.ReadAllText(path));
 
+                foreach (var question in testParam.Questions)
+                {
+                    question.Result = "";
+                    foreach (var option in question.Options)
+                    {
+                        if (option.isResult)
+                        {
+                            question.Result += "1";
+                        }
+                        else
+                        {
+                            question.Result += "0";
+                        }
+                    }
+                    if(question.Type == 1 && question.Result.Count(r => r =='1') != 1)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                            response.Errors = new List<string>();
+                        response.Errors.Add("Câu hỏi số " + question.Ordinal + 1 + " không hợp lệ!");
+                        return response;
+                    }
+                    if (question.Type == 0 && question.Result.Count(r => r == '1') <= 1)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                            response.Errors = new List<string>();
+                        response.Errors.Add("Câu hỏi số " + question.Ordinal + 1 + " không hợp lệ!");
+                        return response;
+                    }
+                }
                 Test t = _mapper.Map<Test>(testParam);
                 t.NumberOfQuestion = t.Questions.Count();
                 t.UserId = userId;
                 foreach (var item in t.Questions)
                 {
                     item.NumberOfOption = item.Options.Count();
-                    if (item.NumberOfOption != item.Result.Length)
-                    {
-                        response.Succeeded = false;
-                        if (response.Errors == null)
-                            response.Errors = new List<string>();
-                        response.Errors.Add("Đáp án không hợp lệ!");
-                        return response;
-                    }
                     if (item.Content != null)
                     {
                         item.Content = await FirebaseHelper.UploadBase64ImgToFirebase(item.Content);
@@ -257,6 +281,7 @@
             catch (Exception ex)
             {
                 _log.Error(ex.ToString());
+                tran.Rollback();
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -307,7 +332,7 @@
 
 
                 IEnumerable<Models.Test> tests = await _uow.TestRepository
-                    .Get(filter: filter, orderBy: order,includeProperties: "Subject,TestType",
+                    .Get(filter: filter, orderBy: order, includeProperties: "Subject,TestType",
                     first: validFilter.PageSize, offset: (validFilter.PageNumber - 1) * validFilter.PageSize);
 
                 if (tests.Count() == 0)
@@ -354,7 +379,7 @@
                     item.Content = await FirebaseHelper.uploadImageLinkToFirebase(item.Content);
                 }
                 _uow.QuestionRepository.UpdateRange(questions);
-                if( await _uow.CommitAsync() == 0)
+                if (await _uow.CommitAsync() == 0)
                 {
                     result.Data = false;
                 }
@@ -367,7 +392,7 @@
             {
                 result.Data = false;
             }
-            
+
             return result;
         }
     }
