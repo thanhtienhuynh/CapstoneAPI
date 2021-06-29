@@ -953,7 +953,7 @@ namespace CapstoneAPI.Services.Article
                         response.Errors.Add("Thêm bài viết không thành công, lỗi hệ thống!");
                         return response;
                     }
-                }               
+                }
                 response.Data = _mapper.Map<ArticleCollapseDataSet>(article);
                 response.Succeeded = true;
                 tran.Commit();
@@ -1042,8 +1042,8 @@ namespace CapstoneAPI.Services.Article
                     response.Errors.Add("Không thể cập nhật bài viết đang được đăng!");
                     return response;
                 }
-                    //update nội dung
-                    article.Title = updateArticleParam.Title;
+                //update nội dung
+                article.Title = updateArticleParam.Title;
                 article.Content = await FirebaseHelper.UploadBase64ImgToFirebase(updateArticleParam.Content);
                 article.ShortDescription = updateArticleParam.ShortDescription;
 
@@ -1173,7 +1173,7 @@ namespace CapstoneAPI.Services.Article
                         return response;
                     }
                 }
-                
+
                 response.Data = _mapper.Map<AdminArticleDetailDataSet>(article);
                 response.Succeeded = true;
                 tran.Commit();
@@ -1182,6 +1182,54 @@ namespace CapstoneAPI.Services.Article
             {
                 _log.Error(ex.ToString());
                 tran.Rollback();
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+            return response;
+        }
+
+        public async Task<Response<bool>> UpdateExpireStatus()
+        {
+            Response<bool> response = new Response<bool>();
+            try
+            {
+                string path = Path.Combine(Path
+                    .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
+                JObject configuration = JObject.Parse(File.ReadAllText(path));
+
+                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
+                DateTime currentDate = DateTime.UtcNow.AddHours(double.Parse(currentTimeZone));
+
+                IEnumerable<Models.Article> articles = await _uow.ArticleRepository.Get(filter: a => a.Status == Consts.STATUS_PUBLISHED &&
+                a.PublicToDate != null && DateTime.Compare(currentDate, (DateTime)a.PublicToDate) > 0);
+                if (articles.Any())
+                {
+                    foreach (var article in articles)
+                    {
+                        article.Status = 4;
+                    }
+                    _uow.ArticleRepository.UpdateRange(articles);
+                    if ((await _uow.CommitAsync()) <= 0)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Cập nhật trạng thái bài viết không thành công, lỗi hệ thống!");
+                        return response;
+                    }
+                }
+                response.Data = true;
+                response.Succeeded = true;
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {

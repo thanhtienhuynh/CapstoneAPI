@@ -23,5 +23,6 @@ namespace CapstoneAPI.Services.Article
         Task<PagedResponse<List<ArticleCollapseDataSet>>> GetListFollowingArticle(PaginationFilter validFilter, string token);
         Task<Response<ArticleCollapseDataSet>> CreateNewArticle(CreateArticleParam createArticleParam, string token);
         Task<Response<AdminArticleDetailDataSet>> UpdateArticle(UpdateArticleParam updateArticleParam, string token);
+        Task<Response<bool>> UpdateExpireStatus();
     }
 }

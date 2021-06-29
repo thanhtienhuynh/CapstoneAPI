@@ -1,4 +1,6 @@
 ﻿using CapstoneAPI.DataSets.Major;
+using CapstoneAPI.Filters;
+using CapstoneAPI.Filters.Major;
 using CapstoneAPI.Wrappers;
 using System;
 using System.Collections.Generic;
@@ -13,5 +15,6 @@ namespace CapstoneAPI.Services.Major
         Task<Response<IEnumerable<MajorSubjectWeightDataSet>>> GetMajorSubjectWeights(string majorName);
         Task<Response<ResultOfCreateMajorDataSet>> CreateAMajor(CreateMajorDataSet createMajorDataSet);
         Task<Response<ResultOfCreateMajorDataSet>> UpdateAMajor(ResultOfCreateMajorDataSet updateMajor);
+        Task<PagedResponse<List<MajorToUniversityDataSet>>> GetUniversitiesInMajor(PaginationFilter validFilter, MajorToUniversityFilter majorToUniversityFilter);
     }
 }

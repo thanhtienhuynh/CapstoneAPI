@@ -2,13 +2,18 @@
 using CapstoneAPI.DataSets.Major;
 using CapstoneAPI.DataSets.Subject;
 using CapstoneAPI.DataSets.SubjectGroup;
+using CapstoneAPI.DataSets.University;
+using CapstoneAPI.Filters;
+using CapstoneAPI.Filters.Major;
 using CapstoneAPI.Helpers;
+using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
 using CapstoneAPI.Wrappers;
 using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace CapstoneAPI.Services.Major
@@ -272,6 +277,82 @@ namespace CapstoneAPI.Services.Major
 
             }
             response = new Response<IEnumerable<MajorSubjectWeightDataSet>>(majors);
+            return response;
+        }
+
+        public async Task<PagedResponse<List<MajorToUniversityDataSet>>> GetUniversitiesInMajor(PaginationFilter validFilter, MajorToUniversityFilter majorToUniversityFilter)
+        {
+            PagedResponse<List<MajorToUniversityDataSet>> response = new PagedResponse<List<MajorToUniversityDataSet>>();
+            try
+            {
+                List<MajorToUniversityDataSet> majorToUniversityDataSets = new List<MajorToUniversityDataSet>();
+                Expression<Func<Models.MajorDetail, bool>> filter = null;
+
+                filter = a => (majorToUniversityFilter.Id == null || a.MajorId == majorToUniversityFilter.Id)
+                &&(string.IsNullOrWhiteSpace(majorToUniversityFilter.Name) || a.Major.Name.Contains(majorToUniversityFilter.Name))
+                && (string.IsNullOrEmpty(majorToUniversityFilter.Code) || a.Major.Code.Contains(majorToUniversityFilter.Code))
+                && (a.Status == Consts.STATUS_ACTIVE)
+                && (a.Major.Status == Consts.STATUS_ACTIVE)
+                && (majorToUniversityFilter.SeasonId == a.SeasonId);
+                Func<IQueryable<Models.MajorDetail>, IOrderedQueryable<Models.MajorDetail>> order = null;
+                switch (majorToUniversityFilter.Order)
+                {
+                    case 0:
+                        order = order => order.OrderByDescending(a => a.Major.Code);
+                        break;
+                    case 1:
+                        order = order => order.OrderBy(a => a.Major.Code);
+                        break;
+                    case 2:
+                        order = order => order.OrderByDescending(a => a.Major.Name);
+                        break;
+                    case 3:
+                        order = order => order.OrderBy(a => a.Major.Name);
+                        break;
+                }
+
+                IEnumerable<Models.MajorDetail> majorDetails = await _uow.MajorDetailRepository
+                .Get(filter: filter, orderBy: order, includeProperties: "Major,University");
+                IEnumerable<IGrouping<Models.Major, Models.MajorDetail>> groupbyMajor = majorDetails.GroupBy(m => m.Major);
+                foreach (IGrouping<Models.Major, Models.MajorDetail> item in groupbyMajor)
+                {
+                    MajorToUniversityDataSet majorToUniversityDataSet = new MajorToUniversityDataSet();
+                    majorToUniversityDataSet.Id = item.Key.Id;
+                    majorToUniversityDataSet.Code = item.Key.Code;
+                    majorToUniversityDataSet.Name = item.Key.Name;
+                    Dictionary<int, DetailUniversityDataSet> universitiesDictionary = new Dictionary<int, DetailUniversityDataSet>();
+                    foreach (Models.MajorDetail majorDetail in item)
+                    {
+                        if (!universitiesDictionary.ContainsKey(majorDetail.University.Id) && majorDetail.University.Status == Consts.STATUS_ACTIVE)
+                        {
+                            DetailUniversityDataSet universityBasicDataSet = _mapper.Map<DetailUniversityDataSet>(majorDetail.University);
+                            universitiesDictionary.Add(universityBasicDataSet.Id, universityBasicDataSet);
+                        }                        
+                    }
+                    majorToUniversityDataSet.NumberOfUniversity = universitiesDictionary.Count();
+                    majorToUniversityDataSets.Add(majorToUniversityDataSet);
+                }
+                var totalRecords = majorToUniversityDataSets.Count;
+                if (totalRecords <= 0)
+                {
+                    response.Succeeded = true;
+                    response.Message = "Không tìm thấy ngành nào để hiển thị!";
+                }
+                else
+                {
+                    response = PaginationHelper.CreatePagedReponse(majorToUniversityDataSets, validFilter, totalRecords);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
             return response;
         }
     }

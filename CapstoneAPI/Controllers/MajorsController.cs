@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CapstoneAPI.DataSets.Major;
+using CapstoneAPI.Filters;
+using CapstoneAPI.Filters.Major;
 using CapstoneAPI.Services.Major;
 using CapstoneAPI.Wrappers;
 using Microsoft.AspNetCore.Mvc;
@@ -28,6 +30,13 @@ namespace CapstoneAPI.Controllers
         public async Task<ActionResult<Response<IEnumerable<MajorSubjectWeightDataSet>>>> GetMajorWeightNumber(string majorName)
         {
             return Ok(await _service.GetMajorSubjectWeights(majorName));
+        }
+        [HttpGet("major-to-university")]
+        public async Task<ActionResult<PagedResponse<List<MajorToUniversityDataSet>>>> GetUniversityInMajor([FromQuery] PaginationFilter filter,
+            [FromQuery] MajorToUniversityFilter majorToUniversityFilter)
+        {
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+            return Ok(await _service.GetUniversitiesInMajor(validFilter, majorToUniversityFilter));
         }
         [HttpPost]
         public async Task<ActionResult<Response<ResultOfCreateMajorDataSet>>> CreateAMajor([FromBody] CreateMajorDataSet createMajorDataSet)
