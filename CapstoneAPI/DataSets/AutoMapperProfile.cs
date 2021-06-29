@@ -74,6 +74,7 @@ namespace CapstoneAPI.DataSets
             CreateMap<AdminSeasonDataSet, Models.Season>();
 
             CreateMap<Models.Major, MajorSubjectWeightDataSet>();
+            CreateMap<CreateMajorSubjectWeightDataSet, Models.Major>();
 
 
 
