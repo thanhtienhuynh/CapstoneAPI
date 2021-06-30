@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace CapstoneAPI.Controllers
 {
-    [Route("api/v1/test")]
+    [Route("api/v1/test-type")]
     [ApiController]
     public class TestTypeController : ControllerBase
     {

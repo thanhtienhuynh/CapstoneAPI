@@ -5,12 +5,10 @@ using System.Threading.Tasks;
 
 namespace CapstoneAPI.Filters.Major
 {
-    public class MajorToUniversityFilter
+    public class MajorToNumberUniversityFilter
     {
-        public int? Id { get; set; }
         public string Code { get; set; }
         public string Name { get; set; }
-        public int SeasonId { get; set; }
         public int Order { get; set; }
         /*
          * 0: Sort by DESC Code
