@@ -31,6 +31,7 @@
         public async Task<Response<TestSubmissionDataSet>> ScoringTest(TestSubmissionParam testSubmissionParam)
         {
             Response<TestSubmissionDataSet> response = new Response<TestSubmissionDataSet>();
+            List<ResultQuestion> resultQuestions = new List<ResultQuestion>();
             try
             {
                 int correctAnswer = 0;
@@ -49,12 +50,22 @@
                 {
                     Question loadedQuestion = await _uow.QuestionRepository.GetFirst(
                         filter: q => q.Id == submitQuestion.Id
-                                && q.TestId == testSubmissionParam.TestId
-                                && q.Result.Trim() == submitQuestion.Options.Trim());
-                    if (loadedQuestion != null)
+                                && q.TestId == testSubmissionParam.TestId);
+                    if (loadedQuestion == null)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Câu hỏi không tồn tại!");
+                        return response;
+                    }
+                    if (loadedQuestion.Result.Trim() == submitQuestion.Options.Trim())
                     {
                         correctAnswer++;
                     }
+                    resultQuestions.Add(new ResultQuestion() { Id = loadedQuestion.Id, Result = loadedQuestion.Result });
                 }
                 double mark = Consts.DEFAULT_MAX_SCORE * ((double)correctAnswer / (double)loadedTest.NumberOfQuestion);
                 TestSubmissionDataSet testSubmissionDataSet = new TestSubmissionDataSet()
@@ -65,7 +76,8 @@
                     SpentTime = testSubmissionParam.SpentTime,
                     SubmissionDate = DateTime.UtcNow,
                     NumberOfQuestion = loadedTest.NumberOfQuestion,
-                    SubjectId = (int)loadedTest.SubjectId
+                    SubjectId = (int)loadedTest.SubjectId,
+                    ResultQuestions = resultQuestions
                 };
                 response.Succeeded = true;
                 response.Data = testSubmissionDataSet;

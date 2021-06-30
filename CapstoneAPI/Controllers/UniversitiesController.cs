@@ -62,14 +62,12 @@ namespace CapstoneAPI.Controllers
         [HttpGet("detail/{id}")]
         public async Task<ActionResult<Response<DetailUniversityDataSet>>> GetDetailOfUniversityById(int id)
         {
-            string token = Request.Headers["Authorization"];
-
             Response<DetailUniversityDataSet> result = await _service.GetDetailUniversity(id);
             return Ok(result);
         }
 
         [HttpGet("major-detail")]
-        public async Task<ActionResult<PagedResponse<UniMajorDataSet>>> GetMajorDetailInUniversity([FromQuery] PaginationFilter filter,
+        public async Task<ActionResult<PagedResponse<List<UniMajorDataSet>>>> GetMajorDetailInUniversity([FromQuery] PaginationFilter filter,
             [FromQuery] MajorDetailFilter majorDetailFilter)
         {
             string token = Request.Headers["Authorization"];
@@ -112,5 +110,19 @@ namespace CapstoneAPI.Controllers
             Response<bool> result = await _service.UpdateMajorOfUniversity(updatingMajorUniversityParam);
             return Ok(result);
         }
+
+        [HttpGet("all")]
+        public async Task<ActionResult<PagedResponse<List<AdminUniversityDataSet>>>> GetAllUniversitiesForStudents([FromQuery] PaginationFilter filter,
+                                                                                                        [FromQuery] UniversityFilterForStudent universityFilter)
+        {
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+
+            PagedResponse<List<AdminUniversityDataSet>> universities = await _service.GetAllUniversitiesForStudents(validFilter, universityFilter);
+
+            if (universities == null)
+                return NoContent();
+            return Ok(universities);
+        }
+
     }
 }

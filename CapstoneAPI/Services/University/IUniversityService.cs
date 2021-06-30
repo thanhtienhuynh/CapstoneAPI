@@ -15,6 +15,7 @@ namespace CapstoneAPI.Services.University
         Task<Response<IEnumerable<TrainingProgramBasedUniversityDataSet>>> GetUniversityBySubjectGroupAndMajor(UniversityParam universityParam, string token);
         Task<Response<MockTestBasedUniversity>> CalculaterUniversityByMockTestMarks(MockTestsUniversityParam universityParam, string token);
         Task<PagedResponse<List<AdminUniversityDataSet>>> GetUniversities(PaginationFilter validFilter, UniversityFilter universityFilter);
+        Task<PagedResponse<List<AdminUniversityDataSet>>> GetAllUniversitiesForStudents(PaginationFilter validFilter, UniversityFilterForStudent universityFilter);
         Task<Response<IEnumerable<AdminUniversityDataSet>>> GetAllUniversities();
         Task<Response<DetailUniversityDataSet>> GetDetailUniversity(int universityId);
         Task<PagedResponse<List<UniMajorDataSet>>> GetMajorDetailInUniversity(PaginationFilter validFilter, MajorDetailFilter majorDetailFilter);

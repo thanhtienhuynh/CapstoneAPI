@@ -493,6 +493,61 @@ namespace CapstoneAPI.Services.University
             return response;
         }
 
+        public async Task<PagedResponse<List<AdminUniversityDataSet>>> GetAllUniversitiesForStudents(PaginationFilter validFilter,
+            UniversityFilterForStudent universityFilter)
+        {
+            PagedResponse<List<AdminUniversityDataSet>> result = new PagedResponse<List<AdminUniversityDataSet>>();
+            try
+            {
+                Expression<Func<Models.University, bool>> filter = null;
+
+                filter = a => (string.IsNullOrEmpty(universityFilter.Name) || a.Name.Contains(universityFilter.Name))
+                                && a.Status == Consts.STATUS_ACTIVE;
+
+                Func<IQueryable<Models.University>, IOrderedQueryable<Models.University>> order = null;
+                switch (universityFilter.Order)
+                {
+                    case 0:
+                        order = order => order.OrderByDescending(a => a.Code);
+                        break;
+                    case 1:
+                        order = order => order.OrderBy(a => a.Code);
+                        break;
+                    case 2:
+                        order = order => order.OrderByDescending(a => a.Name);
+                        break;
+                    case 3:
+                        order = order => order.OrderBy(a => a.Name);
+                        break;
+                    case 4:
+                        order = order => order.OrderByDescending(a => a.TuitionType);
+                        break;
+                    case 5:
+                        order = order => order.OrderBy(a => a.TuitionType);
+                        break;
+                }
+
+
+                IEnumerable<Models.University> universities = await _uow.UniversityRepository
+                    .Get(filter: filter, orderBy: order,
+                    first: validFilter.PageSize, offset: (validFilter.PageNumber - 1) * validFilter.PageSize);
+
+
+                var adminUniversityDataSet = universities.Select(m => _mapper.Map<AdminUniversityDataSet>(m)).ToList();
+                var totalRecords = _uow.UniversityRepository.Count(filter);
+                result = PaginationHelper.CreatePagedReponse(adminUniversityDataSet, validFilter, totalRecords);
+            } catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                result.Succeeded = false;
+                if (result.Errors == null)
+                {
+                    result.Errors = new List<string>();
+                }
+                result.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+            return result;
+        }
         public async Task<PagedResponse<List<AdminUniversityDataSet>>> GetUniversities(PaginationFilter validFilter,
             UniversityFilter universityFilter)
         {
