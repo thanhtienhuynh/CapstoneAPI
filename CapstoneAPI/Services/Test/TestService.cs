@@ -239,6 +239,7 @@
                 Test t = _mapper.Map<Test>(testParam);
                 t.NumberOfQuestion = t.Questions.Count();
                 t.UserId = userId;
+                t.Status = Consts.STATUS_ACTIVE;
                 t.IsSuggestedTest = false;
                 foreach (var item in t.Questions)
                 {
