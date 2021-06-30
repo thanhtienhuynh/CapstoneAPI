@@ -174,24 +174,29 @@
             {
                 if (token == null || token.Trim().Length == 0)
                 {
+                    response.Succeeded = false;
                     if (response.Errors == null)
+                    {
                         response.Errors = new List<string>();
+                    }
                     response.Errors.Add("Bạn chưa đăng nhập!");
                     return response;
                 }
+
 
                 string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
 
                 if (userIdString == null || userIdString.Length <= 0)
                 {
+                    response.Succeeded = false;
                     if (response.Errors == null)
+                    {
                         response.Errors = new List<string>();
+                    }
                     response.Errors.Add("Tài khoản của bạn không tồn tại!");
                     return response;
                 }
-
                 int userId = Int32.Parse(userIdString);
-
                 string path = Path.Combine(Path
                     .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
                 JObject configuration = JObject.Parse(File.ReadAllText(path));
@@ -199,63 +204,120 @@
                 foreach (var question in testParam.Questions)
                 {
                     question.Result = "";
-                    foreach (var option in question.Options)
+                    if (question.Options.Any())
                     {
-                        if (option.isResult)
+                        foreach (var option in question.Options)
                         {
-                            question.Result += "1";
+                            if (option.isResult)
+                            {
+                                question.Result += "1";
+                            }
+                            else
+                            {
+                                question.Result += "0";
+                            }
                         }
-                        else
+                        if (question.Type == 1 && question.Result.Count(r => r == '1') != 1)
                         {
-                            question.Result += "0";
+                            response.Succeeded = false;
+                            if (response.Errors == null)
+                                response.Errors = new List<string>();
+                            response.Errors.Add("Câu hỏi số " + (question.Ordinal + 1) + " không hợp lệ!");
+                            return response;
                         }
-                    }
-                    if(question.Type == 1 && question.Result.Count(r => r =='1') != 1)
-                    {
-                        response.Succeeded = false;
-                        if (response.Errors == null)
-                            response.Errors = new List<string>();
-                        response.Errors.Add("Câu hỏi số " + question.Ordinal + 1 + " không hợp lệ!");
-                        return response;
-                    }
-                    if (question.Type == 0 && question.Result.Count(r => r == '1') <= 1)
-                    {
-                        response.Succeeded = false;
-                        if (response.Errors == null)
-                            response.Errors = new List<string>();
-                        response.Errors.Add("Câu hỏi số " + question.Ordinal + 1 + " không hợp lệ!");
-                        return response;
+                        if (question.Type == 0 && question.Result.Count(r => r == '1') < 1)
+                        {
+                            response.Succeeded = false;
+                            if (response.Errors == null)
+                                response.Errors = new List<string>();
+                            response.Errors.Add("Câu hỏi số " + (question.Ordinal + 1) + " không hợp lệ!");
+                            return response;
+                        }
                     }
                 }
                 Test t = _mapper.Map<Test>(testParam);
                 t.NumberOfQuestion = t.Questions.Count();
                 t.UserId = userId;
+                t.Status = Consts.STATUS_ACTIVE;
+                t.IsSuggestedTest = false;
                 foreach (var item in t.Questions)
                 {
                     item.NumberOfOption = item.Options.Count();
                     if (item.Content != null)
                     {
-                        item.Content = await FirebaseHelper.UploadBase64ImgToFirebase(item.Content);
-                        foreach (var option in item.Options)
+                        item.Content = await FirebaseHelper.UploadBase64ImgToFirebase(item.Content);                       
+                    }
+                    foreach (var option in item.Options)
+                    {
+                        if (option.Content != null)
                         {
-                            if (option.Content != null)
-                            {
-                                option.Content = await FirebaseHelper.UploadBase64ImgToFirebase(option.Content);
-                            }
+                            option.Content = await FirebaseHelper.UploadBase64ImgToFirebase(option.Content);
+                        }
+                    }
+                    //else
+                    //{
+                    //    response.Succeeded = false;
+                    //    if (response.Errors == null)
+                    //        response.Errors = new List<string>();
+                    //    response.Errors.Add("Câu hỏi số " + (item.Ordinal + 1) + " không hợp lệ!");
+                    //    return response;
+                    //}
+
+                }
+                //check Annotate
+                foreach (var question in t.Questions)
+                {
+                    if (!question.IsAnnotate)
+                    {
+                        if (!question.Options.Any())
+                        {
+                            response.Succeeded = false;
+                            if (response.Errors == null)
+                                response.Errors = new List<string>();
+                            response.Errors.Add("Câu hỏi số " + (question.Ordinal + 1) + " không hợp lệ. Chưa có đáp án!");
+                            return response;
+                        }
+                        List<int> optionsOrdinal = question.Options.Select(s => s.Ordinal).ToList();
+                        if (optionsOrdinal.Count != optionsOrdinal.Distinct().Count())
+                        {
+                            response.Succeeded = false;
+                            if (response.Errors == null)
+                                response.Errors = new List<string>();
+                            response.Errors.Add("Câu hỏi số " + (question.Ordinal + 1) + " không hợp lệ. Thứ tự đáp án không đúng!");
+                            return response;
                         }
                     }
                     else
                     {
-                        response.Succeeded = false;
-                        if (response.Errors == null)
-                            response.Errors = new List<string>();
-                        response.Errors.Add("Câu hỏi số " + item.Ordinal + 1 + " không hợp lệ!");
-                        return response;
+                        if (String.IsNullOrEmpty(question.Content))
+                        {
+                            response.Succeeded = false;
+                            if (response.Errors == null)
+                                response.Errors = new List<string>();
+                            response.Errors.Add("Câu hỏi số " + (question.Ordinal + 1) + " không hợp lệ. Nội dung không được trống!");
+                            return response;
+                        }
+                        if (question.Options.Any())
+                        {
+                            response.Succeeded = false;
+                            if (response.Errors == null)
+                                response.Errors = new List<string>();
+                            response.Errors.Add("Câu hỏi số " + (question.Ordinal + 1) + " không hợp lệ. Dạng câu hỏi này không có đáp án!");
+                            return response;
+                        }
                     }
-
                 }
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
+                List<int> questionsOrdinal = t.Questions.Select(s => s.Ordinal).ToList();
+                if (questionsOrdinal.Count != questionsOrdinal.Distinct().Count())
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                        response.Errors = new List<string>();
+                    response.Errors.Add("Thứ tự câu hỏi không hợp lệ!");
+                    return response;
+                }
 
+                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
                 DateTime currentDate = DateTime.UtcNow.AddHours(double.Parse(currentTimeZone));
                 t.CreateDate = currentDate;
 
@@ -265,13 +327,13 @@
                 int result = await _uow.CommitAsync();
                 if (result > 0)
                 {
+                    tran.Commit();
                     response.Succeeded = true;
                     response.Message = "Tạo mới đề thi thành công!";
                 }
 
                 else
                 {
-
                     response.Succeeded = false;
                     if (response.Errors == null)
                         response.Errors = new List<string>();

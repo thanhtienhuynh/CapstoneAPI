@@ -14,6 +14,7 @@ using CapstoneAPI.DataSets.Subject;
 using CapstoneAPI.DataSets.SubjectGroup;
 using CapstoneAPI.DataSets.Test;
 using CapstoneAPI.DataSets.TestSubmission;
+using CapstoneAPI.DataSets.TestType;
 using CapstoneAPI.DataSets.TrainingProgram;
 using CapstoneAPI.DataSets.University;
 using CapstoneAPI.DataSets.User;
@@ -79,7 +80,8 @@ namespace CapstoneAPI.DataSets
 
 
             CreateMap<Models.Test, TestPagingDataSet>();
-
+            CreateMap<Models.TestType, TestTypeDataSet>();
+            CreateMap<Models.Major, NumberUniversityInMajorDataSet>();
         }
     }
 }

@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CapstoneAPI.DataSets.Major;
+using CapstoneAPI.DataSets.University;
 using CapstoneAPI.Filters;
+using CapstoneAPI.Filters.Major;
 using CapstoneAPI.Services.Major;
 using CapstoneAPI.Wrappers;
 using Microsoft.AspNetCore.Mvc;
@@ -29,6 +31,13 @@ namespace CapstoneAPI.Controllers
         public async Task<ActionResult<Response<List<MajorSubjectWeightDataSet>>>> GetMajorWeightNumber(string majorName)
         {
             return Ok(await _service.GetMajorSubjectWeights(majorName));
+        }
+        [HttpGet("student-all")]
+        public async Task<ActionResult<PagedResponse<List<NumberUniversityInMajorDataSet>>>> GetNumberUniversityInMajor([FromQuery] PaginationFilter filter,
+            [FromQuery] MajorToNumberUniversityFilter majorToUniversityFilter)
+        {
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+            return Ok(await _service.GetNumberUniversitiesInMajor(validFilter, majorToUniversityFilter));
         }
         [HttpGet("subject-weight")]
         public async Task<ActionResult<Response<List<MajorSubjectWeightDataSet>>>> GetMajorWeightNumber([FromQuery] PaginationFilter validFilter, string majorName)
@@ -59,6 +68,13 @@ namespace CapstoneAPI.Controllers
         public async Task<ActionResult<Response<UpdateMajorParam>>> UpdateMajor([FromBody] UpdateMajorParam2 updateMajor)
         {
             return Ok(await _service.UpdateMajor(updateMajor));
+        }
+        [HttpGet("student-detail")]
+        public async Task<ActionResult<PagedResponse<List<DetailUniversityDataSet>>>> GetUniversityInMajor([FromQuery] PaginationFilter filter,
+            [FromQuery] UniversityToMajorFilter majorToUniversityFilter)
+        {
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+            return Ok(await _service.GetUniversitiesInMajor(validFilter, majorToUniversityFilter));
         }
     }
 }

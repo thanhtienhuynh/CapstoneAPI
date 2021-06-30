@@ -166,5 +166,17 @@ namespace CapstoneAPI.Controllers
             }
             return Ok(result);
         }
+        [HttpPut("update-exprire-article")]
+        public async Task<ActionResult<Response<bool>>> UpdateExpireStatus()
+        {
+            string token = Request.Headers["Authorization"];
+
+            Response<bool> result = await _service.UpdateExpireStatus();
+            if (result == null)
+            {
+                return NoContent();
+            }
+            return Ok(result);
+        }
     }
 }
