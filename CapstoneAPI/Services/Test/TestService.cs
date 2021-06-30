@@ -328,6 +328,7 @@
                 int result = await _uow.CommitAsync();
                 if (result > 0)
                 {
+                    tran.Commit();
                     response.Succeeded = true;
                     response.Message = "Tạo mới đề thi thành công!";
                 }
