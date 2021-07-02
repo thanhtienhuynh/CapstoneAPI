@@ -11,7 +11,7 @@ namespace CapstoneAPI.DataSets.TestSubmission
         public int Id { get; set; }
         public int? TestId { get; set; }
         public string TestName { get; set; }
-        public DateTime? SubmissionDate { get; set; }
+        public DateTime SubmissionDate { get; set; }
         public int? SpentTime { get; set; }
         public double? Mark { get; set; }
         public int? NumberOfRightAnswers { get; set; }

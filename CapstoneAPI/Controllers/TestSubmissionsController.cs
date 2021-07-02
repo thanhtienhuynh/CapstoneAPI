@@ -41,10 +41,10 @@ namespace CapstoneAPI.Controllers
         }
 
         [HttpGet()]
-        public async Task<ActionResult<Response<List<UserTestSubmissionDataSet>>>> GetTestSubmissionsByUser()
+        public async Task<ActionResult<Response<List<UserTestSubmissionDataSet>>>> GetTestSubmissionsByUser([FromQuery] UserTestSubmissionQueryParam param)
         {
             string token = Request.Headers["Authorization"];
-            return Ok(await _service.GetTestSubmissionsByUser(token));
+            return Ok(await _service.GetTestSubmissionsByUser(token, param));
         }
 
         [HttpGet("{id}")]

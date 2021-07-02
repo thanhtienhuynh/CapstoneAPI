@@ -13,7 +13,9 @@
     using Serilog;
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Linq;
+    using System.Linq.Expressions;
     using System.Threading.Tasks;
 
     public class TestSubmissionService : ITestSubmissionService
@@ -216,7 +218,7 @@
             return response;
         }
 
-        public async Task<Response<List<UserTestSubmissionDataSet>>> GetTestSubmissionsByUser(string token)
+        public async Task<Response<List<UserTestSubmissionDataSet>>> GetTestSubmissionsByUser(string token, UserTestSubmissionQueryParam param)
         {
             Response<List<UserTestSubmissionDataSet>> response = new Response<List<UserTestSubmissionDataSet>>();
             try
@@ -232,53 +234,10 @@
                     return response;
                 }
 
+
+
                 string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-                if (userIdString != null && userIdString.Length > 0)
-                {
-                    int userId = Int32.Parse(userIdString);
-                    IEnumerable<TestSubmission> testSubmissionDataSets = (await _uow.TestSubmissionRepository
-                        .Get(filter: t => t.UserId == userId,
-                            includeProperties: "Test",
-                            orderBy: t => t.OrderBy(t => t.SpentTime))).GroupBy(t => t.TestId).Select(g => g.Last());
-                    if (!testSubmissionDataSets.Any())
-                    {
-                        response.Succeeded = false;
-                        if (response.Errors == null)
-                        {
-                            response.Errors = new List<string>();
-                        }
-                        response.Errors.Add("Bạn chưa làm bài test nào!");
-                        return response;
-                    }
-                    List<UserTestSubmissionDataSet> userTestSubmissionDataSets = new List<UserTestSubmissionDataSet>();
-                    foreach (TestSubmission testSubmission in testSubmissionDataSets)
-                    {
-                        UserTestSubmissionDataSet userTestSubmissionDataSet = _mapper.Map<UserTestSubmissionDataSet>(testSubmission);
-                        userTestSubmissionDataSet.TimeLimit = (int)testSubmission.Test.TimeLimit;
-                        userTestSubmissionDataSet.NumberOfQuestion = testSubmission.Test.NumberOfQuestion;
-                        userTestSubmissionDataSet.NumberOfCompletion = (await _uow.TestSubmissionRepository
-                            .Get(filter: t => t.UserId == userId && t.TestId == testSubmission.TestId)).Count();
-                        userTestSubmissionDataSet.TestName = testSubmission.Test.Name;
-                        userTestSubmissionDataSets.Add(userTestSubmissionDataSet);
-                    }
-
-                    if (userTestSubmissionDataSets.Any())
-                    {
-                        response.Succeeded = true;
-                        response.Data = userTestSubmissionDataSets;
-                    }
-                    else
-                    {
-                        response.Succeeded = false;
-                        if (response.Errors == null)
-                        {
-                            response.Errors = new List<string>();
-                        }
-                        response.Errors.Add("Bạn chưa làm bài thi nào!");
-                    }
-
-                }
-                else
+                if (string.IsNullOrEmpty(userIdString) || Int32.TryParse(userIdString, out int userId))
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -287,6 +246,67 @@
                     }
                     response.Errors.Add("Tài khoản của bạn không tồn tại!");
                 }
+
+                userId = Int32.Parse(userIdString);
+                IEnumerable<TestSubmission> testSubmissionDataSets = (await _uow.TestSubmissionRepository
+                    .Get(filter: t => t.UserId == userId,
+                        includeProperties: "Test",
+                        orderBy: t => t.OrderBy(t => t.SpentTime))).GroupBy(t => t.TestId).Select(g => g.Last());
+                if (param.SubjectId != null)
+                {
+                    testSubmissionDataSets = testSubmissionDataSets.Where(t => t.Test.SubjectId == param.SubjectId);
+                }
+                if (param.TestTypeId != null)
+                {
+                    testSubmissionDataSets = testSubmissionDataSets.Where(t => t.Test.TestTypeId == param.TestTypeId);
+                }
+                if (param.IsSuggestedTest != null)
+                {
+                    testSubmissionDataSets = testSubmissionDataSets.Where(t => t.Test.IsSuggestedTest == param.IsSuggestedTest);
+                }
+                switch (param.Order ?? 2)
+                {
+                    case 1:
+                        testSubmissionDataSets.OrderByDescending(a => a.SubmissionDate);
+                        break;
+                    case 2:
+                        testSubmissionDataSets.OrderBy(a => a.SubmissionDate);
+                        break;
+                    case 3:
+                        testSubmissionDataSets.OrderByDescending(a => a.Test.Year);
+                        break;
+                    case 4:
+                        testSubmissionDataSets.OrderBy(a => a.Test.Year);
+                        break;
+                    case 5:
+                        testSubmissionDataSets.OrderByDescending(a => a.Test.Name);
+                        break;
+                    case 6:
+                        testSubmissionDataSets.OrderBy(a => a.Test.Name);
+                        break;
+                }
+                if (!testSubmissionDataSets.Any())
+                {
+                    response.Succeeded = true;
+                    return response;
+                }
+                List<UserTestSubmissionDataSet> userTestSubmissionDataSets = new List<UserTestSubmissionDataSet>();
+                foreach (TestSubmission testSubmission in testSubmissionDataSets)
+                {
+                    UserTestSubmissionDataSet userTestSubmissionDataSet = _mapper.Map<UserTestSubmissionDataSet>(testSubmission);
+                    userTestSubmissionDataSet.TimeLimit = (int)testSubmission.Test.TimeLimit;
+                    userTestSubmissionDataSet.NumberOfQuestion = testSubmission.Test.NumberOfQuestion;
+                    userTestSubmissionDataSet.NumberOfCompletion = (await _uow.TestSubmissionRepository
+                        .Get(filter: t => t.UserId == userId && t.TestId == testSubmission.TestId)).Count();
+                    userTestSubmissionDataSet.TestName = testSubmission.Test.Name;
+                    userTestSubmissionDataSet.SubmissionDate = DateTime.Parse(userTestSubmissionDataSet.SubmissionDate.ToString("MM/dd/yyyy h:mm tt"));
+                    userTestSubmissionDataSets.Add(userTestSubmissionDataSet);
+                }
+
+
+                response.Succeeded = true;
+                response.Data = userTestSubmissionDataSets;
+               
             }
             catch (Exception ex)
             {
@@ -353,15 +373,21 @@
                 IEnumerable<QuestionSubmisstion> questionSubmissions = (await _uow.QuestionSubmisstionRepository
                     .Get(filter: q => q.TestSubmissionId == testSubmission.Id,
                      includeProperties: "Question,Question.Options")).OrderBy(q => q.Question.Ordinal);
+                int realOrder = 0;
                 foreach (QuestionSubmisstion questionSubmission in questionSubmissions)
                 {
                     QuestionSubmissionDataSet questionSubmissionDataSet = _mapper.Map<QuestionSubmissionDataSet>(questionSubmission);
                     questionSubmissionDataSet.RightResult = questionSubmission.Question.Result;
-                    questionSubmissionDataSet.QuestionContent = questionSubmission.Question.Content;
+                    questionSubmissionDataSet.Content = questionSubmission.Question.Content;
                     questionSubmissionDataSet.NumberOfOption = questionSubmission.Question.NumberOfOption;
                     questionSubmissionDataSet.Type = questionSubmission.Question.Type;
                     questionSubmissionDataSet.TestId = questionSubmission.Question.TestId;
                     questionSubmissionDataSet.Options = questionSubmission.Question.Options.OrderBy(o => o.Ordinal).Select(o => _mapper.Map<OptionDataSet>(o)).ToList();
+                    questionSubmissionDataSet.IsAnnotate = questionSubmission.Question.IsAnnotate;
+                    if (!questionSubmissionDataSet.IsAnnotate)
+                    {
+                        questionSubmissionDataSet.RealOrder = realOrder++;
+                    }
                     questionSubmissionDataSets.Add(questionSubmissionDataSet);
                 }
 
@@ -373,6 +399,7 @@
                 detailTestSubmissionDataSet.NumberOfQuestion = testSubmission.Test.NumberOfQuestion;
                 detailTestSubmissionDataSet.TimeLimit = (int)testSubmission.Test.TimeLimit;
                 detailTestSubmissionDataSet.TestName = testSubmission.Test.Name;
+                detailTestSubmissionDataSet.SubmissionDate = DateTime.Parse(detailTestSubmissionDataSet.SubmissionDate.ToString("MM/dd/yyyy h:mm tt"));
 
                 response.Succeeded = true;
                 response.Data = detailTestSubmissionDataSet;
