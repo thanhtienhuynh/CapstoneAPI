@@ -57,10 +57,24 @@ namespace CapstoneAPI.Controllers
             return Ok(await _service.AddNewTest(testParam, token));
         }
 
-        [HttpPut]
+        [HttpPut("system")]
         public async Task<ActionResult<Response<bool>>> UpdateTestImage()
         {
             Response<bool> result = await _service.UpdateTestImage();
+            return Ok(result);
+        }
+        [HttpPut("admin")]
+        public async Task<ActionResult<Response<bool>>> UpdateTest([FromBody] UpdateTestParam testParam)
+        {
+            string token = Request.Headers["Authorization"];
+            Response<bool> result = await _service.UpdateTest(testParam, token);
+            return Ok(result);
+        }
+        [HttpPut("admin-suggest-test")]
+        public async Task<ActionResult<Response<bool>>> UpdateSuggestTest([FromBody] SetSuggestedTestParam setSuggestedTestParam)
+        {
+            string token = Request.Headers["Authorization"];
+            Response<bool> result = await _service.UpdateSuggestTest(setSuggestedTestParam, token);
             return Ok(result);
         }
     }

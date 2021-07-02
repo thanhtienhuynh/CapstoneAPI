@@ -872,15 +872,6 @@ namespace CapstoneAPI.Services.Major
             try
             {
                 Models.Season season = await _uow.SeasonRepository.GetCurrentSeason();
-                if (season == null)
-                {
-                    response.Succeeded = false;
-                    if (response.Errors == null)
-                    {
-                        response.Errors = new List<string>();
-                    }
-                    response.Errors.Add("Tính năng chưa hoàn thiện");
-                }
                 List<NumberUniversityInMajorDataSet> majorToUniversityDataSets = new List<NumberUniversityInMajorDataSet>();
                 Expression<Func<Models.Major, bool>> filter = null;
                 filter = a => (string.IsNullOrWhiteSpace(majorToNumberUniversityFilter.Name) || a.Name.Contains(majorToNumberUniversityFilter.Name))

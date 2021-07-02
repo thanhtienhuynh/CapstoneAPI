@@ -16,5 +16,7 @@ namespace CapstoneAPI.Services.Test
         Task<Response<bool>> AddNewTest(NewTestParam testParam, string token);
         Task<PagedResponse<List<TestPagingDataSet>>> GetTestsByFilter(PaginationFilter validFilter, TestFilter testFilter);
         Task<Response<bool>> UpdateTestImage();
+        Task<Response<bool>> UpdateTest(UpdateTestParam testParam, string token);
+        Task<Response<bool>> UpdateSuggestTest(SetSuggestedTestParam setSuggestedTestParam, string token);
     }
 }
