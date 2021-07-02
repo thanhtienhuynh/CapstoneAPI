@@ -9,4 +9,9 @@ namespace CapstoneAPI.DataSets.Test
     {
         public int SubjectGroupId { get; set; }
     }
+
+    public class SetSuggestedTestParam
+    {
+        public int TestId { get; set; }
+    }
 }

@@ -245,7 +245,7 @@
                     item.NumberOfOption = item.Options.Count();
                     if (item.Content != null)
                     {
-                        item.Content = await FirebaseHelper.UploadBase64ImgToFirebase(item.Content);                       
+                        item.Content = await FirebaseHelper.UploadBase64ImgToFirebase(item.Content);
                     }
                     foreach (var option in item.Options)
                     {
@@ -456,6 +456,394 @@
             }
 
             return result;
+        }
+
+        public async Task<Response<bool>> UpdateTest(UpdateTestParam testParam, string token)
+        {
+            Response<bool> response = new Response<bool>();
+            var tran = _uow.GetTransaction();
+            try
+            {
+                if (token == null || token.Trim().Length == 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Bạn chưa đăng nhập!");
+                    return response;
+                }
+                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
+
+                if (userIdString == null || userIdString.Length <= 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    return response;
+                }
+                int userId = Int32.Parse(userIdString);
+
+                string path = Path.Combine(Path
+                    .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
+                JObject configuration = JObject.Parse(File.ReadAllText(path));
+                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
+                DateTime currentDate = DateTime.UtcNow.AddHours(double.Parse(currentTimeZone));
+                Models.Test test = await _uow.TestRepository.GetFirst(filter: t => t.Id == testParam.Id, includeProperties: "Questions");
+                if (test == null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                        response.Errors = new List<string>();
+                    response.Errors.Add("Đề kiểm tra không tồn tại");
+                    return response;
+                }
+                if (testParam.Status == Consts.STATUS_INACTIVE)
+                {
+                    test.Status = testParam.Status;
+                    _uow.TestRepository.Update(test);
+                    if (await _uow.CommitAsync() <= 0)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                            response.Errors = new List<string>();
+                        response.Errors.Add("Lỗi hệ thống");
+                        return response;
+                    }
+                    tran.Commit();
+                    response.Succeeded = true;
+                    return response;
+                }
+                //kiểm tra ordinal
+                List<int> questionsOrdinal = testParam.Questions.Select(s => s.Ordinal).ToList();
+                if (questionsOrdinal.Count != questionsOrdinal.Distinct().Count())
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                        response.Errors = new List<string>();
+                    response.Errors.Add("Thứ tự câu hỏi không hợp lệ!");
+                    return response;
+                }
+                //check Annotate
+                foreach (var question in testParam.Questions)
+                {
+                    if (!question.IsAnnotate)
+                    {
+                        if (!question.Options.Any())
+                        {
+                            response.Succeeded = false;
+                            if (response.Errors == null)
+                                response.Errors = new List<string>();
+                            response.Errors.Add("Câu hỏi số " + (question.Ordinal + 1) + " không hợp lệ. Chưa có đáp án!");
+                            return response;
+                        }
+                        List<int> optionsOrdinal = question.Options.Select(s => s.Ordinal).ToList();
+                        if (optionsOrdinal.Count != optionsOrdinal.Distinct().Count())
+                        {
+                            response.Succeeded = false;
+                            if (response.Errors == null)
+                                response.Errors = new List<string>();
+                            response.Errors.Add("Câu hỏi số " + (question.Ordinal + 1) + " không hợp lệ. Thứ tự đáp án không đúng!");
+                            return response;
+                        }
+                    }
+                    else
+                    {
+                        if (String.IsNullOrEmpty(question.Content))
+                        {
+                            response.Succeeded = false;
+                            if (response.Errors == null)
+                                response.Errors = new List<string>();
+                            response.Errors.Add("Câu hỏi số " + (question.Ordinal + 1) + " không hợp lệ. Nội dung không được trống!");
+                            return response;
+                        }
+                        if (question.Options.Any())
+                        {
+                            response.Succeeded = false;
+                            if (response.Errors == null)
+                                response.Errors = new List<string>();
+                            response.Errors.Add("Câu hỏi số " + (question.Ordinal + 1) + " không hợp lệ. Dạng câu hỏi này không có đáp án!");
+                            return response;
+                        }
+                    }
+                }
+                foreach (var item in testParam.Questions)
+                {
+                    List<int> optionsOrdinal = item.Options.Select(s => s.Ordinal).ToList();
+                    if (optionsOrdinal.Count != optionsOrdinal.Distinct().Count())
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                            response.Errors = new List<string>();
+                        response.Errors.Add("Thứ tự đáp án câu hỏi số " + (item.Ordinal + 1) + " không hợp lệ!");
+                        return response;
+                    }
+                }
+                //nếu xóa bài thi
+                //cập nhật bài thi
+                if (testParam.Status == Consts.STATUS_ACTIVE)
+                {
+                    Models.Test newTest = new Test
+                    {
+                        Name = testParam.Name,
+                        IsSuggestedTest = testParam.IsSuggestedTest,
+                        Level = testParam.Level,
+                        Status = Consts.STATUS_ACTIVE,
+                        CreateDate = currentDate,
+                        SubjectId = testParam.SubjectId,
+                        TestTypeId = testParam.TestTypeId,
+                        UserId = userId,
+                        UniversityId = testParam.UniversityId,
+                        Year = testParam.Year,
+                        TimeLimit = testParam.TimeLimit,
+                        NumberOfQuestion = testParam.Questions.Count,
+                    };
+                    //kiểm tra có ai làm chưa
+                    //Bài đã có người làm
+                    if ((await _uow.TestSubmissionRepository.Get(filter: s => s.TestId == test.Id)).Any())
+                    {
+                        test.Status = Consts.STATUS_INACTIVE;
+                        _uow.TestRepository.Update(test);
+                        _uow.TestRepository.Insert(newTest);
+
+                        if (await _uow.CommitAsync() <= 0)
+                        {
+                            response.Succeeded = false;
+                            if (response.Errors == null)
+                            {
+                                response.Errors = new List<string>();
+                            }
+                            response.Errors.Add("Lỗi hệ thống!");
+                        }
+                    }
+                    else //TH2: bài chưa có người làm
+                    {
+                        //xóa hết câu hỏi cũ                        
+                        if (test.Questions.Any())
+                        {
+                            foreach (var item in test.Questions)
+                            {
+                                _uow.OptionRepository.DeleteComposite(filter: o => o.QuestionId == item.Id);
+                                _uow.QuestionRepository.Delete(item.Id);
+                            }
+                            if (await _uow.CommitAsync() <= 0)
+                            {
+                                response.Succeeded = false;
+                                if (response.Errors == null)
+                                {
+                                    response.Errors = new List<string>();
+                                }
+                                response.Errors.Add("Lỗi hệ thống!");
+                            }
+                        }
+
+                        newTest.Id = test.Id;
+                        //cập nhật lại test information
+                        test.Name = testParam.Name;
+                        test.IsSuggestedTest = testParam.IsSuggestedTest;
+                        test.Level = testParam.Level;
+                        test.Status = Consts.STATUS_ACTIVE;
+                        test.CreateDate = currentDate;
+                        test.SubjectId = testParam.SubjectId;
+                        test.TestTypeId = testParam.TestTypeId;
+                        test.UserId = userId;
+                        test.UniversityId = testParam.UniversityId;
+                        test.Year = testParam.Year;
+                        test.TimeLimit = testParam.TimeLimit;
+                        test.NumberOfQuestion = testParam.Questions.Count;
+                        _uow.TestRepository.Update(test);
+                    }
+
+                    //cập nhật đáp án đúng
+                    foreach (var question in testParam.Questions)
+                    {
+                        Models.Question newQuestion = new Question
+                        {
+                            Content = await FirebaseHelper.UploadBase64ImgToFirebase(question.Content),
+                            Ordinal = question.Ordinal,
+                            Type = question.Type,
+                            IsAnnotate = question.IsAnnotate,
+                            TestId = newTest.Id
+                        };
+                        newQuestion.Result = "";
+                        newQuestion.NumberOfOption = 0;
+                        if (question.Options.Any())
+                        {
+                            foreach (var option in question.Options)
+                            {
+                                if (option.isResult)
+                                {
+                                    newQuestion.Result += "1";
+                                    newQuestion.NumberOfOption++;
+                                }
+                                else
+                                {
+                                    newQuestion.Result += "0";
+                                    newQuestion.NumberOfOption++;
+                                }
+                            }
+                            if (newQuestion.Type == 1 && newQuestion.Result.Count(r => r == '1') != 1)
+                            {
+                                response.Succeeded = false;
+                                if (response.Errors == null)
+                                    response.Errors = new List<string>();
+                                response.Errors.Add("Câu hỏi số " + (newQuestion.Ordinal + 1) + " không hợp lệ!");
+                                return response;
+                            }
+                            if (newQuestion.Type == 0 && newQuestion.Result.Count(r => r == '1') < 1)
+                            {
+                                response.Succeeded = false;
+                                if (response.Errors == null)
+                                    response.Errors = new List<string>();
+                                response.Errors.Add("Câu hỏi số " + (newQuestion.Ordinal + 1) + " không hợp lệ!");
+                                return response;
+                            }
+
+                        }
+                        _uow.QuestionRepository.Insert(newQuestion);
+                        if (await _uow.CommitAsync() <= 0)
+                        {
+                            response.Succeeded = false;
+                            if (response.Errors == null)
+                            {
+                                response.Errors = new List<string>();
+                            }
+                            response.Errors.Add("Lỗi hệ thống!");
+                        }
+                        if (question.Options.Any())
+                        {
+                            foreach (var option in question.Options)
+                            {
+                                Models.Option newOption = new Option
+                                {
+                                    Content = await FirebaseHelper.UploadBase64ImgToFirebase(option.Content),
+                                    Ordinal = option.Ordinal,
+                                    QuestionId = newQuestion.Id
+                                };
+                                _uow.OptionRepository.Insert(newOption);
+                                if (await _uow.CommitAsync() <= 0)
+                                {
+                                    response.Succeeded = false;
+                                    if (response.Errors == null)
+                                    {
+                                        response.Errors = new List<string>();
+                                    }
+                                    response.Errors.Add("Lỗi hệ thống!");
+                                }
+                            }
+                        }
+                    }
+
+                }
+                //commit ở đây
+                tran.Commit();
+                response.Succeeded = true;
+                response.Message = "Cập nhật đề thi thành công!";
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                tran.Rollback();
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.ToString());
+            }
+            return response;
+        }
+
+        public async Task<Response<bool>> UpdateSuggestTest(SetSuggestedTestParam setSuggestedTestParam, string token)
+        {
+            Response<bool> response = new Response<bool>();
+            var tran = _uow.GetTransaction();
+            try
+            {
+                if (token == null || token.Trim().Length == 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Bạn chưa đăng nhập!");
+                    return response;
+                }
+                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
+
+                if (userIdString == null || userIdString.Length <= 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    return response;
+                }
+                int userId = Int32.Parse(userIdString);
+                Models.Test test = await _uow.TestRepository.GetById(setSuggestedTestParam.TestId);
+                if (test == null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Bài kiểm tra không tồn tại!");
+                    return response;
+                }
+                IEnumerable<Models.Test> tests = await _uow.TestRepository.Get(filter: t => t.SubjectId == test.SubjectId && t.IsSuggestedTest == true);
+                foreach (var item in tests)
+                {
+                    item.IsSuggestedTest = false;
+                }
+                _uow.TestRepository.UpdateRange(tests);
+                test.IsSuggestedTest = true;
+                _uow.TestRepository.Update(test);
+                IEnumerable<Models.Transcript> transcripts = await _uow.TranscriptRepository.Get(filter: u => u.SubjectId == test.SubjectId 
+                                                            && u.Status == Consts.STATUS_ACTIVE && u.TranscriptTypeId == 3
+                                                            , includeProperties: "User");
+                foreach (var transcript in transcripts)
+                {
+                    transcript.IsUpdate = true;
+                    transcript.Status = Consts.STATUS_INACTIVE;
+                }
+                _uow.TranscriptRepository.UpdateRange(transcripts);
+
+                IEnumerable<Models.User> users = transcripts.Select(s => s.User);
+                if (await _uow.CommitAsync() <= 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Lỗi hệ thống!");
+                    return response;
+                }
+                tran.Commit();
+                response.Succeeded = true;
+                response.Data = true;
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                tran.Rollback();
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.ToString());
+            }
+
+            return response;
         }
     }
 }
