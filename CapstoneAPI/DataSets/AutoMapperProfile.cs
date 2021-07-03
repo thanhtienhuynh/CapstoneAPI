@@ -82,6 +82,10 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.Test, TestPagingDataSet>();
             CreateMap<Models.TestType, TestTypeDataSet>();
             CreateMap<Models.Major, NumberUniversityInMajorDataSet>();
+            CreateMap<Models.Major, MajorDetailDataSet>();
+
+            CreateMap<Models.Career, CareerDataSet>();
+
         }
     }
 }

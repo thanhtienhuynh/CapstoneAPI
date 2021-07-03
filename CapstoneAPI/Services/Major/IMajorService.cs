@@ -21,6 +21,6 @@ namespace CapstoneAPI.Services.Major
         Task<Response<CreateMajorSubjectWeightDataSet>> CreateAMajor(CreateMajorSubjectWeightDataSet createMajor);
         Task<Response<UpdateMajorParam>> UpdateMajor(UpdateMajorParam updateMajor);
         Task<Response<UpdateMajorParam2>> UpdateMajor(UpdateMajorParam2 updateMajor);
-        Task<PagedResponse<List<DetailUniversityDataSet>>> GetUniversitiesInMajor(PaginationFilter validFilter, UniversityToMajorFilter majorToUniversityFilter);
+        Task<Response<MajorDetailDataSet>> GetUniversitiesInMajor(int majorId);
     }
 }

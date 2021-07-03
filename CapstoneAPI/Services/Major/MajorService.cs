@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CapstoneAPI.DataSets.Article;
 using CapstoneAPI.DataSets.Major;
 using CapstoneAPI.DataSets.Subject;
 using CapstoneAPI.DataSets.SubjectGroup;
@@ -9,11 +10,14 @@ using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
 using CapstoneAPI.Wrappers;
+using Newtonsoft.Json.Linq;
 using Serilog;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace CapstoneAPI.Services.Major
@@ -22,12 +26,16 @@ namespace CapstoneAPI.Services.Major
     {
         private IMapper _mapper;
         private readonly IUnitOfWork _uow;
+        private readonly JObject configuration;
         private readonly ILogger _log = Log.ForContext<MajorService>();
 
         public MajorService(IUnitOfWork uow, IMapper mapper)
         {
             _uow = uow;
             _mapper = mapper;
+            string path = Path.Combine(Path
+                .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
+            configuration = JObject.Parse(File.ReadAllText(path));
         }
         public async Task<Response<IEnumerable<AdminMajorDataSet>>> GetActiveMajorsByAdmin()
         {
@@ -898,8 +906,7 @@ namespace CapstoneAPI.Services.Major
                 .Get(filter: filter, orderBy: order);
 
 
-                majorToUniversityDataSets = majors.Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize)
-                                                                    .Select(s => _mapper.Map<NumberUniversityInMajorDataSet>(s)).ToList();
+                majorToUniversityDataSets = majors.Select(s => _mapper.Map<NumberUniversityInMajorDataSet>(s)).ToList();
                 if (season != null)
                 {
                     foreach (var item in majorToUniversityDataSets)
@@ -910,6 +917,10 @@ namespace CapstoneAPI.Services.Major
                                                   .Select(s => s.UniversityId).Distinct().Count();
                     }
                 }
+                majorToUniversityDataSets = majorToUniversityDataSets.OrderByDescending(m => m.NumberOfUniversity)
+                    .Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).ToList();
+
+
                 var totalRecords = majors.Count();
                 if (totalRecords <= 0)
                 {
@@ -934,70 +945,99 @@ namespace CapstoneAPI.Services.Major
             return response;
         }
 
-        public async Task<PagedResponse<List<DetailUniversityDataSet>>> GetUniversitiesInMajor(PaginationFilter validFilter, UniversityToMajorFilter majorToUniversityFilter)
+        public async Task<Response<MajorDetailDataSet>> GetUniversitiesInMajor(int majorId)
         {
-            PagedResponse<List<DetailUniversityDataSet>> response = new PagedResponse<List<DetailUniversityDataSet>>();
+            Response<MajorDetailDataSet> response = new Response<MajorDetailDataSet>();
             try
             {
-                List<DetailUniversityDataSet> majorToUniversityDataSet = new List<DetailUniversityDataSet>();
-                Expression<Func<Models.MajorDetail, bool>> filter = null;
-
-                filter = a => (a.Major.Id == majorToUniversityFilter.Id)
-                && (string.IsNullOrEmpty(majorToUniversityFilter.UniversityName) || a.University.Name.Contains(majorToUniversityFilter.UniversityName))
-                && (string.IsNullOrEmpty(majorToUniversityFilter.UniversityCode) || a.University.Code.Contains(majorToUniversityFilter.UniversityCode))
-                && (a.Status == Consts.STATUS_ACTIVE)
-                && (a.Major.Status == Consts.STATUS_ACTIVE)
-                && (majorToUniversityFilter.SeasonId == a.SeasonId);
-                Func<IQueryable<Models.MajorDetail>, IOrderedQueryable<Models.MajorDetail>> order = null;
-                switch (majorToUniversityFilter.Order)
-                {
-                    case 0:
-                        order = order => order.OrderByDescending(a => a.University.Code);
-                        break;
-                    case 1:
-                        order = order => order.OrderBy(a => a.University.Code);
-                        break;
-                    case 2:
-                        order = order => order.OrderByDescending(a => a.University.Name);
-                        break;
-                    case 3:
-                        order = order => order.OrderBy(a => a.University.Name);
-                        break;
-                }
-                IEnumerable<Models.MajorDetail> majorDetails = await _uow.MajorDetailRepository
-                .Get(filter: filter, orderBy: order, includeProperties: "Major,University");
-
-                Models.Major major = await _uow.MajorRepository.GetById(majorToUniversityFilter.Id);
+                Models.Season season = await _uow.SeasonRepository.GetCurrentSeason();
+                Models.Major major = await _uow.MajorRepository.GetFirst(filter: m => m.Id == majorId && m.Status == Consts.STATUS_ACTIVE,
+                                    includeProperties: "MajorArticles.Article,MajorCareers.Career," +
+                                    "MajorSubjectGroups.SubjectGroup.SubjectGroupDetails.Subject," +
+                                    "MajorSubjectGroups.SubjectGroup.SubjectGroupDetails.SpecialSubjectGroup," +
+                                    "MajorDetails.University");
                 if (major == null)
                 {
-                    response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Không tìm thấy ngành nào để hiển thị!");
+                    response.Errors.Add("Ngành này không tồn tại!");
                     return response;
                 }
-                Dictionary<int, DetailUniversityDataSet> universitiesDictionary = new Dictionary<int, DetailUniversityDataSet>();
-                foreach (var majorDetail in majorDetails)
-                {
-                    if (!universitiesDictionary.ContainsKey(majorDetail.University.Id) && majorDetail.University.Status == Consts.STATUS_ACTIVE)
+                List<DetailUniversityDataSet> majorToUniversityDataSet = new List<DetailUniversityDataSet>();
+                List<ArticleDetailDataSet> articleDataSets = new List<ArticleDetailDataSet>();
+                List<CareerDataSet> careerDataSets = new List<CareerDataSet>();
+                List<MajorDetailSubjectGroupDataSet> subjectGroupDataSets = new List<MajorDetailSubjectGroupDataSet>();
+
+                MajorDetailDataSet result = _mapper.Map<MajorDetailDataSet>(major);
+
+                if (season != null && major.MajorDetails != null
+                    && major.MajorDetails.Where(m => m.Status == Consts.STATUS_ACTIVE && m.SeasonId == season.Id).Any()) {
+                    IEnumerable<Models.University> universities = major.MajorDetails.Where(m => m.Status == Consts.STATUS_ACTIVE && m.SeasonId == season.Id)
+                                                                    .Select(m => m.University).Distinct();
+                    foreach (Models.University university in universities)
                     {
-                        DetailUniversityDataSet universityBasicDataSet = _mapper.Map<DetailUniversityDataSet>(majorDetail.University);
-                        universitiesDictionary.Add(universityBasicDataSet.Id, universityBasicDataSet);
+                        majorToUniversityDataSet.Add(_mapper.Map<DetailUniversityDataSet>(university));
                     }
                 }
-                majorToUniversityDataSet = universitiesDictionary.Values.Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).ToList();
-                var totalRecords = universitiesDictionary.Count;
-                if (totalRecords <= 0)
+
+                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
+                DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
+
+                if (major.MajorArticles != null && major.MajorArticles.Where(m => m.Article.Status == 3
+                && m.Article.PublicFromDate != null && m.Article.PublicToDate != null && DateTime.Compare((DateTime)m.Article.PublicToDate, currentDate) > 0).Any())
                 {
-                    response.Succeeded = true;
-                    response.Message = "Không có trường nào tuyển ngành này!";
+                    IEnumerable<Models.Article> articles = major.MajorArticles.Where(m => m.Article.Status == 3
+                                        && m.Article.PublicFromDate != null && m.Article.PublicToDate != null
+                                        && DateTime.Compare((DateTime)m.Article.PublicToDate, currentDate) > 0)
+                                        .Select(m => m.Article);
+                    foreach (Models.Article article in articles)
+                    {
+                        articleDataSets.Add(_mapper.Map<ArticleDetailDataSet>(article));
+                    }
                 }
-                else
+
+                if (major.MajorCareers != null && major.MajorCareers.Where(m => m.Career.Status == Consts.STATUS_ACTIVE).Any())
                 {
-                    response = PaginationHelper.CreatePagedReponse(majorToUniversityDataSet, validFilter, totalRecords);
+                    IEnumerable<Career> careers = major.MajorCareers.Where(m => m.Career.Status == Consts.STATUS_ACTIVE)
+                                            .Select(m => m.Career);
+                    foreach (Career career in careers)
+                    {
+                        careerDataSets.Add(_mapper.Map<CareerDataSet>(career));
+                    }
                 }
+
+                if (major.MajorSubjectGroups != null && major.MajorSubjectGroups.Where(m => m.SubjectGroup.Status == Consts.STATUS_ACTIVE).Any())
+                {
+                    foreach (Models.MajorSubjectGroup majorSubjectGroup in major.MajorSubjectGroups.Where(m => m.SubjectGroup.Status == Consts.STATUS_ACTIVE))
+                    {
+                        MajorDetailSubjectGroupDataSet subjectGroup = new MajorDetailSubjectGroupDataSet();
+                        List<string> subjects = new List<string>();
+                        foreach (SubjectGroupDetail subjectGroupDetail in majorSubjectGroup.SubjectGroup.SubjectGroupDetails)
+                        {
+                            if (subjectGroupDetail.Subject != null)
+                            {
+                                subjects.Add(subjectGroupDetail.Subject.Name);
+                            } else if (subjectGroupDetail.SpecialSubjectGroup != null)
+                            {
+                                subjects.Add(subjectGroupDetail.SpecialSubjectGroup.Name);
+                            }
+                        }
+                        subjectGroup.Subjects = subjects;
+                        subjectGroup.Name = majorSubjectGroup.SubjectGroup.GroupCode;
+                        subjectGroup.Id = majorSubjectGroup.SubjectGroup.Id;
+                        subjectGroupDataSets.Add(subjectGroup);
+                    }
+                }
+
+                result.Universities = majorToUniversityDataSet;
+                result.Articles = articleDataSets;
+                result.Careers = careerDataSets;
+                result.SubjectGroups = subjectGroupDataSets.OrderBy(s => s.Name).ToList();
+                response.Data = result;
+                response.Succeeded = true;
+                return response;
             }
             catch (Exception ex)
             {
