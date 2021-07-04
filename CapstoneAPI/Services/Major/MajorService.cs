@@ -953,8 +953,6 @@ namespace CapstoneAPI.Services.Major
                 Models.Season season = await _uow.SeasonRepository.GetCurrentSeason();
                 Models.Major major = await _uow.MajorRepository.GetFirst(filter: m => m.Id == majorId && m.Status == Consts.STATUS_ACTIVE,
                                     includeProperties: "MajorArticles.Article,MajorCareers.Career," +
-                                    "MajorSubjectGroups.SubjectGroup.SubjectGroupDetails.Subject," +
-                                    "MajorSubjectGroups.SubjectGroup.SubjectGroupDetails.SpecialSubjectGroup," +
                                     "MajorDetails.University");
                 if (major == null)
                 {
@@ -1008,9 +1006,12 @@ namespace CapstoneAPI.Services.Major
                     }
                 }
 
-                if (major.MajorSubjectGroups != null && major.MajorSubjectGroups.Where(m => m.SubjectGroup.Status == Consts.STATUS_ACTIVE).Any())
+                IEnumerable<Models.MajorSubjectGroup> majorSubjectGroups = await _uow.MajorSubjectGroupRepository.Get(
+                            filter: m => m.SubjectGroup.Status == Consts.STATUS_ACTIVE && m.MajorId == major.Id,
+                            includeProperties: "SubjectGroup.SubjectGroupDetails.Subject,SubjectGroup.SubjectGroupDetails.SpecialSubjectGroup");
+                if (majorSubjectGroups.Any())
                 {
-                    foreach (Models.MajorSubjectGroup majorSubjectGroup in major.MajorSubjectGroups.Where(m => m.SubjectGroup.Status == Consts.STATUS_ACTIVE))
+                    foreach (Models.MajorSubjectGroup majorSubjectGroup in majorSubjectGroups)
                     {
                         MajorDetailSubjectGroupDataSet subjectGroup = new MajorDetailSubjectGroupDataSet();
                         List<string> subjects = new List<string>();
@@ -1019,7 +1020,8 @@ namespace CapstoneAPI.Services.Major
                             if (subjectGroupDetail.Subject != null)
                             {
                                 subjects.Add(subjectGroupDetail.Subject.Name);
-                            } else if (subjectGroupDetail.SpecialSubjectGroup != null)
+                            }
+                            else if (subjectGroupDetail.SpecialSubjectGroup != null)
                             {
                                 subjects.Add(subjectGroupDetail.SpecialSubjectGroup.Name);
                             }

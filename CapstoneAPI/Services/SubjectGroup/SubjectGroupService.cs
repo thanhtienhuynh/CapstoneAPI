@@ -35,7 +35,8 @@ namespace CapstoneAPI.Services.SubjectGroup
             {
                 List<SubjectGroupDataSet> subjectGroupDataSets = new List<SubjectGroupDataSet>();
                 //Lấy danh sách khối
-                IEnumerable<Models.SubjectGroup> subjectGroups = await _uow.SubjectGroupRepository.Get(includeProperties: "SubjectGroupDetails,SubjectGroupDetails.Subject,SubjectGroupDetails.SpecialSubjectGroup");
+                IEnumerable<Models.SubjectGroup> subjectGroups = await _uow.SubjectGroupRepository
+                    .Get(filter: s => s.Status == Consts.STATUS_ACTIVE, includeProperties: "SubjectGroupDetails");
 
                 if (!subjectGroups.Any())
                 {
@@ -58,9 +59,7 @@ namespace CapstoneAPI.Services.SubjectGroup
                         {
                             TotalMark = totalMark,
                             Name = subjectGroup.GroupCode,
-                            Id = subjectGroup.Id,
-                            SubjectDataSets = subjectGroup.SubjectGroupDetails.Where(s => s.Subject != null).Select(s => _mapper.Map<SubjectDataSet>(s.Subject)).ToList(),
-                            SpecialSubjectGroupDataSets = subjectGroup.SubjectGroupDetails.Where(s => s.SpecialSubjectGroup != null).Select(s => _mapper.Map<SpecialSubjectGroupDataSet>(s.SpecialSubjectGroup)).ToList()
+                            Id = subjectGroup.Id
                         });
                     }
                 }
@@ -91,15 +90,14 @@ namespace CapstoneAPI.Services.SubjectGroup
                 foreach (SubjectGroupDataSet subjectGroupDataSet in subjectGroupDataSets)
                 {
                     IEnumerable<Models.Major> majors = (await _uow.MajorSubjectGroupRepository
-                        .Get(filter: s => s.SubjectGroupId == subjectGroupDataSet.Id,
+                        .Get(filter: s => s.SubjectGroupId == subjectGroupDataSet.Id && s.Major.Status == Consts.STATUS_ACTIVE,
                             includeProperties: "Major")).Select(s => s.Major);
                     List<MajorDataSet> majorDataSets = new List<MajorDataSet>();
                     foreach (Models.Major major in majors)
                     {
-
                         var groupsByMajorDetails = (await _uow.MajorDetailRepository
                             .Get(filter: m => m.MajorId == major.Id && m.Status == Consts.STATUS_ACTIVE,
-                                includeProperties: "University,TrainingProgram,AdmissionCriterion,AdmissionCriterion.SubAdmissionCriteria"))
+                                includeProperties: "AdmissionCriterion,AdmissionCriterion.SubAdmissionCriteria"))
                             .GroupBy(m => new { m.UniversityId, m.TrainingProgramId });
 
                         bool isValid = false;
@@ -119,61 +117,75 @@ namespace CapstoneAPI.Services.SubjectGroup
                             }
 
                             if (currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria == null
-                                || !currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria.Where(s => s.Status == Consts.STATUS_ACTIVE).Any()
+                                || !currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria.Where(s => s.AdmissionMethodId == 1 && s.Status == Consts.STATUS_ACTIVE).Any()
                                 || previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria == null
-                                || !previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria.Where(s => s.Status == Consts.STATUS_ACTIVE).Any())
+                                || !previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria.Where(s => s.AdmissionMethodId == 1 && s.Status == Consts.STATUS_ACTIVE).Any())
                             {
                                 continue;
                             }
 
-                            List<SubAdmissionCriterion> currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                                .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == subjectGroupParam.Gender || a.Gender == null)
-                                 && (a.ProvinceId == subjectGroupParam.ProvinceId || a.ProvinceId == null)).ToList();
-                            List<SubAdmissionCriterion> previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                                .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == subjectGroupParam.Gender || a.Gender == null)
-                                 && (a.ProvinceId == subjectGroupParam.ProvinceId || a.ProvinceId == null)).ToList();
+                            IEnumerable<SubAdmissionCriterion> currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                                .Where(a => a.AdmissionMethodId == 1 && a.Status == Consts.STATUS_ACTIVE);
+                            
+                            IEnumerable<SubAdmissionCriterion> previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                                .Where(a => a.AdmissionMethodId == 1 && a.Status == Consts.STATUS_ACTIVE);
 
-                            if (!currentSubAdmissionCriterias.Any() || !previousSubAdmissionCriterias.Any())
+                            //Check ptts cho giới tính riêng
+                            IEnumerable<SubAdmissionCriterion> subCurrentSubAdmissionCriteriasByGender = currentSubAdmissionCriterias.Where(s => s.Gender == subjectGroupParam.Gender);
+                            if (subCurrentSubAdmissionCriteriasByGender.Any())
+                            {
+                                currentSubAdmissionCriterias = subCurrentSubAdmissionCriteriasByGender;
+                            } else
+                            {
+                                currentSubAdmissionCriterias = currentSubAdmissionCriterias.Where(s => s.Gender == null);
+                            }
+
+                            IEnumerable<SubAdmissionCriterion> subPreviousSubAdmissionCriteriasByGender = previousSubAdmissionCriterias.Where(s => s.Gender == subjectGroupParam.Gender);
+                            if (subPreviousSubAdmissionCriteriasByGender.Any())
+                            {
+                                previousSubAdmissionCriterias = subPreviousSubAdmissionCriteriasByGender;
+                            } else
+                            {
+                                previousSubAdmissionCriterias = previousSubAdmissionCriterias.Where(s => s.Gender == null);
+
+                            }
+
+                            //Check ptts cho tỉnh riêng, chỉ có duy nhất 1 tiêu chí thỏa mãn
+                            SubAdmissionCriterion subCurrentSubAdmissionCriteria = currentSubAdmissionCriterias.Where(s => s.ProvinceId == subjectGroupParam.ProvinceId).FirstOrDefault();
+                            if (subCurrentSubAdmissionCriteria == null)
+                            {
+                                subCurrentSubAdmissionCriteria = currentSubAdmissionCriterias.Where(s => s.ProvinceId == null).FirstOrDefault(); ;
+                            }
+
+                            SubAdmissionCriterion subPreviousSubAdmissionCriteria = previousSubAdmissionCriterias.Where(s => s.ProvinceId == subjectGroupParam.ProvinceId).FirstOrDefault();
+                            if (subPreviousSubAdmissionCriteria == null)
+                            {
+                                subPreviousSubAdmissionCriteria = previousSubAdmissionCriterias.Where(s => s.ProvinceId == null).FirstOrDefault();
+                            }
+
+                            if (subPreviousSubAdmissionCriteria == null || subCurrentSubAdmissionCriteria == null)
                             {
                                 continue;
                             }
 
-                            List<EntryMark> currentEntryMarks = new List<EntryMark>();
-                            List<EntryMark> previousEntryMarks = new List<EntryMark>();
+                            EntryMark currentEntryMark = (await _uow.EntryMarkRepository
+                                    .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == subCurrentSubAdmissionCriteria.Id
+                                        && e.MajorSubjectGroupId != null && e.MajorSubjectGroup.SubjectGroupId == subjectGroupDataSet.Id))
+                                        .FirstOrDefault();
 
-                            foreach (SubAdmissionCriterion currentSubAdmissionCriteria in currentSubAdmissionCriterias)
-                            {
-                                List<EntryMark> entryMarks = (await _uow.EntryMarkRepository
-                                    .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == currentSubAdmissionCriteria.Id && e.MajorSubjectGroupId != null,
-                                        includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup,SubAdmissionCriterion"))
-                                    .ToList();
-                                currentEntryMarks.AddRange(entryMarks);
-                            }
+                            EntryMark previousEntryMark = (await _uow.EntryMarkRepository
+                                    .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == subPreviousSubAdmissionCriteria.Id
+                                    && e.MajorSubjectGroupId != null && e.MajorSubjectGroup.SubjectGroupId == subjectGroupDataSet.Id
+                                    && e.Mark != null && e.Mark <= subjectGroupDataSet.TotalMark))
+                                        .FirstOrDefault();
 
-                            foreach (SubAdmissionCriterion previousSubAdmissionCriteria in previousSubAdmissionCriterias)
-                            {
-                                List<EntryMark> entryMarks = (await _uow.EntryMarkRepository
-                                    .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == previousSubAdmissionCriteria.Id && e.MajorSubjectGroupId != null,
-                                        includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup,SubAdmissionCriterion"))
-                                    .ToList();
-                                previousEntryMarks.AddRange(entryMarks);
-                            }
 
-                            if (!currentEntryMarks.Any() || !previousEntryMarks.Any())
-                            {
-                                continue;
-                            }
-
-                            if (!currentEntryMarks.Where(e => e.MajorSubjectGroup.SubjectGroupId == subjectGroupDataSet.Id).Any()
-                                || !previousEntryMarks.Where(e => e.MajorSubjectGroup.SubjectGroupId == subjectGroupDataSet.Id
-                                                            && e.Mark != null
-                                                            && e.Mark <= subjectGroupDataSet.TotalMark).Any())
+                            if (currentEntryMark == null || previousEntryMark == null)
                             {
                                 continue;
                             }
                             isValid = true;
-                            double newMark = previousEntryMarks.First(e => e.MajorSubjectGroup.SubjectGroupId == subjectGroupDataSet.Id).Mark ?? 0;
-                            highestEntryMark = newMark > highestEntryMark ? newMark : highestEntryMark;
+                            highestEntryMark = (double)previousEntryMark.Mark > highestEntryMark ? (double)previousEntryMark.Mark : highestEntryMark;
                         }
 
                         if (isValid)
@@ -196,6 +208,12 @@ namespace CapstoneAPI.Services.SubjectGroup
 
                 foreach (SubjectGroupDataSet suggestGroup in suggestedSubjectGroups)
                 {
+                    suggestGroup.SubjectDataSets = (await _uow.SubjecGroupDetailRepository
+                            .Get(filter: s => s.SubjectId != null && s.SubjectGroupId == suggestGroup.Id,
+                                includeProperties: "Subject")).Select(s => _mapper.Map<SubjectDataSet>(s.Subject)).ToList();
+                    suggestGroup.SpecialSubjectGroupDataSets = (await _uow.SubjecGroupDetailRepository
+                            .Get(filter: s => s.SpecialSubjectGroupId != null && s.SubjectGroupId == suggestGroup.Id,
+                                 includeProperties: "SpecialSubjectGroup")).Select(s => _mapper.Map<SpecialSubjectGroupDataSet>(s.SpecialSubjectGroup)).ToList();
                     //Tính trọng số từng ngành
                     suggestGroup.SuggestedMajors = await GenerateListMajors(subjectGroupParam, suggestGroup.SuggestedMajors, suggestGroup.Id);
                 }
@@ -853,7 +871,7 @@ namespace CapstoneAPI.Services.SubjectGroup
                     return response;
                 }
 
-                if (!user.Transcripts.Any())
+                if (!user.Transcripts.Any() || user.ProvinceId == null || user.Gender == null)
                 {
                     response.Succeeded = true;
                     return response;
@@ -873,8 +891,8 @@ namespace CapstoneAPI.Services.SubjectGroup
                     }
                     SubjectGroupParam param = new SubjectGroupParam()
                     {
-                        Gender = user.Gender,
-                        ProvinceId = user.ProvinceId,
+                        Gender = (int)user.Gender,
+                        ProvinceId = (int)user.ProvinceId,
                         TranscriptTypeId = group.Key.Id,
                         Marks = marks
                     };

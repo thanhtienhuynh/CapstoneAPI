@@ -71,7 +71,7 @@ namespace CapstoneAPI.Services.University
                     .Get(filter: w => w.Status == Consts.STATUS_ACTIVE && w.MajorId == universityParam.MajorId,
                         includeProperties: "University,TrainingProgram,AdmissionCriterion,AdmissionCriterion.SubAdmissionCriteria"))
                     .ToList();
-                if (majorDetails == null || !majorDetails.Any())
+                if (!majorDetails.Any())
                 {
                     response.Succeeded = true;
                     response.Data = trainingProgramBasedUniversityDataSets;
