@@ -191,6 +191,10 @@ namespace CapstoneAPI.Services.Major
                 }
                 objToUpdate.Code = updateMajor.Code;
                 objToUpdate.Name = updateMajor.Name;
+                objToUpdate.Description = updateMajor.Description;
+                objToUpdate.Curriculum = updateMajor.Curriculum;
+                objToUpdate.HumanQuality = updateMajor.HumanQuality;
+                objToUpdate.SalaryDescription = updateMajor.SalaryDescription;
                 objToUpdate.Status = updateMajor.Status;
                 _uow.MajorRepository.Update(objToUpdate);
                 int result = await _uow.CommitAsync();
@@ -237,7 +241,7 @@ namespace CapstoneAPI.Services.Major
                     foreach (var item in majors)
                     {
                         List<Models.MajorSubjectGroup> majorSubjectGroups =
-                            (await _uow.MajorSubjectGroupRepository.Get(filter: ms => ms.MajorId == item.Id,
+                            (await _uow.MajorSubjectGroupRepository.Get(filter: ms => ms.MajorId == item.Id && ms.Status == Consts.STATUS_ACTIVE,
                             includeProperties: "SubjectGroup,SubjectWeights,SubjectWeights.SubjectGroupDetail," +
                             "SubjectWeights.SubjectGroupDetail.Subject,SubjectWeights.SubjectGroupDetail.SpecialSubjectGroup")).ToList();
 
@@ -337,7 +341,7 @@ namespace CapstoneAPI.Services.Major
                     foreach (var item in majors)
                     {
                         List<Models.MajorSubjectGroup> majorSubjectGroups =
-                            (await _uow.MajorSubjectGroupRepository.Get(filter: ms => ms.MajorId == item.Id,
+                            (await _uow.MajorSubjectGroupRepository.Get(filter: ms => ms.MajorId == item.Id && ms.Status == Consts.STATUS_ACTIVE,
                             includeProperties: "SubjectGroup,SubjectWeights,SubjectWeights.SubjectGroupDetail," +
                             "SubjectWeights.SubjectGroupDetail.Subject,SubjectWeights.SubjectGroupDetail.SpecialSubjectGroup")).ToList();
 
@@ -464,7 +468,8 @@ namespace CapstoneAPI.Services.Major
                         Models.MajorSubjectGroup majorSubjectGroup = new Models.MajorSubjectGroup()
                         {
                             Major = newMajor,
-                            SubjectGroupId = subjectGroup.Id
+                            SubjectGroupId = subjectGroup.Id,
+                            Status = Consts.STATUS_ACTIVE
                         };
                         //Có thể có lỗi ko đúng SubjectGroupId
                         _uow.MajorSubjectGroupRepository.Insert(majorSubjectGroup);
@@ -751,6 +756,10 @@ namespace CapstoneAPI.Services.Major
                 }
                 objToUpdate.Code = updateMajor.Code;
                 objToUpdate.Name = updateMajor.Name;
+                objToUpdate.Description = updateMajor.Description;
+                objToUpdate.Curriculum = updateMajor.Curriculum;
+                objToUpdate.HumanQuality = updateMajor.HumanQuality;
+                objToUpdate.SalaryDescription = updateMajor.SalaryDescription;
                 objToUpdate.Status = updateMajor.Status;
                 _uow.MajorRepository.Update(objToUpdate);
 
@@ -759,56 +768,88 @@ namespace CapstoneAPI.Services.Major
                 {
                     foreach (var item in updateMajor.SubjectGroup)
                     {
-                        Models.MajorSubjectGroup marjorSubjectGroup = await _uow.MajorSubjectGroupRepository
-                            .GetFirst(filter: m => m.MajorId == updateMajor.Id && m.SubjectGroupId == item.Id);
+                        Models.MajorSubjectGroup majorSubjectGroup = await _uow.MajorSubjectGroupRepository
+                            .GetFirst(filter: m => m.MajorId == updateMajor.Id && m.SubjectGroupId == item.Id && m.Status == Consts.STATUS_ACTIVE);
 
-                        if (marjorSubjectGroup != null)
+                        if (majorSubjectGroup != null)
                         {
-                            foreach (var subjectWeight in item.SubjectWeights)
+                            if (item.Status == Consts.STATUS_ACTIVE)
                             {
-                                Models.SubjectGroupDetail subjectGroupDetail = await _uow.SubjecGroupDetailRepository
-                                    .GetFirst(s => (s.SubjectGroupId == item.Id) && (subjectWeight.IsSpecialSubjectGroup
-                                    ? s.SpecialSubjectGroupId == subjectWeight.SubjectId : s.SubjectId == subjectWeight.SubjectId));
-
-                                if (subjectGroupDetail == null)
+                                foreach (var subjectWeight in item.SubjectWeights)
                                 {
-                                    if (response.Errors == null)
+                                    Models.SubjectGroupDetail subjectGroupDetail = await _uow.SubjecGroupDetailRepository
+                                        .GetFirst(s => (s.SubjectGroupId == item.Id) && (subjectWeight.IsSpecialSubjectGroup
+                                        ? s.SpecialSubjectGroupId == subjectWeight.SubjectId : s.SubjectId == subjectWeight.SubjectId));
+
+                                    if (subjectGroupDetail == null)
                                     {
-                                        response.Errors = new List<string>();
+                                        if (response.Errors == null)
+                                        {
+                                            response.Errors = new List<string>();
+                                        }
+                                        response.Errors.Add("Không thể cập nhật ngành!");
+                                        return response;
                                     }
-                                    response.Errors.Add("Không thể cập nhật ngành!");
-                                    return response;
-                                }
 
-                                int subjectGroupDetailId = subjectGroupDetail.Id;
+                                    int subjectGroupDetailId = subjectGroupDetail.Id;
 
-                                Models.SubjectWeight updateSubjectWeight = await _uow.SubjectWeightRepository
-                                    .GetFirst(s => s.MajorSubjectGroupId == marjorSubjectGroup.Id && s.SubjectGroupDetailId == subjectGroupDetailId);
+                                    Models.SubjectWeight updateSubjectWeight = await _uow.SubjectWeightRepository
+                                        .GetFirst(s => s.MajorSubjectGroupId == majorSubjectGroup.Id && s.SubjectGroupDetailId == subjectGroupDetailId);
 
-                                if (updateSubjectWeight == null)
-                                {
-                                    if (response.Errors == null)
+                                    if (updateSubjectWeight == null)
                                     {
-                                        response.Errors = new List<string>();
+                                        if (response.Errors == null)
+                                        {
+                                            response.Errors = new List<string>();
+                                        }
+                                        response.Errors.Add("Không thể cập nhật ngành!");
+                                        return response;
                                     }
-                                    response.Errors.Add("Không thể cập nhật ngành!");
-                                    return response;
-                                }
 
-                                updateSubjectWeight.Weight = subjectWeight.Weight;
-                                _uow.SubjectWeightRepository.Update(updateSubjectWeight);
+                                    updateSubjectWeight.Weight = subjectWeight.Weight;
+                                    _uow.SubjectWeightRepository.Update(updateSubjectWeight);
+                                }
                             }
-
+                            else
+                            {
+                                majorSubjectGroup.Status = item.Status;
+                                _uow.MajorSubjectGroupRepository.Update(majorSubjectGroup);
+                                Dictionary<int, Models.User> users = new Dictionary<int, Models.User>();
+                                IEnumerable<Models.EntryMark> entryMarks = await _uow
+                                    .EntryMarkRepository.Get(filter: e => e.MajorSubjectGroupId == majorSubjectGroup.Id && e.Status == Consts.STATUS_ACTIVE
+                                    , includeProperties: "FollowingDetails");
+                                if (entryMarks.Any())
+                                {
+                                    foreach (var entryMark in entryMarks)
+                                    {
+                                        entryMark.Status = item.Status;
+                                        if (entryMark.FollowingDetails.Where(w => w.Status == Consts.STATUS_ACTIVE).Any())
+                                        {
+                                            foreach (var followingDetail in entryMark.FollowingDetails.Where(w => w.Status == Consts.STATUS_ACTIVE))
+                                            {
+                                                followingDetail.Status = item.Status;
+                                                if (!users.ContainsKey(followingDetail.UserId))
+                                                {
+                                                    users.Add(followingDetail.UserId, followingDetail.User);
+                                                }
+                                            }
+                                            _uow.FollowingDetailRepository.UpdateRange(entryMark.FollowingDetails);
+                                        }
+                                    }
+                                    _uow.EntryMarkRepository.UpdateRange(entryMarks);
+                                }
+                            }
                         }
                         else
                         {
-                            Models.MajorSubjectGroup majorSubjectGroup = new Models.MajorSubjectGroup()
+                            Models.MajorSubjectGroup newMajorSubjectGroup = new Models.MajorSubjectGroup()
                             {
                                 MajorId = updateMajor.Id,
-                                SubjectGroupId = item.Id
+                                SubjectGroupId = item.Id,
+                                Status = Consts.STATUS_ACTIVE
                             };
 
-                            _uow.MajorSubjectGroupRepository.Insert(majorSubjectGroup);
+                            _uow.MajorSubjectGroupRepository.Insert(newMajorSubjectGroup);
 
                             List<CreateMajorSubjectWeight> subjectWeights = item.SubjectWeights;
                             List<Models.SubjectWeight> newSubjectWeights = new List<Models.SubjectWeight>();
@@ -835,7 +876,7 @@ namespace CapstoneAPI.Services.Major
                                 {
                                     SubjectGroupDetailId = subjectGroupDetailId,
                                     Weight = subjectWeight.Weight,
-                                    MajorSubjectGroup = majorSubjectGroup
+                                    MajorSubjectGroup = newMajorSubjectGroup
                                 });
                             }
 
