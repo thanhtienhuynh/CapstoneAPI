@@ -1,4 +1,4 @@
-﻿using CapstoneAPI.Services.Rank;
+﻿using CapstoneAPI.Features.Rank.Service;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;

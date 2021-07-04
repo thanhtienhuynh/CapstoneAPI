@@ -1,7 +1,7 @@
-﻿using CapstoneAPI.Models;
-using CapstoneAPI.Repositories.Rank;
-using CapstoneAPI.Repositories.Season;
-using CapstoneAPI.Repositories.Transcript;
+﻿using CapstoneAPI.Features.Rank.Repository;
+using CapstoneAPI.Features.Season.Repository;
+using CapstoneAPI.Features.Transcript.Repository;
+using CapstoneAPI.Models;
 using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Collections.Generic;
