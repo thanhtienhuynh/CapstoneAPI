@@ -16,6 +16,7 @@ namespace CapstoneAPI.Models
         public int Id { get; set; }
         public int MajorId { get; set; }
         public int SubjectGroupId { get; set; }
+        public int Status { get; set; }
 
         public virtual Major Major { get; set; }
         public virtual SubjectGroup SubjectGroup { get; set; }
