@@ -90,7 +90,8 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
                 foreach (SubjectGroupDataSet subjectGroupDataSet in subjectGroupDataSets)
                 {
                     IEnumerable<Models.Major> majors = (await _uow.MajorSubjectGroupRepository
-                        .Get(filter: s => s.SubjectGroupId == subjectGroupDataSet.Id && s.Major.Status == Consts.STATUS_ACTIVE,
+                        .Get(filter: s => s.SubjectGroupId == subjectGroupDataSet.Id && s.Major.Status == Consts.STATUS_ACTIVE
+                            && s.Status == Consts.STATUS_ACTIVE,
                             includeProperties: "Major")).Select(s => s.Major);
                     List<MajorDataSet> majorDataSets = new List<MajorDataSet>();
                     foreach (Models.Major major in majors)
@@ -244,7 +245,8 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
             foreach (MajorDataSet majorDataSet in suggestedMajors.OrderByDescending(e => e.HighestEntryMark))
             {
                 Models.MajorSubjectGroup majorSubjectGroup = await _uow.MajorSubjectGroupRepository
-                    .GetFirst(filter: m => m.SubjectGroupId == subjectGroupId && m.MajorId == majorDataSet.Id, includeProperties: "SubjectWeights");
+                    .GetFirst(filter: m => m.SubjectGroupId == subjectGroupId && m.MajorId == majorDataSet.Id
+                                && m.Status == Consts.STATUS_ACTIVE, includeProperties: "SubjectWeights");
 
                 majorDataSet.WeightMark = await CalculateTotalWeightMark(subjectGroupParam, majorSubjectGroup.SubjectWeights);
                 majorDataSets.Add(majorDataSet);
@@ -858,8 +860,9 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
 
                 int userId = Int32.Parse(userIdString);
 
-                Models.User user = await _uow.UserRepository.GetFirst(filter: u => u.Id == userId && u.IsActive == true,
-                                                                    includeProperties: "Transcripts.TranscriptType");
+                Models.User user = await _uow.UserRepository.GetFirst(filter: u => u.Id == userId && u.IsActive == true);
+                user.Transcripts = (await _uow.TranscriptRepository.Get(t => t.Status == Consts.STATUS_ACTIVE
+                            && t.UserId == user.Id, includeProperties: "TranscriptType")).ToList();
                 if (user == null)
                 {
                     response.Succeeded = false;

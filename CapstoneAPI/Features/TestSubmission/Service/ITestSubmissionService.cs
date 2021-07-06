@@ -15,6 +15,6 @@ namespace CapstoneAPI.Features.TestSubmission.Service
         Task<Response<bool>> SaveTestSubmissions(List<SaveTestSubmissionParam> saveTestSubmissionParams, string token);
         Task<Response<List<UserTestSubmissionDataSet>>> GetTestSubmissionsByUser(string token, UserTestSubmissionQueryParam param);
         Task<Response<DetailTestSubmissionDataSet>> GetDetailTestSubmissionByUser(int testSubmissionId, string token);
-        Task<IEnumerable<QuestionDataSet>> ScoringTest1();
+        Task<IEnumerable<QuestionDataSet>> ScoringTest1(int testId);
     }
 }

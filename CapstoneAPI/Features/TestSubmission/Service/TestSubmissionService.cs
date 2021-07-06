@@ -144,26 +144,32 @@
                     _uow.TestSubmissionRepository.Insert(testSubmission);
                     int subjectId = (int)(await _uow.TestRepository.GetById(saveTestSubmissionParam.TestId)).SubjectId;
 
-                    Transcript transcript = await _uow.TranscriptRepository.GetFirst(t => t.TranscriptTypeId == 3 && t.UserId == userId && t.SubjectId == subjectId);
-                    if (transcript != null)
+                    IEnumerable<Transcript> transcripts = await _uow.TranscriptRepository
+                                .Get(t => t.TranscriptTypeId == 3 && t.UserId == userId
+                                && t.SubjectId == subjectId && t.Status == Consts.STATUS_ACTIVE);
+
+                    if (transcripts.Any())
                     {
-                        transcript.Mark = Math.Round(saveTestSubmissionParam.Mark, 2);
-                        transcript.DateRecord = DateTime.UtcNow;
-                        transcript.IsUpdate = true;
-                        _uow.TranscriptRepository.Update(transcript);
-                    }
-                    else
-                    {
-                        _uow.TranscriptRepository.Insert(new Transcript()
+                        foreach (Transcript transcript in transcripts)
                         {
-                            UserId = userId,
-                            DateRecord = DateTime.UtcNow,
-                            Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
-                            TranscriptTypeId = 3,
-                            SubjectId = subjectId,
-                            IsUpdate = true
-                        });
+                            transcript.DateRecord = DateTime.UtcNow;
+                            transcript.IsUpdate = false;
+                            transcript.Status = Consts.STATUS_INACTIVE;
+                        }
+                        _uow.TranscriptRepository.UpdateRange(transcripts);
                     }
+
+                    _uow.TranscriptRepository.Insert(new Transcript()
+                    {
+                        UserId = userId,
+                        DateRecord = DateTime.UtcNow,
+                        Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
+                        TranscriptTypeId = 3,
+                        SubjectId = subjectId,
+                        IsUpdate = true,
+                        Status = Consts.STATUS_ACTIVE
+                    });
+
 
                     if ((await _uow.CommitAsync()) > 0)
                     {
@@ -417,9 +423,10 @@
             return response;
         }
 
-        public async Task<IEnumerable<QuestionDataSet>> ScoringTest1()
+        public async Task<IEnumerable<QuestionDataSet>> ScoringTest1(int testId)
         {
-            IEnumerable<Question> datas = await _uow.QuestionRepository.Get(filter: q => q.TestId == 4);
+            IEnumerable<Question> datas = await _uow.QuestionRepository.Get(filter: q => q.TestId == testId,
+                    orderBy: q => q.OrderBy(q => q.Ordinal));
             return datas.Select(t => _mapper.Map<QuestionDataSet>(t));
         }
     }

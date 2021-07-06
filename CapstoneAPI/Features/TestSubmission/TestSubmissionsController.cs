@@ -54,11 +54,11 @@ namespace CapstoneAPI.Features.TestSubmission
             return Ok(await _service.GetDetailTestSubmissionByUser(id, token));
         }
 
-        //[HttpGet]
-        //public async Task<ActionResult<IEnumerable<QuestionDataSet>>> Get()
-        //{
-        //    IEnumerable<QuestionDataSet> result = await _service.ScoringTest1();
-        //    return Ok(result);
-        //}
+        [HttpGet("result")]
+        public async Task<ActionResult<IEnumerable<QuestionDataSet>>> Get([FromQuery] int id)
+        {
+            IEnumerable<QuestionDataSet> result = await _service.ScoringTest1(id);
+            return Ok(result);
+        }
     }
 }

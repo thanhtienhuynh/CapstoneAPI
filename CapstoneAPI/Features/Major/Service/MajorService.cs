@@ -594,7 +594,9 @@ namespace CapstoneAPI.Features.Major.Service
                 if (updateMajor.SubjectGroup != null)
                 {
                     Models.MajorSubjectGroup marjorSubjectGroup = await _uow.MajorSubjectGroupRepository
-                        .GetFirst(filter: m => m.MajorId == updateMajor.Id && m.SubjectGroupId == updateMajor.SubjectGroup.Id);
+                        .GetFirst(filter: m => m.MajorId == updateMajor.Id 
+                        && m.SubjectGroupId == updateMajor.SubjectGroup.Id
+                        && m.Status == Consts.STATUS_ACTIVE);
 
                     if (marjorSubjectGroup != null)
                     {
@@ -639,7 +641,8 @@ namespace CapstoneAPI.Features.Major.Service
                         Models.MajorSubjectGroup majorSubjectGroup = new Models.MajorSubjectGroup()
                         {
                             MajorId = updateMajor.Id,
-                            SubjectGroupId = updateMajor.SubjectGroup.Id
+                            SubjectGroupId = updateMajor.SubjectGroup.Id,
+                            Status = Consts.STATUS_ACTIVE
                         };
 
                         _uow.MajorSubjectGroupRepository.Insert(majorSubjectGroup);

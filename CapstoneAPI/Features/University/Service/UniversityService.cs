@@ -694,8 +694,7 @@ namespace CapstoneAPI.Features.University.Service
                 }
 
                 IEnumerable<Models.MajorDetail> majorDetails = await _uow.MajorDetailRepository
-                .Get(filter: filter, orderBy: order, includeProperties: "Major,Season,AdmissionCriterion,TrainingProgram," +
-                "Major.MajorSubjectGroups");
+                .Get(filter: filter, orderBy: order, includeProperties: "Major,Season,AdmissionCriterion,TrainingProgram");
 
                 IEnumerable<IGrouping<Models.Major, Models.MajorDetail>> groupbyMajor = majorDetails.GroupBy(m => m.Major);
                 foreach (IGrouping<Models.Major, Models.MajorDetail> item in groupbyMajor)
@@ -1189,8 +1188,9 @@ namespace CapstoneAPI.Features.University.Service
                     }
                     foreach (UniSubjectGroupDataSet item in uniSubAdmission.SubjectGroups)
                     {
-                        Models.MajorSubjectGroup majorSubjectGroup = await _uow.MajorSubjectGroupRepository.GetFirst(m => m.Id == item.MajorSubjectGroupId &&
-                                              m.MajorId == addingMajorUniversityParam.MajorId);
+                        Models.MajorSubjectGroup majorSubjectGroup = await _uow.MajorSubjectGroupRepository
+                                            .GetFirst(m => m.Id == item.MajorSubjectGroupId && m.Status == Consts.STATUS_ACTIVE
+                                                    && m.MajorId == addingMajorUniversityParam.MajorId);
                         if (majorSubjectGroup == null)
                         {
                             response.Succeeded = false;
@@ -1390,7 +1390,9 @@ namespace CapstoneAPI.Features.University.Service
                                     response.Errors.Add("Điểm chuẩn không hợp lệ");
                                     return response;
                                 }
-                                if (await _uow.MajorSubjectGroupRepository.GetById(entryMarkParam.MajorSubjectGroupId) == null)
+
+                                Models.MajorSubjectGroup majorSubjectGroup = await _uow.MajorSubjectGroupRepository.GetById(entryMarkParam.MajorSubjectGroupId);
+                                if (majorSubjectGroup == null || majorSubjectGroup.Status != Consts.STATUS_ACTIVE)
                                 {
                                     response.Succeeded = false;
                                     if (response.Errors == null)

@@ -38,7 +38,7 @@ namespace CapstoneAPI.Features.Rank.Service
                 List<Models.User> updateUsers = (await _uow.UserRepository
                     .Get(filter: u => u.Transcripts.Where(t => t.IsUpdate).Any(), includeProperties: "FollowingDetails.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail," +
                                                                             "FollowingDetails.EntryMark.MajorSubjectGroup.SubjectGroup.SubjectGroupDetails," +
-                                                                            "Transcripts.TranscriptType,FollowingDetails.Rank")).ToList();
+                                                                            "FollowingDetails.Rank")).ToList();
 
                 foreach (Models.User user in updateUsers.ToList())
                 {
@@ -47,7 +47,8 @@ namespace CapstoneAPI.Features.Rank.Service
                         updateUsers.Remove(user);
                         continue;
                     }
-
+                    user.Transcripts = (await _uow.TranscriptRepository.Get(t => t.Status == Consts.STATUS_ACTIVE
+                            && t.UserId == user.Id, includeProperties: "TranscriptType")).ToList();
                     foreach (Models.FollowingDetail followingDetail in user.FollowingDetails)
                     {
                         if (followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.SeasonId != currentSeason.Id)
@@ -73,7 +74,6 @@ namespace CapstoneAPI.Features.Rank.Service
                             transcript.DateRecord = DateTime.UtcNow;
                         }
                         _uow.TranscriptRepository.Update(transcript);
-
                     }
                 }
 
@@ -210,7 +210,7 @@ namespace CapstoneAPI.Features.Rank.Service
 
                     if (subjectGroupDetail.SubjectId != null)
                     {
-                        Models.Transcript transcript = group.FirstOrDefault(m => m.SubjectId == subjectGroupDetail.SubjectId);
+                        Models.Transcript transcript = group.FirstOrDefault(m => m.SubjectId == subjectGroupDetail.SubjectId && m.Status == Consts.STATUS_ACTIVE);
                         if (transcript == null || transcript.Mark < 0)
                         {
                             totalMark += 0;
@@ -232,7 +232,7 @@ namespace CapstoneAPI.Features.Rank.Service
 
                         foreach (Models.Subject subject in subjects)
                         {
-                            Models.Transcript transcript = group.FirstOrDefault(m => m.SubjectId == subject.Id);
+                            Models.Transcript transcript = group.FirstOrDefault(m => m.SubjectId == subject.Id && m.Status == Consts.STATUS_ACTIVE);
                             if (transcript == null || transcript.Mark < 0)
                             {
                                 totalSpecialGroupMark += 0;

@@ -130,13 +130,29 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                 }
 
 
-                EntryMark entryMark = await _uow.EntryMarkRepository.GetFirst(filter: e => e.SubAdmissionCriterion.AdmissionMethodId == 1
-                                                                && (e.SubAdmissionCriterion.ProvinceId == followingDetailParam.SubjectGroupParam.ProvinceId || e.SubAdmissionCriterion.ProvinceId == null)
-                                                                && (e.SubAdmissionCriterion.Gender == followingDetailParam.SubjectGroupParam.Gender || e.SubAdmissionCriterion.Gender == null)
+                IEnumerable<EntryMark> entryMarks = await _uow.EntryMarkRepository.Get(filter: e => e.SubAdmissionCriterion.AdmissionMethodId == 1
                                                                 && e.SubAdmissionCriterion.AdmissionCriterion.MajorDetailId == majorDetail.Id
                                                                 && e.MajorSubjectGroup.MajorId == followingDetailParam.MajorId
                                                                 && e.MajorSubjectGroup.SubjectGroupId == followingDetailParam.SubjectGroupId
                                                                 && e.Status == Consts.STATUS_ACTIVE);
+                EntryMark entryMark = null;
+
+                if (entryMarks.Where(e => e.SubAdmissionCriterion.Gender == followingDetailParam.SubjectGroupParam.Gender).Any())
+                {
+                    entryMarks = entryMarks.Where(e => e.SubAdmissionCriterion.Gender == followingDetailParam.SubjectGroupParam.Gender);
+                } else
+                {
+                    entryMarks = entryMarks.Where(e => e.SubAdmissionCriterion.Gender == null);
+                }
+
+                if (entryMarks.Where(e => e.SubAdmissionCriterion.ProvinceId == followingDetailParam.SubjectGroupParam.ProvinceId).Any())
+                {
+                    entryMark = entryMarks.FirstOrDefault(e => e.SubAdmissionCriterion.ProvinceId == followingDetailParam.SubjectGroupParam.ProvinceId);
+                } else
+                {
+                    entryMark = entryMarks.FirstOrDefault(e => e.SubAdmissionCriterion.ProvinceId == null);
+                }
+
                 if (entryMark == null)
                 {
                     response.Succeeded = false;
