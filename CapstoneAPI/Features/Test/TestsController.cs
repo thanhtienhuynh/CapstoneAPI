@@ -31,12 +31,22 @@ namespace CapstoneAPI.Features.Test
             return Ok(await _service.GetFilteredTests(testParam));
         }
 
-        [HttpGet("test-by-subject")]
+        [HttpGet("user-by-subject")]
         public async Task<ActionResult<PagedResponse<List<TestPagingDataSet>>>> GetTestsByFilter([FromQuery] PaginationFilter filter,
             [FromQuery] TestFilter testFilter)
         {
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
             PagedResponse<List<TestPagingDataSet>> tests = await _service.GetTestsByFilter(validFilter, testFilter);
+            if (tests == null)
+                return NoContent();
+            return Ok(tests);
+        }
+        [HttpGet("admin-by-subject")]
+        public async Task<ActionResult<PagedResponse<List<TestAdminDataSet>>>> AdminGetTestsByFilter([FromQuery] PaginationFilter filter,
+            [FromQuery] TestFilter testFilter)
+        {
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+            PagedResponse<List<TestAdminDataSet>> tests = await _service.AdminGetTestsByFilter(validFilter, testFilter);
             if (tests == null)
                 return NoContent();
             return Ok(tests);

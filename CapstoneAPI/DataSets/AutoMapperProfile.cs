@@ -85,7 +85,7 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.Major, MajorDetailDataSet>();
 
             CreateMap<Models.Career, CareerDataSet>();
-
+            CreateMap<Models.Test, TestAdminDataSet>();
         }
     }
 }

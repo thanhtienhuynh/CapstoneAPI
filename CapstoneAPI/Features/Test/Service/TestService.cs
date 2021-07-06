@@ -845,5 +845,80 @@
 
             return response;
         }
+
+        public async Task<PagedResponse<List<TestAdminDataSet>>> AdminGetTestsByFilter(PaginationFilter validFilter, TestFilter testFilter)
+        {
+            PagedResponse<List<TestAdminDataSet>> result = new PagedResponse<List<TestAdminDataSet>>();
+
+            try
+            {
+                Expression<Func<Models.Test, bool>> filter = null;
+
+                filter = t => (string.IsNullOrEmpty(testFilter.Name) || t.Name.Contains(testFilter.Name))
+                && (testFilter.Year == null || testFilter.Year == t.Year)
+                && (testFilter.SubjectId == null || testFilter.SubjectId == t.SubjectId)
+                && (testFilter.TestTypeId == null || testFilter.TestTypeId == t.TestTypeId)
+                && (t.Status == Consts.STATUS_ACTIVE);
+
+                Func<IQueryable<Models.Test>, IOrderedQueryable<Models.Test>> order = null;
+                switch (testFilter.Order)
+                {
+                    case 0:
+                        order = order => order.OrderByDescending(a => a.TestTypeId);
+                        break;
+                    case 1:
+                        order = order => order.OrderBy(a => a.TestTypeId);
+                        break;
+                    case 2:
+                        order = order => order.OrderBy(a => a.Name);
+                        break;
+                    case 3:
+                        order = order => order.OrderByDescending(a => a.Name);
+                        break;
+                    case 4:
+                        order = order => order.OrderBy(a => a.Year);
+                        break;
+                    case 5:
+                        order = order => order.OrderByDescending(a => a.Year);
+                        break;
+                }
+
+
+                IEnumerable<Models.Test> tests = await _uow.TestRepository
+                    .Get(filter: filter, orderBy: order, includeProperties: "Subject,TestType",
+                    first: validFilter.PageSize, offset: (validFilter.PageNumber - 1) * validFilter.PageSize);
+
+                if (tests.Count() == 0)
+                {
+                    result.Succeeded = true;
+                    result.Message = "Không có bài thi nào!";
+                }
+                else
+                {
+                    var testPagingDataSets = new List<TestAdminDataSet>();
+
+                    foreach (var test in tests)
+                    {
+                        var testPagingDataSet = _mapper.Map<TestAdminDataSet>(test);
+                        testPagingDataSet.TestTypeName = test.TestType.Name;
+                        testPagingDataSet.SubjectName = test.Subject.Name;
+                        testPagingDataSets.Add(testPagingDataSet);
+                    }
+                    var totalRecords = _uow.TestRepository.Count(filter);
+                    result = PaginationHelper.CreatePagedReponse(testPagingDataSets, validFilter, totalRecords);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                result.Succeeded = false;
+                if (result.Errors == null)
+                {
+                    result.Errors = new List<string>();
+                }
+                result.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+            return result;
+        }
     }
 }
