@@ -27,9 +27,11 @@ namespace CapstoneAPI.Features.University.DataSet
     {
         public int Id { get; set; }
         public string Name { get; set; }
-        public int? NumberOfCaring { get; set; }
+        public int NumberOfCaring { get; set; }
         public FollowingDetailDataSet FollowingDetail { get; set; }
         public int Rank { get; set; }
+        public double? Ratio { get; set; }
+        public int DividedClass { get; set; }
         public List<SeasonDataSet> SeasonDataSets { get; set; }
     }
 

@@ -861,8 +861,7 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
                 int userId = Int32.Parse(userIdString);
 
                 Models.User user = await _uow.UserRepository.GetFirst(filter: u => u.Id == userId && u.IsActive == true);
-                user.Transcripts = (await _uow.TranscriptRepository.Get(t => t.Status == Consts.STATUS_ACTIVE
-                            && t.UserId == user.Id, includeProperties: "TranscriptType")).ToList();
+
                 if (user == null)
                 {
                     response.Succeeded = false;
@@ -874,64 +873,13 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
                     return response;
                 }
 
-                if (!user.Transcripts.Any() || user.ProvinceId == null || user.Gender == null)
+                userSuggestionSubjectGroup = new UserSuggestionInformation()
                 {
-                    response.Succeeded = true;
-                    return response;
-                }
+                    TranscriptDetails = await _uow.TranscriptRepository.GetUserTranscripts(userId),
+                    Gender = user.Gender,
+                    ProvinceId = user.ProvinceId
+                };
 
-                var transcriptGroups = user.Transcripts.GroupBy(s => s.TranscriptType).OrderByDescending(t => t.Key.Priority);
-                foreach (var group in transcriptGroups)
-                {
-                    List<MarkParam> marks = new List<MarkParam>();
-                    foreach (Models.Transcript transcript in group)
-                    {
-                        marks.Add(new MarkParam()
-                        {
-                            Mark = transcript.Mark,
-                            SubjectId = transcript.SubjectId
-                        });
-                    }
-                    SubjectGroupParam param = new SubjectGroupParam()
-                    {
-                        Gender = (int)user.Gender,
-                        ProvinceId = (int)user.ProvinceId,
-                        TranscriptTypeId = group.Key.Id,
-                        Marks = marks
-                    };
-                    Response<IEnumerable<SubjectGroupDataSet>> subjectGroupReponse = await GetCaculatedSubjectGroup(param);
-                    if (!subjectGroupReponse.Succeeded)
-                    {
-                        continue;
-                    }
-                    if (!subjectGroupReponse.Data.Any())
-                    {
-                        continue;
-                    }
-                    bool isValid = false;
-                    foreach (var subjectGroup in subjectGroupReponse.Data)
-                    {
-                        if (subjectGroup.SuggestedMajors.Any())
-                        {
-                            isValid = true;
-                            break;
-                        }
-                    }
-                    if (!isValid)
-                    {
-                        continue;
-                    }
-                    userSuggestionSubjectGroup = new UserSuggestionInformation()
-                    {
-                        TranscriptTypeId = group.Key.Id,
-                        TranscriptTypeName = group.Key.Name,
-                        SubjectGroupDataSets = subjectGroupReponse.Data,
-                        TranscriptDetails = await _uow.TranscriptRepository.GetUserTranscripts(userId),
-                        Gender = user.Gender,
-                        ProvinceId = user.ProvinceId
-                    };
-                    break;
-                }
                 response.Succeeded = true;
                 response.Data = userSuggestionSubjectGroup;
             }

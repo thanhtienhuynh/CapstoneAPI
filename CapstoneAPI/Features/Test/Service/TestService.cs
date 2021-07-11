@@ -37,11 +37,35 @@
             _mapper = mapper;
         }
 
-        public async Task<Response<List<SubjectBasedTestDataSet>>> GetFilteredTests(TestParam testParam)
+        public async Task<Response<List<SubjectBasedTestDataSet>>> GetFilteredTests(string token, TestParam testParam)
         {
             Response<List<SubjectBasedTestDataSet>> response = new Response<List<SubjectBasedTestDataSet>>();
             try
             {
+                if (token == null || token.Trim().Length == 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Bạn chưa đăng nhập!");
+                    return response;
+                }
+
+                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
+                if (string.IsNullOrEmpty(userIdString) || Int32.TryParse(userIdString, out int userId))
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                }
+
+                userId = Int32.Parse(userIdString);
+
                 List<SubjectBasedTestDataSet> testsReponse = new List<SubjectBasedTestDataSet>();
                 List<int> subjectIds = new List<int>();
                 IEnumerable<SubjectGroupDetail> subjectGroupDetails = null;
@@ -76,19 +100,36 @@
                 }
                 if (subjectIds.Any())
                 {
+
                     foreach (int subjectId in subjectIds)
                     {
-                        IEnumerable<Test> clasifiedTests = await _uow.TestRepository
-                                                    .Get(filter: test => test.Status == Consts.STATUS_ACTIVE
+                        Transcript transcript = await _uow.TranscriptRepository.GetFirst(
+                        filter: t => t.UserId == userId && t.SubjectId == subjectId && t.Status == Consts.STATUS_ACTIVE
+                                && t.TranscriptTypeId == 3);
+                        double? daysRemaining = null;
+                        double? userTranscript = null;
+                        if (transcript != null && transcript.DateRecord != null)
+                        {
+                            userTranscript = transcript.Mark;
+                            //if (DateTime.Compare(transcript.DateRecord.Date.AddDays(30), DateTime.UtcNow.Date) > 0)
+                            //{
+                            //    daysRemaining = transcript.DateRecord.Date.AddDays(30).Subtract(DateTime.UtcNow.Date).TotalDays;
+                            //}
+                        }
+
+                        Test clasifiedTest = await _uow.TestRepository
+                                                    .GetFirst(filter: test => test.Status == Consts.STATUS_ACTIVE
                                                         && test.IsSuggestedTest
                                                         && test.SubjectId == subjectId);
-                        if (clasifiedTests.Any())
+                        if (clasifiedTest != null)
                         {
                             testsReponse.Add(new SubjectBasedTestDataSet()
-                            {
-                                SubjectId = subjectId,
-                                Tests = clasifiedTests.Select(t => _mapper.Map<TestDataSet>(t)).ToList(),
-                                UniversityId = null
+                                {
+                                    SubjectId = subjectId,
+                                    Test =_mapper.Map<TestDataSet>(clasifiedTest),
+                                    UniversityId = null,
+                                    DaysRemaining = daysRemaining,
+                                    LastTranscript = userTranscript
                             }
                             );
                         }

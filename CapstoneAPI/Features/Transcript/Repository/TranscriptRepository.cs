@@ -47,7 +47,7 @@ namespace CapstoneAPI.Features.Transcript.Repository
                 userTranscriptDataSet.TranscriptDetails = userTranscriptDetailDataSets;
                 result.Add(userTranscriptDataSet);
             }
-            return result;
+            return result.OrderByDescending(t => t.Priority);
         }
     }
 }

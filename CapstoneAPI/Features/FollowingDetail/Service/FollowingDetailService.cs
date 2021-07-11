@@ -71,47 +71,6 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
 
                 int userId = Int32.Parse(userIdString);
 
-                if (followingDetailParam.SubjectGroupParam != null && followingDetailParam.SubjectGroupParam.TranscriptTypeId != 3)
-                {
-                    foreach (MarkParam markParam in followingDetailParam.SubjectGroupParam.Marks)
-                    {
-                        int transcriptTypeId = followingDetailParam.SubjectGroupParam.TranscriptTypeId;
-                        IEnumerable<Models.Transcript> transcripts = await _uow.TranscriptRepository
-                                                .Get(filter: t => t.SubjectId == markParam.SubjectId
-                                                            && t.UserId == userId
-                                                            && t.TranscriptTypeId == transcriptTypeId && t.Status == Consts.STATUS_ACTIVE);
-                        
-                        _uow.TranscriptRepository.Insert(new Models.Transcript()
-                        {
-                            Mark = markParam.Mark,
-                            SubjectId = markParam.SubjectId,
-                            UserId = userId,
-                            TranscriptTypeId = followingDetailParam.SubjectGroupParam.TranscriptTypeId,
-                            DateRecord = DateTime.UtcNow,
-                            IsUpdate = true,
-                            Status = Consts.STATUS_ACTIVE
-                        });
-                        
-                        if (transcripts.Any())
-                        {
-                            foreach (Models.Transcript transcript in transcripts)
-                            {
-                                transcript.Status = Consts.STATUS_INACTIVE;
-                                transcript.DateRecord = DateTime.UtcNow;
-                            }
-                            _uow.TranscriptRepository.UpdateRange(transcripts);
-                        }
-                    }
-
-                    Models.User user = await _uow.UserRepository.GetById(userId);
-                    if (user.Gender != followingDetailParam.SubjectGroupParam.Gender || user.ProvinceId != followingDetailParam.SubjectGroupParam.ProvinceId)
-                    {
-                        user.Gender = followingDetailParam.SubjectGroupParam.Gender;
-                        user.ProvinceId = followingDetailParam.SubjectGroupParam.ProvinceId;
-                        _uow.UserRepository.Update(user);
-                    }
-                }
-
                 MajorDetail majorDetail = await _uow.MajorDetailRepository
                                             .GetFirst(filter: m => m.MajorId == followingDetailParam.MajorId
                                                     && m.TrainingProgramId == followingDetailParam.TrainingProgramId
@@ -134,7 +93,8 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                                                                 && e.SubAdmissionCriterion.AdmissionCriterion.MajorDetailId == majorDetail.Id
                                                                 && e.MajorSubjectGroup.MajorId == followingDetailParam.MajorId
                                                                 && e.MajorSubjectGroup.SubjectGroupId == followingDetailParam.SubjectGroupId
-                                                                && e.Status == Consts.STATUS_ACTIVE);
+                                                                && e.Status == Consts.STATUS_ACTIVE,
+                                                                includeProperties: "SubAdmissionCriterion");
                 EntryMark entryMark = null;
 
                 if (entryMarks.Where(e => e.SubAdmissionCriterion.Gender == followingDetailParam.SubjectGroupParam.Gender).Any())

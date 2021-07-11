@@ -128,10 +128,10 @@ namespace CapstoneAPI.Features.University.Service
                         }
 
                         List<SubAdmissionCriterion> currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == universityParam.Gender || a.Gender == null)
+                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && a.Quantity != 0 && (a.Gender == universityParam.Gender || a.Gender == null)
                              && (a.ProvinceId == universityParam.ProvinceId || a.ProvinceId == null)).ToList();
                         List<SubAdmissionCriterion> previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == universityParam.Gender || a.Gender == null)
+                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && a.Quantity != 0 && (a.Gender == universityParam.Gender || a.Gender == null)
                              && (a.ProvinceId == universityParam.ProvinceId || a.ProvinceId == null)).ToList();
 
                         if (!currentSubAdmissionCriterias.Any() || !previousSubAdmissionCriterias.Any())
@@ -182,8 +182,6 @@ namespace CapstoneAPI.Features.University.Service
                         seasonDataSets.Add(previousSeasonDataSet);
                         seasonDataSets.Add(currentSeasonDataSet);
                         trainingProgramDataSet.SeasonDataSets = seasonDataSets;
-                        trainingProgramDataSet.NumberOfCaring = (await _uow.FollowingDetailRepository
-                            .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE)).Count();
                         if (userId > 0)
                         {
                             trainingProgramDataSet.FollowingDetail = _mapper.Map<FollowingDetailDataSet>(await _uow.FollowingDetailRepository
@@ -191,13 +189,72 @@ namespace CapstoneAPI.Features.University.Service
                                                                                         && f.Status == Consts.STATUS_ACTIVE
                                                                                         && f.EntryMarkId == currentEntryMark.Id));
                         }
+                        trainingProgramDataSet.NumberOfCaring = (await _uow.FollowingDetailRepository.Get(
+                                filter: f => currentEntryMarkIds.Contains(f.EntryMarkId)
+                                && f.Status == Consts.STATUS_ACTIVE)).Count();
+                        if (trainingProgramDataSet.FollowingDetail == null)
+                        {
+                            trainingProgramDataSet.NumberOfCaring += 1; 
+                        }
+
                         IEnumerable<Models.Rank> ranks = (await _uow.FollowingDetailRepository
                                                                 .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE,
                                                                     includeProperties: "Rank"))
                                                                 .Select(u => u.Rank).Where(r => r != null);
                         trainingProgramDataSet.Rank = _uow.RankRepository.CalculateRank(universityParam.TranscriptTypeId, universityParam.TotalMark, ranks);
-
+                        double? ration = null;
+                        
+                        if (currentSeasonDataSet.NumberOfStudents != null)
+                        {
+                            ration = Math.Round(trainingProgramDataSet.Rank / (double)currentSeasonDataSet.NumberOfStudents, 3);
+                        }
+                        trainingProgramDataSet.Ratio = ration;
+                        if (ration == null || ration <= 1)
+                        {
+                            trainingProgramDataSet.DividedClass = 1;
+                        } else if (ration <= 1.5)
+                        {
+                            trainingProgramDataSet.DividedClass = 2;
+                        } else
+                        {
+                            trainingProgramDataSet.DividedClass = 3;
+                        }
                         trainingProgramDataSets.Add(trainingProgramDataSet);
+                        //TrainingProgramDataSet new1 = new TrainingProgramDataSet()
+                        //{
+                        //    DividedClass = 2,
+                        //    FollowingDetail = trainingProgramDataSet.FollowingDetail,
+                        //    Name = trainingProgramDataSet.Name,
+                        //    NumberOfCaring = trainingProgramDataSet.NumberOfCaring,
+                        //    Rank = trainingProgramDataSet.Rank,
+                        //    Ratio = trainingProgramDataSet.Ratio,
+                        //    SeasonDataSets = trainingProgramDataSet.SeasonDataSets
+                        //};
+                        //trainingProgramDataSets.Add(new1);
+
+                        //TrainingProgramDataSet new2 = new TrainingProgramDataSet()
+                        //{
+                        //    DividedClass = 3,
+                        //    FollowingDetail = trainingProgramDataSet.FollowingDetail,
+                        //    Name = trainingProgramDataSet.Name,
+                        //    NumberOfCaring = trainingProgramDataSet.NumberOfCaring,
+                        //    Rank = trainingProgramDataSet.Rank,
+                        //    Ratio = trainingProgramDataSet.Ratio,
+                        //    SeasonDataSets = trainingProgramDataSet.SeasonDataSets
+                        //};
+                        //trainingProgramDataSets.Add(new2);
+
+                        //TrainingProgramDataSet new3 = new TrainingProgramDataSet()
+                        //{
+                        //    DividedClass = 3,
+                        //    FollowingDetail = trainingProgramDataSet.FollowingDetail,
+                        //    Name = trainingProgramDataSet.Name,
+                        //    NumberOfCaring = trainingProgramDataSet.NumberOfCaring,
+                        //    Rank = trainingProgramDataSet.Rank,
+                        //    Ratio = trainingProgramDataSet.Ratio,
+                        //    SeasonDataSets = trainingProgramDataSet.SeasonDataSets
+                        //};
+                        //trainingProgramDataSets.Add(new3);
                     }
                     if (trainingProgramDataSets.Any())
                     {
@@ -318,10 +375,10 @@ namespace CapstoneAPI.Features.University.Service
 
                         List<SubAdmissionCriterion> currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
                             .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == universityParam.Gender || a.Gender == null)
-                             && (a.ProvinceId == universityParam.ProvinceId || a.ProvinceId == null)).ToList();
+                             && a.Quantity != 0 && (a.ProvinceId == universityParam.ProvinceId || a.ProvinceId == null)).ToList();
                         List<SubAdmissionCriterion> previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
                             .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == universityParam.Gender || a.Gender == null)
-                             && (a.ProvinceId == universityParam.ProvinceId || a.ProvinceId == null)).ToList();
+                             && a.Quantity != 0 && (a.ProvinceId == universityParam.ProvinceId || a.ProvinceId == null)).ToList();
 
                         if (!currentSubAdmissionCriterias.Any() || !previousSubAdmissionCriterias.Any())
                         {
@@ -371,19 +428,43 @@ namespace CapstoneAPI.Features.University.Service
                         seasonDataSets.Add(previousSeasonDataSet);
                         seasonDataSets.Add(currentSeasonDataSet);
                         trainingProgramDataSet.SeasonDataSets = seasonDataSets;
-                        trainingProgramDataSet.NumberOfCaring = (await _uow.FollowingDetailRepository
-                            .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE)).Count();
                         if (userId > 0)
                         {
                             trainingProgramDataSet.FollowingDetail = _mapper.Map<FollowingDetailDataSet>(await _uow.FollowingDetailRepository.GetFirst(filter: f => f.UserId == userId
                                                                                         && f.Status == Consts.STATUS_ACTIVE
                                                                                         && f.EntryMarkId == currentEntryMark.Id));
                         }
+                        trainingProgramDataSet.NumberOfCaring = (await _uow.FollowingDetailRepository.Get(
+                                filter: f => currentEntryMarkIds.Contains(f.EntryMarkId)
+                                && f.Status == Consts.STATUS_ACTIVE)).Count();
+                        if (trainingProgramDataSet.FollowingDetail == null)
+                        {
+                            trainingProgramDataSet.NumberOfCaring += 1;
+                        }
                         IEnumerable<Models.Rank> ranks = (await _uow.FollowingDetailRepository
                                                                 .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE,
                                                                     includeProperties: "Rank"))
                                                                 .Select(u => u.Rank).Where(r => r != null);
                         trainingProgramDataSet.Rank = _uow.RankRepository.CalculateRank(universityParam.TranscriptTypeId, totalMark, ranks);
+                        double? ration = null;
+
+                        if (currentSeasonDataSet.NumberOfStudents != null)
+                        {
+                            ration = Math.Round(trainingProgramDataSet.Rank / (double)currentSeasonDataSet.NumberOfStudents, 3);
+                        }
+                        trainingProgramDataSet.Ratio = ration;
+                        if (ration == null || ration <= 1)
+                        {
+                            trainingProgramDataSet.DividedClass = 1;
+                        }
+                        else if (ration <= 1.5)
+                        {
+                            trainingProgramDataSet.DividedClass = 2;
+                        }
+                        else
+                        {
+                            trainingProgramDataSet.DividedClass = 3;
+                        }
 
                         trainingProgramDataSets.Add(trainingProgramDataSet);
                     }

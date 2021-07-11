@@ -18,11 +18,8 @@ namespace CapstoneAPI.Features.SubjectGroup.DataSet
 
     public class UserSuggestionInformation
     {
-        public int TranscriptTypeId { get; set; }
-        public string TranscriptTypeName { get; set; }
         public int? ProvinceId { get; set; }
         public int? Gender { get; set; }
-        public IEnumerable<SubjectGroupDataSet> SubjectGroupDataSets { get; set; }
         public IEnumerable<UserTranscriptTypeDataSet> TranscriptDetails { get; set; }
     }
 }

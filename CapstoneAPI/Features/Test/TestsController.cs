@@ -28,7 +28,8 @@ namespace CapstoneAPI.Features.Test
         [HttpGet("recommendation")]
         public async Task<ActionResult<Response<List<SubjectBasedTestDataSet>>>> GetFilteredTests([FromQuery]TestParam testParam )
         {
-            return Ok(await _service.GetFilteredTests(testParam));
+            string token = Request.Headers["Authorization"];
+            return Ok(await _service.GetFilteredTests(token, testParam));
         }
 
         [HttpGet("user-by-subject")]
