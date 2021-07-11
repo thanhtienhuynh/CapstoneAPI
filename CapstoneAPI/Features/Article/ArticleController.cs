@@ -111,7 +111,7 @@ namespace CapstoneAPI.Features.Article
         public async Task<ActionResult<Response<ApprovingArticleDataSet>>> ApprovingArticle([FromBody] ApprovingArticleDataSet approvingArticleDataSet)
         {
             string token = Request.Headers["Authorization"];
-            Response<ApprovingArticleDataSet> result = await _service.ApprovingArticle(approvingArticleDataSet, token);
+            Response<ApprovingArticleDataSet> result = await _service.UpdateStatusArticle(approvingArticleDataSet, token);
             if (result == null)
                 return NoContent();
             return Ok(result);
