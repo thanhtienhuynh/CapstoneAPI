@@ -298,9 +298,28 @@ namespace CapstoneAPI.Features.Article.Service
                         if (response.Errors == null)
                             response.Errors = new List<string>();
                         response.Errors.Add("Không thể tìm thấy tin tức để cập nhật!");
+                        return response;
                     }
                     else
                     {
+                        //check status
+                        if(articleToUpdate.Status != approvingArticleDataSet.Status)
+                        {
+                            if(!((articleToUpdate.Status == 0 && approvingArticleDataSet.Status == 1)
+                                || (articleToUpdate.Status == 0 && approvingArticleDataSet.Status == 2)
+                                || (articleToUpdate.Status == 1 && approvingArticleDataSet.Status == 2)
+                                || (articleToUpdate.Status == 1 && approvingArticleDataSet.Status == 3)
+                                || (articleToUpdate.Status == 3 && approvingArticleDataSet.Status == 5)
+                                || (articleToUpdate.Status == 5 && approvingArticleDataSet.Status == 1)
+                                || (articleToUpdate.Status == 4 && approvingArticleDataSet.Status == 3)
+                                || (articleToUpdate.Status == 3 && approvingArticleDataSet.Status == 4)))
+                            {
+                                if (response.Errors == null)
+                                    response.Errors = new List<string>();
+                                response.Errors.Add("Trạng thái bài viết cập nhật không thành công!");
+                                return response;
+                            }
+                        }
                         //FIND USER TO SEND NOTI
                         oldStatus = articleToUpdate.Status;
 
@@ -312,6 +331,15 @@ namespace CapstoneAPI.Features.Article.Service
                         _uow.UniversityArticleRepository.DeleteComposite(filter: uniArt => uniArt.ArticleId == approvingArticleDataSet.Id);
                         foreach (var item in approvingArticleDataSet.University)
                         {
+                            Models.University university = await _uow.UniversityRepository.GetById(item);
+                            if(university == null)
+                            {
+                                //if (response.Errors == null)
+                                //    response.Errors = new List<string>();
+                                //response.Errors.Add("Danh sách trường liên quan không hợp lệ!");
+                                //return response;
+                                continue;
+                            }
                             Models.UniversityArticle universityArticle = new Models.UniversityArticle()
                             {
                                 UniversityId = item,
@@ -324,6 +352,15 @@ namespace CapstoneAPI.Features.Article.Service
 
                         foreach (var item in approvingArticleDataSet.Major)
                         {
+                            Models.Major major = await _uow.MajorRepository.GetById(item);
+                            if (major == null)
+                            {
+                                //if (response.Errors == null)
+                                //    response.Errors = new List<string>();
+                                //response.Errors.Add("Danh sách trường liên quan không hợp lệ!");
+                                //return response;
+                                continue;
+                            }
                             Models.MajorArticle majorArticle = new Models.MajorArticle()
                             {
                                 MajorId = item,
@@ -996,7 +1033,7 @@ namespace CapstoneAPI.Features.Article.Service
         public async Task<Response<AdminArticleDetailDataSet>> UpdateArticle(UpdateArticleParam updateArticleParam, string token)
         {
             Response<AdminArticleDetailDataSet> response = new Response<AdminArticleDetailDataSet>();
-            // status 0 hoặc 1 mới được update
+            // status 0 hoặc 1 hoặc 5 mới được update
             // chỉ được update nội dung
             //Update Block
             using var tran = _uow.GetTransaction();
@@ -1053,7 +1090,7 @@ namespace CapstoneAPI.Features.Article.Service
                     response.Errors.Add("Bài viết không tồn tại!");
                     return response;
                 }
-                if (article.Status != 0 && article.Status != 1)
+                if (article.Status != 0 && article.Status != 1 && article.Status != 5)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)

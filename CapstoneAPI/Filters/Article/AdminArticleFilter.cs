@@ -21,6 +21,7 @@ namespace CapstoneAPI.Filters.Article
          * 2: Rejected
          * 3: Published
          * 4: Expired
+         * 5: (Considered)
          */
         public int Order { get; set; }
         /*
