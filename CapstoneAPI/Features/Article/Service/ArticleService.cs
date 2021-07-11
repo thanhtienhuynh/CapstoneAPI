@@ -263,7 +263,7 @@ namespace CapstoneAPI.Features.Article.Service
             return result;
         }
 
-        public async Task<Response<ApprovingArticleDataSet>> ApprovingArticle(ApprovingArticleDataSet approvingArticleDataSet, string token)
+        public async Task<Response<ApprovingArticleDataSet>> UpdateStatusArticle(ApprovingArticleDataSet approvingArticleDataSet, string token)
         {
             Response<ApprovingArticleDataSet> response = new Response<ApprovingArticleDataSet>();
             try
@@ -303,9 +303,19 @@ namespace CapstoneAPI.Features.Article.Service
                     else
                     {
                         //check status
-                        if(articleToUpdate.Status != approvingArticleDataSet.Status)
+                        /*
+                         * -1: All
+                         * 0: New
+                         * 1: Approved
+                         * 2: Rejected
+                         * 3: Published
+                         * 4: Expired
+                         * 5: (Considered)
+                         */
+                        if (articleToUpdate.Status != approvingArticleDataSet.Status)
                         {
-                            if(!((articleToUpdate.Status == 0 && approvingArticleDataSet.Status == 1)
+                            if (!((articleToUpdate.Status == 0 && approvingArticleDataSet.Status == 1)
+                                || (articleToUpdate.Status == 2 && approvingArticleDataSet.Status == 0)
                                 || (articleToUpdate.Status == 0 && approvingArticleDataSet.Status == 2)
                                 || (articleToUpdate.Status == 1 && approvingArticleDataSet.Status == 2)
                                 || (articleToUpdate.Status == 1 && approvingArticleDataSet.Status == 3)
@@ -332,7 +342,7 @@ namespace CapstoneAPI.Features.Article.Service
                         foreach (var item in approvingArticleDataSet.University)
                         {
                             Models.University university = await _uow.UniversityRepository.GetById(item);
-                            if(university == null)
+                            if (university == null)
                             {
                                 //if (response.Errors == null)
                                 //    response.Errors = new List<string>();
