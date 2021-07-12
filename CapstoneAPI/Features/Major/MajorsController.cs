@@ -77,6 +77,12 @@ namespace CapstoneAPI.Features.Major
             return Ok(await _service.UpdateMajor(updateMajor));
         }
 
+        [HttpGet("subject-weight/{id}")]
+        public async Task<ActionResult<Response<MajorSubjectWeightDataSet>>> GetMajorSubjectWeightDetail([FromRoute] int id)
+        {
+            return Ok(await _service.GetMajorSubjectWeightDetail(id));
+        }
+
         [HttpGet("student-detail/{id}")]
         public async Task<ActionResult<Response<MajorDetailDataSet>>> GetUniversityInMajor([FromRoute]int id)
         {

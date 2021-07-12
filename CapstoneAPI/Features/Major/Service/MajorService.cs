@@ -1097,5 +1097,97 @@ namespace CapstoneAPI.Features.Major.Service
             }
             return response;
         }
+
+        public async Task<Response<MajorSubjectWeightDataSet>> GetMajorSubjectWeightDetail(int majorId)
+        {
+            Response<MajorSubjectWeightDataSet> response = new Response<MajorSubjectWeightDataSet>();
+
+            try
+            {
+                Models.Major major = await _uow.MajorRepository
+                    .GetFirst(filter: m => m.Id == majorId && m.Status == Consts.STATUS_ACTIVE);
+                if (major == null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Ngành này không tồn tại!");
+                }
+                MajorSubjectWeightDataSet majorDataSet = _mapper.Map<MajorSubjectWeightDataSet>(major);
+
+
+                List<Models.MajorSubjectGroup> majorSubjectGroups =
+                    (await _uow.MajorSubjectGroupRepository.Get(filter: ms => ms.MajorId == majorDataSet.Id && ms.Status == Consts.STATUS_ACTIVE,
+                    includeProperties: "SubjectGroup,SubjectWeights,SubjectWeights.SubjectGroupDetail," +
+                    "SubjectWeights.SubjectGroupDetail.Subject,SubjectWeights.SubjectGroupDetail.SpecialSubjectGroup")).ToList();
+
+                if (majorSubjectGroups != null && majorSubjectGroups.Count() > 0)
+                {
+                    List<SubjectGroupWeightDataSet> subjectGroupWeightDataSets = new List<SubjectGroupWeightDataSet>();
+
+                    foreach (var majorSubjectGroup in majorSubjectGroups)
+                    {
+                        int subjectGroupWeightDataSetId = majorSubjectGroup.SubjectGroup.Id;
+                        string subjectGroupWeightDataSetGroupCode = majorSubjectGroup.SubjectGroup.GroupCode;
+
+                        if (majorSubjectGroup.SubjectWeights != null && majorSubjectGroup.SubjectWeights.Count > 0)
+                        {
+                            List<SubjectWeightDataSet> subjectWeightDataSets = new List<SubjectWeightDataSet>();
+                            SubjectWeightDataSet subjectWeightDataSet = new SubjectWeightDataSet();
+
+                            foreach (var subjectWeight in majorSubjectGroup.SubjectWeights)
+                            {
+                                int id = 0;
+                                int weight = subjectWeight.Weight;
+                                string name = "";
+                                bool isSpecialSubjectGroup = false;
+
+                                if (subjectWeight.SubjectGroupDetail.Subject != null)
+                                {
+                                    id = subjectWeight.SubjectGroupDetail.Subject.Id;
+                                    name = subjectWeight.SubjectGroupDetail.Subject.Name;
+                                }
+                                else if (subjectWeight.SubjectGroupDetail.SpecialSubjectGroup != null)
+                                {
+                                    id = subjectWeight.SubjectGroupDetail.SpecialSubjectGroup.Id;
+                                    name = subjectWeight.SubjectGroupDetail.SpecialSubjectGroup.Name;
+                                    isSpecialSubjectGroup = true;
+                                }
+
+                                subjectWeightDataSets.Add(new SubjectWeightDataSet()
+                                {
+                                    Id = id,
+                                    Weight = weight,
+                                    Name = name,
+                                    IsSpecialSubjectGroup = isSpecialSubjectGroup
+                                });
+                            }
+                            subjectGroupWeightDataSets.Add(new SubjectGroupWeightDataSet()
+                            {
+                                Id = subjectGroupWeightDataSetId,
+                                GroupCode = subjectGroupWeightDataSetGroupCode,
+                                SubjectWeights = subjectWeightDataSets
+                            });
+                        }
+                    }
+                    majorDataSet.SubjectGroups = subjectGroupWeightDataSets;
+                }
+                response.Succeeded = true;
+                response.Data = majorDataSet;
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.Message);
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+            return response;
+        }
     }
 }

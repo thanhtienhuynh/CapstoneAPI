@@ -17,6 +17,7 @@ namespace CapstoneAPI.Features.Major.Service
         Task<PagedResponse<List<NumberUniversityInMajorDataSet>>> GetNumberUniversitiesInMajor(PaginationFilter validFilter, MajorToNumberUniversityFilter majorToUniversityFilter);
         Task<Response<List<MajorSubjectWeightDataSet>>> GetMajorSubjectWeights(string majorName);
         Task<PagedResponse<List<MajorSubjectWeightDataSet>>> GetMajorSubjectWeights(PaginationFilter validFilter, string majorName);
+        Task<Response<MajorSubjectWeightDataSet>> GetMajorSubjectWeightDetail(int majorId);
         Task<Response<CreateMajorSubjectWeightDataSet>> CreateAMajor(CreateMajorSubjectWeightDataSet createMajor);
         Task<Response<UpdateMajorParam>> UpdateMajor(UpdateMajorParam updateMajor);
         Task<Response<UpdateMajorParam2>> UpdateMajor(UpdateMajorParam2 updateMajor);
