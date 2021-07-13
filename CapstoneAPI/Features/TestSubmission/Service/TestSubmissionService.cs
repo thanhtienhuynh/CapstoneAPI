@@ -243,7 +243,7 @@
 
 
                 string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-                if (string.IsNullOrEmpty(userIdString) || Int32.TryParse(userIdString, out int userId))
+                if (string.IsNullOrEmpty(userIdString) || !Int32.TryParse(userIdString, out int userId))
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)

@@ -26,9 +26,5 @@ namespace CapstoneAPI.Features.University.DataSet
     {
         public int SubjectGroupId { get; set; }
         public int MajorId { get; set; }
-        public int TranscriptTypeId { get; set; }
-        public int? ProvinceId { get; set; }
-        public int? Gender { get; set; }
-        public List<MarkParam> Marks { get; set; }
     }
 }

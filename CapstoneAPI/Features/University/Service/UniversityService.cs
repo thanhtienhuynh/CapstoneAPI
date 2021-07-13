@@ -282,14 +282,40 @@ namespace CapstoneAPI.Features.University.Service
             Response<MockTestBasedUniversity> response = new Response<MockTestBasedUniversity>();
             try
             {
-                int userId = 0;
-                if (token != null && token.Trim().Length > 0)
+                if (token == null || token.Trim().Length == 0)
                 {
-                    string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-                    if (userIdString != null && userIdString.Length > 0)
+                    response.Succeeded = false;
+                    if (response.Errors == null)
                     {
-                        userId = Int32.Parse(userIdString);
+                        response.Errors = new List<string>();
                     }
+                    response.Errors.Add("Bạn chưa đăng nhập!");
+                    return response;
+                }
+
+                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
+                if (string.IsNullOrEmpty(userIdString) || !Int32.TryParse(userIdString, out int userId))
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                }
+
+                userId = Int32.Parse(userIdString);
+
+                Models.User user = await _uow.UserRepository.GetById(userId);
+                if (user == null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    return response;
                 }
 
                 List<TrainingProgramBasedUniversityDataSet> trainingProgramBasedUniversityDataSets = new List<TrainingProgramBasedUniversityDataSet>();
@@ -299,7 +325,27 @@ namespace CapstoneAPI.Features.University.Service
                 Models.Season previousSeason = await _uow.SeasonRepository.GetPreviousSeason();
 
                 List<SubjectGroupDetail> subjectGroupDetails = (await _uow.SubjecGroupDetailRepository.Get(s => s.SubjectGroupId == universityParam.SubjectGroupId)).ToList();
-                double totalMark = await CalculateSubjectGroupMark(universityParam.Marks, subjectGroupDetails);
+                List<MarkParam> marks = new List<MarkParam>();
+
+                IEnumerable<Models.Transcript> transcripts = await _uow.TranscriptRepository
+                        .Get(filter: t => t.UserId == userId && t.TranscriptTypeId == 3 && t.Status == Consts.STATUS_ACTIVE);
+                foreach (Models.Transcript transcript in transcripts)
+                {
+                    MarkParam markParam = new MarkParam();
+                    markParam.Mark = transcript.Mark;
+                    markParam.SubjectId = transcript.SubjectId;
+                    marks.Add(markParam);
+                }
+
+                if (subjectGroupDetails.Where(s => s.SubjectId == 10).Any())
+                {
+                    MarkParam markParam = new MarkParam();
+                    markParam.Mark = await _uow.TranscriptRepository.GetLiteratureTestMark(userId);
+                    markParam.SubjectId = 10;
+                    marks.Add(markParam);
+                }
+                
+                double totalMark = await CalculateSubjectGroupMark(marks, subjectGroupDetails);
 
                 if (totalMark == 0)
                 {
@@ -374,11 +420,11 @@ namespace CapstoneAPI.Features.University.Service
                         }
 
                         List<SubAdmissionCriterion> currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == universityParam.Gender || a.Gender == null)
-                             && a.Quantity != 0 && (a.ProvinceId == universityParam.ProvinceId || a.ProvinceId == null)).ToList();
+                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == user.Gender || a.Gender == null)
+                             && a.Quantity != 0 && (a.ProvinceId == user.ProvinceId || a.ProvinceId == null)).ToList();
                         List<SubAdmissionCriterion> previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == universityParam.Gender || a.Gender == null)
-                             && a.Quantity != 0 && (a.ProvinceId == universityParam.ProvinceId || a.ProvinceId == null)).ToList();
+                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == user.Gender || a.Gender == null)
+                             && a.Quantity != 0 && (a.ProvinceId == user.ProvinceId || a.ProvinceId == null)).ToList();
 
                         if (!currentSubAdmissionCriterias.Any() || !previousSubAdmissionCriterias.Any())
                         {
@@ -445,7 +491,7 @@ namespace CapstoneAPI.Features.University.Service
                                                                 .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE,
                                                                     includeProperties: "Rank"))
                                                                 .Select(u => u.Rank).Where(r => r != null);
-                        trainingProgramDataSet.Rank = _uow.RankRepository.CalculateRank(universityParam.TranscriptTypeId, totalMark, ranks);
+                        trainingProgramDataSet.Rank = _uow.RankRepository.CalculateRank(3, totalMark, ranks);
                         double? ration = null;
 
                         if (currentSeasonDataSet.NumberOfStudents != null)

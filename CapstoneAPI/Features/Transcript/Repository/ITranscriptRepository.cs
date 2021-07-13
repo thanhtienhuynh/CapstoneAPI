@@ -10,5 +10,6 @@ namespace CapstoneAPI.Features.Transcript.Repository
     public interface ITranscriptRepository : IGenericRepository<Models.Transcript>
     {
         Task<IEnumerable<UserTranscriptTypeDataSet>> GetUserTranscripts(int userId);
+        Task<double> GetLiteratureTestMark(int userId);
     }
 }

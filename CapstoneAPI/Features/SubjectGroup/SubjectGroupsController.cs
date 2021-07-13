@@ -29,25 +29,25 @@ namespace CapstoneAPI.Features.SubjectGroup
         [HttpPost("top-subject-group")]
         public async Task<ActionResult<Response<IEnumerable<SubjectGroupDataSet>>>> SuggestTopSubjectGroup(SubjectGroupParam subjectGroupParam)
         {
-            var cookieToken = HttpContext.Request.Cookies["key-token"];
-            if (string.IsNullOrEmpty(cookieToken))
-            {
-                Guid guid = Guid.NewGuid();
-                cookieToken = guid.ToString();
-                HttpContext.Response.Cookies.Append("key-token", guid.ToString(),
-                    new CookieOptions
-                    {
-                        MaxAge = TimeSpan.FromDays(30),
-                        HttpOnly = false,
-                        SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None,
-                        Secure = true,
-                        IsEssential = true
-                    });
-            }
-            using (LogContext.PushProperty("cookie", true))
-            {
-                _log.Information("User: " + cookieToken);
-            }
+            //var cookieToken = HttpContext.Request.Cookies["key-token"];
+            //if (string.IsNullOrEmpty(cookieToken))
+            //{
+            //    Guid guid = Guid.NewGuid();
+            //    cookieToken = guid.ToString();
+            //    HttpContext.Response.Cookies.Append("key-token", guid.ToString(),
+            //        new CookieOptions
+            //        {
+            //            MaxAge = TimeSpan.FromDays(30),
+            //            HttpOnly = false,
+            //            SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None,
+            //            Secure = true,
+            //            IsEssential = true
+            //        });
+            //}
+            //using (LogContext.PushProperty("cookie", true))
+            //{
+            //    _log.Information("User: " + cookieToken);
+            //}
            
             return Ok(await _service.GetCaculatedSubjectGroup(subjectGroupParam));
         }

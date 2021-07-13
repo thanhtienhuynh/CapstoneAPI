@@ -54,7 +54,7 @@
                 }
 
                 string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-                if (string.IsNullOrEmpty(userIdString) || Int32.TryParse(userIdString, out int userId))
+                if (string.IsNullOrEmpty(userIdString) || !Int32.TryParse(userIdString, out int userId))
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -111,10 +111,10 @@
                         if (transcript != null && transcript.DateRecord != null)
                         {
                             userTranscript = transcript.Mark;
-                            //if (DateTime.Compare(transcript.DateRecord.Date.AddDays(30), DateTime.UtcNow.Date) > 0)
-                            //{
-                            //    daysRemaining = transcript.DateRecord.Date.AddDays(30).Subtract(DateTime.UtcNow.Date).TotalDays;
-                            //}
+                            if (DateTime.Compare(transcript.DateRecord.Date.AddDays(30), DateTime.UtcNow.Date) > 0)
+                            {
+                                daysRemaining = transcript.DateRecord.Date.AddDays(30).Subtract(DateTime.UtcNow.Date).TotalDays;
+                            }
                         }
 
                         Test clasifiedTest = await _uow.TestRepository

@@ -49,5 +49,17 @@ namespace CapstoneAPI.Features.Transcript.Repository
             }
             return result.OrderByDescending(t => t.Priority);
         }
+
+        public async Task<double> GetLiteratureTestMark(int userId)
+        {
+            IEnumerable<Models.Transcript> transcripts = await Get(filter: t => t.Status == Consts.STATUS_ACTIVE
+                                    && t.SubjectId == 10 && t.UserId == userId, includeProperties: "TranscriptType");
+            if (transcripts.Any())
+            {
+                Models.Transcript transcript = transcripts.OrderByDescending(t => t.TranscriptType.Priority).FirstOrDefault();
+                return transcript.Mark;
+            }
+            return 0;
+        }
     }
 }
