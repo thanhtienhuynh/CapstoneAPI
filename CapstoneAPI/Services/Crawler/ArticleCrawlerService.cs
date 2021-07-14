@@ -153,87 +153,145 @@ namespace CapstoneAPI.Services.Crawler
         public async Task<int> CrawlArticleFromVNExpress()
         {
             string pageLink = configuration.SelectToken("VNExpress.pageLink").ToString();
-            var url = configuration.SelectToken("VNExpress.url").ToString();
+            string url = configuration.SelectToken("VNExpress.url").ToString();
             try
             {
                 HtmlDocument htmlDocument = await CrawlerHelper.GetHtmlDocument(url);
 
-                var articlesDiv = htmlDocument.GetElementbyId(configuration.SelectToken("VNExpress.articlesDivId").ToString());
-
-                Dictionary<string, string> listArticles = new Dictionary<string, string>();
-
-                var newsDetails = articlesDiv.Descendants(
-                    configuration.SelectToken("VNExpress.articleDetailDivs.name").ToString())
-                    .Where(node => !string.IsNullOrEmpty(node.GetAttributeValue(
-                        configuration.SelectToken("VNExpress.articleDetailDivs.attribute").ToString(), "")));
-
+                IEnumerable<Models.Article> listArticleDB = (await _uow.ArticleRepository
+                    .Get(filter: article => article.PublishedPage.Equals(pageLink)));
                 List<Models.Article> articles = new List<Models.Article>();
-                foreach (var news in newsDetails)
-                {
-                    string timeInSeconds = news.GetAttributeValue(
-                        configuration.SelectToken("VNExpress.articleDetailDivs.attribute").ToString(), "");
-                    var titleTag = news.Descendants(configuration.SelectToken("VNExpress.titleTag.name").ToString())
+
+                var articleTop = htmlDocument.DocumentNode.Descendants(configuration
+                    .SelectToken("VNExpress.topArticleTag.name").ToString())
+                    .Where(node => node.GetAttributeValue(configuration
+                    .SelectToken("VNExpress.topArticleTag.attribute").ToString(), string.Empty)
+                        .Contains(configuration.SelectToken("VNExpress.topArticleTag.attributeValue").ToString()))?.First();
+                string articleTopLink = articleTop.Descendants(
+                    configuration.SelectToken("VNExpress.topArticleTag.titleTag.name").ToString())
                         .Where(node => node.GetAttributeValue(
-                            configuration.SelectToken("VNExpress.titleTag.attribute").ToString(), "")
-                        .Contains(configuration.SelectToken("VNExpress.titleTag.attributeValue").ToString()));
-                    string title = "";
-                    string link = "";
-                    if (titleTag != null)
+                            configuration.SelectToken("VNExpress.topArticleTag.titleTag.attribute").ToString(), string.Empty)
+                            .Contains(configuration.SelectToken("VNExpress.topArticleTag.titleTag.attributeValue")
+                            .ToString()))?.First().Descendants(
+                                configuration.SelectToken("VNExpress.topArticleTag.titleTag.link.name")
+                            .ToString())?.First().GetAttributeValue(
+                                configuration.SelectToken("VNExpress.topArticleTag.titleTag.link.attribute").ToString(), "")?.Trim();
+
+                bool isExistTopArticle = listArticleDB.Where(article => article.RootUrl.Equals(articleTopLink)).Any();
+                if (!isExistTopArticle && !string.IsNullOrEmpty(articleTopLink))
+                {
+                    articles.Add(new Article()
                     {
-                        title = titleTag.First().InnerText;
-                        var linkTag = titleTag.First().Descendants(
-                            configuration.SelectToken("VNExpress.linkTag.name").ToString());
-                        link = linkTag.First().GetAttributeValue(
-                            configuration.SelectToken("VNExpress.linkTag.attribute").ToString(), "");
+                        RootUrl = articleTopLink?.Trim(),
+                        PublishedPage = pageLink?.Trim(),
+                        ImportantLevel = 0
+                    });
+                }
+
+                var subNewTops = htmlDocument.DocumentNode.Descendants(
+                    configuration.SelectToken("VNExpress.subTopTag.name").ToString())
+                    .Where(node => node.GetAttributeValue(
+                        configuration.SelectToken("VNExpress.subTopTag.attribute").ToString(), string.Empty)
+                        .Equals(configuration.SelectToken("VNExpress.subTopTag.attributeValue").ToString()))
+                    .First().Descendants(configuration.SelectToken("VNExpress.subTopTag.selection").ToString());
+
+                foreach (var subNewTop in subNewTops)
+                {
+                    string link = subNewTop.Descendants(
+                        configuration.SelectToken("VNExpress.subTopTag.titleTag.name").ToString())
+                        .Where(node => node.GetAttributeValue(
+                            configuration.SelectToken("VNExpress.subTopTag.titleTag.attribute").ToString(), string.Empty).Equals(
+                            configuration.SelectToken("VNExpress.subTopTag.titleTag.attributeValue").ToString()))
+                        .First().Descendants(
+                        configuration.SelectToken("VNExpress.subTopTag.titleTag.link.name").ToString())?.First()
+                        .GetAttributeValue(configuration.SelectToken("VNExpress.subTopTag.titleTag.link.attribute")
+                        .ToString(), "")?.Trim();
+                    bool isExist = listArticleDB.Where(article => article.RootUrl.Equals(link)).Any();
+                    if (!isExist && !string.IsNullOrEmpty(link))
+                    {
+                        articles.Add(new Article()
+                        {
+                            RootUrl = link?.Trim(),
+                            PublishedPage = pageLink?.Trim(),
+                            ImportantLevel = 0
+                        });
                     }
+                }
 
-                    IEnumerable<Models.Article> listArticleDB = (await _uow.ArticleRepository.Get(filter: article => article.PublishedPage.Equals(pageLink)));
+                var newsCommons = htmlDocument.DocumentNode.Descendants(
+                    configuration.SelectToken("VNExpress.commonTag.name").ToString())
+                    .Where(node => node.GetAttributeValue(
+                        configuration.SelectToken("VNExpress.commonTag.attribute").ToString(), string.Empty)
+                        .Contains(configuration.SelectToken("VNExpress.commonTag.attributeValue").ToString()))
+                    ?.First().Descendants(configuration.SelectToken("VNExpress.commonTag.selection").ToString());
 
-                    bool a = listArticleDB.Any(test => test.RootUrl.Equals(link));
-                    bool isExist = (listArticleDB.Where(articleDB => articleDB.RootUrl.Equals(link)).Count() > 0);
-                    if (!isExist)
+                foreach (var newCommon in newsCommons)
+                {
+                    bool isNotAdNews = newCommon.Descendants(
+                        configuration.SelectToken("VNExpress.commonTag.titleTag.name").ToString())
+                        .Where(node => node.GetAttributeValue(
+                            configuration.SelectToken("VNExpress.commonTag.titleTag.attribute").ToString(), string.Empty).Equals(
+                            configuration.SelectToken("VNExpress.commonTag.titleTag.attributeValue").ToString())).Count() > 0;
+
+                    if (isNotAdNews)
                     {
-                        string shortDescription = "";
-                        var descriptionTag = news.Descendants(
-                            configuration.SelectToken("VNExpress.shortDescription.name").ToString())
+                        string link = newCommon.Descendants(
+                            configuration.SelectToken("VNExpress.commonTag.titleTag.name").ToString())
                             .Where(node => node.GetAttributeValue(
-                                configuration.SelectToken("VNExpress.shortDescription.attribute").ToString(), "")
-                            .Contains(configuration.SelectToken("VNExpress.shortDescription.attributeValue").ToString()));
-                        if (descriptionTag != null)
+                                configuration.SelectToken("VNExpress.commonTag.titleTag.attribute").ToString(), string.Empty).Equals(
+                                configuration.SelectToken("VNExpress.commonTag.titleTag.attributeValue").ToString()))
+                            .First().Descendants(
+                            configuration.SelectToken("VNExpress.commonTag.titleTag.link.name").ToString()).First().GetAttributeValue(
+                            configuration.SelectToken("VNExpress.commonTag.titleTag.link.attribute").ToString(), string.Empty)?.Trim();
+                        bool isExist = listArticleDB.Where(article => article.RootUrl.Equals(link)).Any();
+                        if (!isExist && !string.IsNullOrEmpty(link))
                         {
-                            shortDescription = descriptionTag.First().InnerText;
+                            articles.Add(new Article()
+                            {
+                                RootUrl = link?.Trim(),
+                                PublishedPage = pageLink?.Trim(),
+                                ImportantLevel = 0
+                            });
                         }
+                    }
+                }
 
+                var articlesDivs = htmlDocument.DocumentNode.Descendants(
+                    configuration.SelectToken("VNExpress.normalTag.name").ToString())
+                   .Where(node => node.GetAttributeValue(
+                        configuration.SelectToken("VNExpress.normalTag.attribute").ToString(), string.Empty).Equals(
+                       configuration.SelectToken("VNExpress.normalTag.attributeValue").ToString()));
 
-                        string postImgUrl = "";
+                foreach (var articlesDiv in articlesDivs)
+                {
 
-                        var imgUrl = news.Descendants(configuration.SelectToken("VNExpress.imgUrlTag.name").ToString())
+                    var newsDetails = articlesDiv.Descendants(
+                       configuration.SelectToken("VNExpress.normalTag.articleTag.name").ToString())
+                        .Where(node => !string.IsNullOrEmpty(node.GetAttributeValue(
+                            configuration.SelectToken("VNExpress.normalTag.articleTag.attribute").ToString(), string.Empty)));
+
+                    foreach (var news in newsDetails)
+                    {
+                        var titleTag = news.Descendants(configuration.SelectToken("VNExpress.normalTag.titleTag.name").ToString())
                             .Where(node => node.GetAttributeValue(
-                                configuration.SelectToken("VNExpress.imgUrlTag.containAttribute").ToString(), "")
-                            .Contains(configuration.SelectToken("VNExpress.imgUrlTag.containAttributeValue").ToString()));
-
-                        if (imgUrl.Count() > 0)
+                                configuration.SelectToken("VNExpress.normalTag.titleTag.attribute").ToString(), string.Empty)
+                            .Contains(configuration.SelectToken("VNExpress.normalTag.titleTag.attributeValue").ToString()));
+                        string link = string.Empty;
+                        if (titleTag != null)
                         {
-                            UpdateNewSrcInImgTag(imgUrl);
-                            postImgUrl = imgUrl.First().GetAttributeValue(
-                                configuration.SelectToken("VNExpress.imgUrlTag.attribute").ToString(), "");
+                            var linkTag = titleTag.First().Descendants(
+                                configuration.SelectToken("VNExpress.normalTag.titleTag.link.name").ToString());
+                            link = linkTag.First().GetAttributeValue(
+                                configuration.SelectToken("VNExpress.normalTag.titleTag.link.attribute").ToString(), string.Empty)?.Trim();
                         }
 
-                        DateTime postedDate = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-                        if (!string.IsNullOrEmpty(timeInSeconds))
-                        {
-                            postedDate = postedDate.AddSeconds(long.Parse(timeInSeconds)).ToLocalTime();
-                        }
-                        if (!string.IsNullOrEmpty(title) && !string.IsNullOrEmpty(link))
+                        bool isExist = (listArticleDB.Where(articleDB => articleDB.RootUrl.Equals(link)).Count() > 0);
+                        if (!isExist && !string.IsNullOrEmpty(link))
                         {
                             Models.Article article = new Models.Article()
                             {
-                                Title = title?.Trim(),
-                                PostedDate = postedDate,
                                 RootUrl = link?.Trim(),
                                 PublishedPage = pageLink?.Trim(),
-                                ShortDescription = shortDescription?.Trim(),
-                                PostImageUrl = postImgUrl?.Trim(),
                                 ImportantLevel = 0
                             };
                             articles.Add(article);
@@ -257,45 +315,104 @@ namespace CapstoneAPI.Services.Crawler
             {
                 HtmlDocument htmlDocument = await CrawlerHelper.GetHtmlDocument(article.RootUrl);
 
-                var headerConfig = htmlDocument.DocumentNode.Descendants(
-                    configuration.SelectToken("VNExpress.articleDetails.headerTag.name").ToString()).First();
+                var headerConfigTag = htmlDocument.DocumentNode.Descendants(
+                    configuration.SelectToken("VNExpress.details.headerTag.name").ToString()).First();
+                string headerConfig = string.Empty;
+
+                if (headerConfigTag != null)
+                {
+                    headerConfig = headerConfigTag.InnerText;
+                }
+
+                var titleTag = htmlDocument.DocumentNode.Descendants(
+                    configuration.SelectToken("VNExpress.details.titleTag.name").ToString())
+                    .Where(node => node.GetAttributeValue(
+                        configuration.SelectToken("VNExpress.details.titleTag.attribute").ToString(), string.Empty).Equals(
+                        configuration.SelectToken("VNExpress.details.titleTag.attributeValue").ToString()));
+                string title = string.Empty;
+                if (titleTag != null)
+                {
+                    title = titleTag.First().InnerText;
+                }
+
+                var descriptionTag = htmlDocument.DocumentNode.Descendants(
+                    configuration.SelectToken("VNExpress.details.descriptionTag.name").ToString())
+                   .Where(node => node.GetAttributeValue(
+                       configuration.SelectToken("VNExpress.details.descriptionTag.attribute").ToString(), string.Empty).Equals(
+                       configuration.SelectToken("VNExpress.details.descriptionTag.attributeValue").ToString()));
+                string description = string.Empty;
+                if (descriptionTag != null)
+                {
+                    description = descriptionTag.First().InnerText;
+                }
+
+                var timeTag = htmlDocument.DocumentNode.Descendants(
+                    configuration.SelectToken("VNExpress.details.timeTag.name").ToString())
+                    .Where(node => node.GetAttributeValue(
+                        configuration.SelectToken("VNExpress.details.timeTag.attribute").ToString(), string.Empty).Equals(
+                        configuration.SelectToken("VNExpress.details.timeTag.attributeValue").ToString()));
+                string timeInSeconds = string.Empty;
+                if (timeTag != null && timeTag.Any())
+                {
+                    timeInSeconds = timeTag.First().GetAttributeValue(
+                        configuration.SelectToken("VNExpress.details.timeTag.selection").ToString(), string.Empty);
+                }
+
+                DateTime postedDate = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+                if (!string.IsNullOrEmpty(timeInSeconds))
+                {
+                    postedDate = postedDate.AddSeconds(long.Parse(timeInSeconds)).ToLocalTime();
+                }
 
                 var detail = htmlDocument.DocumentNode.Descendants(
-                    configuration.SelectToken("VNExpress.articleDetails.detailTag.name").ToString())
+                    configuration.SelectToken("VNExpress.details.content.name").ToString())
                    .Where(node => node.GetAttributeValue(
-                       configuration.SelectToken("VNExpress.articleDetails.detailTag.attribute").ToString(), "")
-                   .Contains(configuration.SelectToken("VNExpress.articleDetails.detailTag.attributeValue").ToString())).First();
+                       configuration.SelectToken("VNExpress.details.content.attribute").ToString(), string.Empty)
+                   .Contains(configuration.SelectToken("VNExpress.details.content.attributeValue").ToString())).First();
 
                 var content = detail.ParentNode.ParentNode;
                 content.RemoveAllChildren();
                 content.AppendChild(detail);
 
-                var imgs = detail.Descendants(configuration.SelectToken("VNExpress.imgUrlTag.name").ToString())
+                var imgs = detail.Descendants(configuration.SelectToken("VNExpress.details.imgUrlTag.name").ToString())
                                 .Where(node => node.GetAttributeValue(
-                                    configuration.SelectToken("VNExpress.imgUrlTag.containAttribute").ToString(), "")
-                                .Contains(configuration.SelectToken("VNExpress.imgUrlTag.containAttributeValue").ToString()));
+                                    configuration.SelectToken("VNExpress.details.imgUrlTag.containAttribute").ToString(), "")
+                                .Contains(configuration.SelectToken("VNExpress.details.imgUrlTag.containAttributeValue").ToString()));
                 UpdateNewSrcInImgTag(imgs);
 
                 var related = detail.Descendants(
-                    configuration.SelectToken("VNExpress.articleDetails.relatedTag.name").ToString())
+                    configuration.SelectToken("VNExpress.details.relatedTag.name").ToString())
                     .Where(node => node.GetAttributeValue(
-                        configuration.SelectToken("VNExpress.articleDetails.relatedTag.attribute").ToString(), "")
-                    .Contains(configuration.SelectToken("VNExpress.articleDetails.relatedTag.attributeValue").ToString()));
+                        configuration.SelectToken("VNExpress.details.relatedTag.attribute").ToString(), "")
+                    .Contains(configuration.SelectToken("VNExpress.details.relatedTag.attributeValue").ToString()));
 
                 if (related.Count() > 0)
                 {
                     related.First().ParentNode.RemoveChild(related.First());
                 }
 
-                article.HeaderConfig = headerConfig.InnerHtml.Trim();
+                if (imgs != null && imgs.Count() > 0)
+                {
+                    article.PostImageUrl = imgs.First().OuterHtml;
+                }
+                article.HeaderConfig = headerConfig;
                 article.Status = 0;
                 article.CrawlerDate = DateTime.UtcNow.AddHours(7);
                 article.Content = detail.InnerHtml.Trim();
+                article.PostedDate = postedDate;
+                article.Title = title;
+                article.ShortDescription = description;
             }
 
             _uow.ArticleRepository.InsertRange(articles);
-            await _uow.CommitAsync();
-            return articles.Count();
+            int result = await _uow.CommitAsync();
+
+            if (result > 0)
+            {
+                return articles.Count();
+            }
+
+            return 0;
         }
 
         private void UpdateNewSrcInImgTag(IEnumerable<HtmlNode> imgUrls)
