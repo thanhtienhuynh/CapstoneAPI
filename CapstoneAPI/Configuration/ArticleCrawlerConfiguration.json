@@ -39,40 +39,99 @@
   },
   "VNExpress": {
     "pageLink": "https://vnexpress.net",
-    "url": "https://vnexpress.net/topic/phuong-an-tuyen-sinh-dai-hoc-nam-2021-25164",
-    "articlesDivId": "list-news",
-    "articleDetailDivs": {
+    "url": "https://vnexpress.net/giao-duc/tuyen-sinh",
+    "topArticleTag": {
       "name": "article",
-      "attribute": "data-publishtime"
-    },
-    "titleTag": {
-      "name": "h2",
       "attribute": "class",
-      "attributeValue": "title-news"
+      "attributeValue": "article-topstory",
+      "titleTag": {
+        "name": "h3",
+        "attribute": "class",
+        "attributeValue": "title-news",
+        "link": {
+          "name": "a",
+          "attribute": "href"
+        }
+      }
     },
-    "linkTag": {
-      "name": "a",
-      "attribute": "href"
-    },
-    "shortDescription": {
-      "name": "p",
+    "subTopTag": {
+      "name": "ul",
       "attribute": "class",
-      "attributeValue": "description"
+      "attributeValue": "list-sub-feature",
+      "selection": "li",
+      "titleTag": {
+        "name": "h3",
+        "attribute": "class",
+        "attributeValue": "title_news",
+        "link": {
+          "name": "a",
+          "attribute": "href"
+        }
+      }
     },
-    "imgUrlTag": {
-      "name": "img",
-      "containAttribute": "itemprop",
-      "containAttributeValue": "contentUrl",
-      "attribute": "data-src"
+    "commonTag": {
+      "name": "div",
+      "attribute": "class",
+      "attributeValue": "inner-list-news-five",
+      "selection": "article",
+      "titleTag": {
+        "name": "h3",
+        "attribute": "class",
+        "attributeValue": "title-news",
+        "link": {
+          "name": "a",
+          "attribute": "href"
+        }
+      }
     },
-    "articleDetails": {
+    "normalTag": {
+      "name": "div",
+      "attribute": "class",
+      "attributeValue": "width_common list-news-subfolder",
+      "articleTag": {
+        "name": "article",
+        "attribute": "data-offset"
+      },
+      "titleTag": {
+        "name": "h3",
+        "attribute": "class",
+        "attributeValue": "title-news",
+        "link": {
+          "name": "a",
+          "attribute": "href"
+        }
+      }
+    },
+    "details": {
       "headerTag": {
         "name": "head"
       },
-      "detailTag": {
+      "titleTag": {
+        "name": "h1",
+        "attribute": "class",
+        "attributeValue": "title-detail"
+      },
+      "descriptionTag": {
+        "name": "p",
+        "attribute": "class",
+        "attributeValue": "description"
+      },
+      "timeTag": {
+        "name": "meta",
+        "attribute": "name",
+        "attributeValue": "its_publication",
+        "selection": "content"
+      },
+      "content": {
         "name": "article",
         "attribute": "class",
         "attributeValue": "fck_detail"
+      },
+      "imgUrlTag": {
+        "name": "img",
+        "containAttribute": "itemprop",
+        "containAttributeValue": "contentUrl",
+        "attribute": "data-src"
       },
       "relatedTag": {
         "name": "ul",
