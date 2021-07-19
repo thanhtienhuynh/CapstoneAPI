@@ -21,4 +21,11 @@ namespace CapstoneAPI.Features.Transcript.DataSet
         public string SubjectName { get; set; }
         public DateTime DateRecord { get; set; }
     }
+
+    public class TranscriptParam
+    {
+        public double Mark { get; set; }
+        public int SubjectId { get; set; }
+        public int TranscriptTypeId { get; set; }
+    }
 }

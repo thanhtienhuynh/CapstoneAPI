@@ -29,6 +29,7 @@ namespace CapstoneAPI.Features.SubjectGroup
         [HttpPost("top-subject-group")]
         public async Task<ActionResult<Response<IEnumerable<SubjectGroupDataSet>>>> SuggestTopSubjectGroup(SubjectGroupParam subjectGroupParam)
         {
+            string token = Request.Headers["Authorization"];
             //var cookieToken = HttpContext.Request.Cookies["key-token"];
             //if (string.IsNullOrEmpty(cookieToken))
             //{
@@ -48,8 +49,8 @@ namespace CapstoneAPI.Features.SubjectGroup
             //{
             //    _log.Information("User: " + cookieToken);
             //}
-           
-            return Ok(await _service.GetCaculatedSubjectGroup(subjectGroupParam));
+
+            return Ok(await _service.GetCaculatedSubjectGroup(subjectGroupParam, token));
         }
 
         [HttpGet("top-subject-group")]

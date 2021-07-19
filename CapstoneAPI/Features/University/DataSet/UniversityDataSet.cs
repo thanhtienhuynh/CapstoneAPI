@@ -20,6 +20,7 @@ namespace CapstoneAPI.Features.University.DataSet
         public int? TuitionFrom { get; set; }
         public int? TuitionTo { get; set; }
         public int? Rating { get; set; }
+        public double HighestEntryMark { get; set; }
         public List<TrainingProgramDataSet> TrainingProgramSets { get; set; }
     }
 

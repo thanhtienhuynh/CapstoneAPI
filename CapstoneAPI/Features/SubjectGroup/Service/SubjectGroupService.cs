@@ -28,11 +28,30 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
             _mapper = mapper;
         }
 
-        public async Task<Response<IEnumerable<SubjectGroupDataSet>>> GetCaculatedSubjectGroup(SubjectGroupParam subjectGroupParam)
+        public async Task<Response<IEnumerable<SubjectGroupDataSet>>> GetCaculatedSubjectGroup(SubjectGroupParam subjectGroupParam, string token)
         {
+            
             Response<IEnumerable<SubjectGroupDataSet>> response = new Response<IEnumerable<SubjectGroupDataSet>>();
             try
             {
+                if (subjectGroupParam.TranscriptTypeId == 3)
+                {
+                    Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                    if (user == null)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Bạn chưa đăng nhập!");
+                        return response;
+                    }
+                    if (subjectGroupParam.Marks.First(m => m.SubjectId == 10) != null) {
+                        subjectGroupParam.Marks.First(m => m.SubjectId == 10).Mark = await _uow.TranscriptRepository.GetLiteratureTestMark(user.Id);
+                    };
+                }
                 List<SubjectGroupDataSet> subjectGroupDataSets = new List<SubjectGroupDataSet>();
                 //Lấy danh sách khối
                 IEnumerable<Models.SubjectGroup> subjectGroups = await _uow.SubjectGroupRepository

@@ -89,6 +89,7 @@ namespace CapstoneAPI.Features.University.Service
                     trainingProgramBasedUniversityDataSet = _mapper.Map<TrainingProgramBasedUniversityDataSet>(groupsByUni.Key);
                     var groupByTrainingPrograms = groupsByUni.GroupBy(m => m.TrainingProgram);
                     List<TrainingProgramDataSet> trainingProgramDataSets = new List<TrainingProgramDataSet>();
+                    double highestEntryMark = 0;
                     foreach (var groupByTrainingProgram in groupByTrainingPrograms)
                     {
                         TrainingProgramDataSet trainingProgramDataSet = new TrainingProgramDataSet();
@@ -154,7 +155,6 @@ namespace CapstoneAPI.Features.University.Service
                                 break;
                             }
                         }
-
                         foreach (SubAdmissionCriterion previousSubAdmissionCriteria in previousSubAdmissionCriterias)
                         {
                             previousEntryMark = (await _uow.EntryMarkRepository
@@ -220,6 +220,7 @@ namespace CapstoneAPI.Features.University.Service
                             trainingProgramDataSet.DividedClass = 3;
                         }
                         trainingProgramDataSets.Add(trainingProgramDataSet);
+                        highestEntryMark = (double)previousEntryMark.Mark > highestEntryMark ? (double)previousEntryMark.Mark : highestEntryMark;
                         //TrainingProgramDataSet new1 = new TrainingProgramDataSet()
                         //{
                         //    DividedClass = 2,
@@ -258,12 +259,13 @@ namespace CapstoneAPI.Features.University.Service
                     }
                     if (trainingProgramDataSets.Any())
                     {
-                        trainingProgramBasedUniversityDataSet.TrainingProgramSets = trainingProgramDataSets;
+                        trainingProgramBasedUniversityDataSet.TrainingProgramSets = trainingProgramDataSets.OrderBy(t => t.DividedClass).ToList();
+                        trainingProgramBasedUniversityDataSet.HighestEntryMark = highestEntryMark;
                         trainingProgramBasedUniversityDataSets.Add(trainingProgramBasedUniversityDataSet);
                     }
                 }
                 response.Succeeded = true;
-                response.Data = trainingProgramBasedUniversityDataSets;
+                response.Data = trainingProgramBasedUniversityDataSets.OrderByDescending(t => t.HighestEntryMark);
             } catch (Exception ex)
             {
                 _log.Error(ex.ToString());
@@ -374,7 +376,7 @@ namespace CapstoneAPI.Features.University.Service
                     .GroupBy(m => m.University);
 
                 List<MajorDetail> validMajorDetails = new List<MajorDetail>();
-
+                double highestEntryMark = 0;
                 foreach (var groupsByUni in groupsByUnis)
                 {
                     TrainingProgramBasedUniversityDataSet trainingProgramBasedUniversityDataSet = new TrainingProgramBasedUniversityDataSet();
@@ -511,12 +513,13 @@ namespace CapstoneAPI.Features.University.Service
                         {
                             trainingProgramDataSet.DividedClass = 3;
                         }
-
+                        highestEntryMark = (double)previousEntryMark.Mark > highestEntryMark ? (double)previousEntryMark.Mark : highestEntryMark;
                         trainingProgramDataSets.Add(trainingProgramDataSet);
                     }
                     if (trainingProgramDataSets.Any())
                     {
-                        trainingProgramBasedUniversityDataSet.TrainingProgramSets = trainingProgramDataSets;
+                        trainingProgramBasedUniversityDataSet.TrainingProgramSets = trainingProgramDataSets.OrderBy(t => t.DividedClass).ToList();
+                        trainingProgramBasedUniversityDataSet.HighestEntryMark = highestEntryMark;
                         trainingProgramBasedUniversityDataSets.Add(trainingProgramBasedUniversityDataSet);
                     }
                 }
@@ -524,7 +527,7 @@ namespace CapstoneAPI.Features.University.Service
                 mockTestBasedUniversity.SubjectGroupId = universityParam.SubjectGroupId;
                 mockTestBasedUniversity.MajorId = universityParam.MajorId;
                 mockTestBasedUniversity.TotalMark = totalMark;
-                mockTestBasedUniversity.TrainingProgramBasedUniversityDataSets = trainingProgramBasedUniversityDataSets;
+                mockTestBasedUniversity.TrainingProgramBasedUniversityDataSets = trainingProgramBasedUniversityDataSets.OrderByDescending(t => t.HighestEntryMark).ToList();
                 response.Succeeded = true;
                 response.Data = mockTestBasedUniversity;
             } catch (Exception ex)

@@ -42,7 +42,9 @@
             Response<List<SubjectBasedTestDataSet>> response = new Response<List<SubjectBasedTestDataSet>>();
             try
             {
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -52,19 +54,6 @@
                     response.Errors.Add("Bạn chưa đăng nhập!");
                     return response;
                 }
-
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-                if (string.IsNullOrEmpty(userIdString) || !Int32.TryParse(userIdString, out int userId))
-                {
-                    response.Succeeded = false;
-                    if (response.Errors == null)
-                    {
-                        response.Errors = new List<string>();
-                    }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
-                }
-
-                userId = Int32.Parse(userIdString);
 
                 List<SubjectBasedTestDataSet> testsReponse = new List<SubjectBasedTestDataSet>();
                 List<int> subjectIds = new List<int>();
@@ -104,7 +93,7 @@
                     foreach (int subjectId in subjectIds)
                     {
                         Transcript transcript = await _uow.TranscriptRepository.GetFirst(
-                        filter: t => t.UserId == userId && t.SubjectId == subjectId && t.Status == Consts.STATUS_ACTIVE
+                        filter: t => t.UserId == user.Id && t.SubjectId == subjectId && t.Status == Consts.STATUS_ACTIVE
                                 && t.TranscriptTypeId == 3);
                         double? daysRemaining = null;
                         double? userTranscript = null;
@@ -117,10 +106,41 @@
                             }
                         }
 
-                        Test clasifiedTest = await _uow.TestRepository
-                                                    .GetFirst(filter: test => test.Status == Consts.STATUS_ACTIVE
+                        IEnumerable<Test> clasifiedTests = await _uow.TestRepository
+                                                    .Get(filter: test => test.Status == Consts.STATUS_ACTIVE
                                                         && test.IsSuggestedTest
                                                         && test.SubjectId == subjectId);
+
+                        if (!clasifiedTests.Any())
+                        {
+                            continue;
+                        }
+
+                        Dictionary<Test, int> testSubmissionCounts = new Dictionary<Test, int>();
+                        int highestCount = 0;
+                        foreach(Test test in clasifiedTests)
+                        {
+                            int count = (await _uow.TestSubmissionRepository.Get(
+                                        filter: t => t.TestId == test.Id && t.UserId == user.Id)).Count();
+                            testSubmissionCounts.Add(test, count);
+                            highestCount = count > highestCount ? count : highestCount;
+                        }
+
+                        Dictionary<Test, int> randomTestCounts = testSubmissionCounts.Where(t => t.Value < highestCount)
+                            .ToDictionary(x => x.Key, x => x.Value);
+                        List<Test> randomTests;
+                        if (randomTestCounts.Any())
+                        {
+                            randomTests = randomTestCounts.Keys.ToList();
+                        } else
+                        {
+                            randomTests = testSubmissionCounts.Keys.ToList();
+                        }
+
+                        Random rnd = new Random();
+                        int r = rnd.Next(randomTests.Count);
+                        Test clasifiedTest = randomTests[r];
+
                         if (clasifiedTest != null)
                         {
                             testsReponse.Add(new SubjectBasedTestDataSet()
@@ -130,7 +150,7 @@
                                     UniversityId = null,
                                     DaysRemaining = daysRemaining,
                                     LastTranscript = userTranscript
-                            }
+                                }
                             );
                         }
                     }

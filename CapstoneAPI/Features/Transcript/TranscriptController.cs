@@ -32,10 +32,18 @@ namespace CapstoneAPI.Features.Transcript
         }
 
         [HttpPost()]
-        public async Task<ActionResult<Response<bool>>> SaveMarkOfUser([FromBody] SubjectGroupParam subjectGroupParam)
+        public async Task<ActionResult<Response<bool>>> SaveMarksOfUser([FromBody] SubjectGroupParam subjectGroupParam)
         {
             string token = Request.Headers["Authorization"];
             Response<bool> result = await _service.SaveMarkOfUser(token, subjectGroupParam);
+            return Ok(result);
+        }
+
+        [HttpPut()]
+        public async Task<ActionResult<Response<bool>>> SaveSingleTranscript([FromBody] TranscriptParam transcriptParam)
+        {
+            string token = Request.Headers["Authorization"];
+            Response<bool> result = await _service.SaveSingleTranscript(token, transcriptParam);
             return Ok(result);
         }
     }

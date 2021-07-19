@@ -101,7 +101,9 @@
         {
             Response<bool> response = new Response<bool>();
 
-            if (token == null || token.Trim().Length == 0)
+            User user = await _uow.UserRepository.GetUserByToken(token);
+
+            if (user == null)
             {
                 response.Succeeded = false;
                 if (response.Errors == null)
@@ -112,63 +114,93 @@
                 return response;
             }
 
-            string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-
-            if (userIdString == null || userIdString.Trim().Length <= 0)
-            {
-                response.Succeeded = false;
-                if (response.Errors == null)
-                {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Tài khoản của bạn không tồn tại!");
-            }
-
-            int userId = Int32.Parse(userIdString);
-
             using var tran = _uow.GetTransaction();
             try
             {
                 foreach (SaveTestSubmissionParam saveTestSubmissionParam in saveTestSubmissionParams)
                 {
-                    TestSubmission testSubmission = new TestSubmission()
+                    Test test = await _uow.TestRepository.GetFirst(filter: t => t.Id == saveTestSubmissionParam.TestId
+                                                                && t.Status == Consts.STATUS_ACTIVE);
+                    if (test == null)
                     {
-                        TestId = saveTestSubmissionParam.TestId,
-                        SpentTime = saveTestSubmissionParam.SpentTime,
-                        SubmissionDate = DateTime.UtcNow,
-                        NumberOfRightAnswers = saveTestSubmissionParam.NumberOfRightAnswers,
-                        Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
-                        UserId = userId
-                    };
-
-                    _uow.TestSubmissionRepository.Insert(testSubmission);
-                    int subjectId = (int)(await _uow.TestRepository.GetById(saveTestSubmissionParam.TestId)).SubjectId;
-
-                    IEnumerable<Transcript> transcripts = await _uow.TranscriptRepository
-                                .Get(t => t.TranscriptTypeId == 3 && t.UserId == userId
-                                && t.SubjectId == subjectId && t.Status == Consts.STATUS_ACTIVE);
-
-                    if (transcripts.Any())
-                    {
-                        foreach (Transcript transcript in transcripts)
+                        response.Succeeded = false;
+                        if (response.Errors == null)
                         {
-                            transcript.DateRecord = DateTime.UtcNow;
-                            transcript.IsUpdate = false;
-                            transcript.Status = Consts.STATUS_INACTIVE;
+                            response.Errors = new List<string>();
                         }
-                        _uow.TranscriptRepository.UpdateRange(transcripts);
+                        response.Errors.Add("Bài thi không tồn tại!");
+                        return response;
+                    }
+                    TestSubmission testSubmission = null;
+                    if (saveTestSubmissionParam.TestSubmissionId == null)
+                    {
+                        testSubmission = new TestSubmission()
+                        {
+                            TestId = saveTestSubmissionParam.TestId,
+                            SpentTime = saveTestSubmissionParam.SpentTime,
+                            SubmissionDate = DateTime.UtcNow,
+                            NumberOfRightAnswers = saveTestSubmissionParam.NumberOfRightAnswers,
+                            Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
+                            UserId = user.Id
+                        };
+                        _uow.TestSubmissionRepository.Insert(testSubmission);
+                    }
+                    else
+                    {
+                        testSubmission = await _uow.TestSubmissionRepository.GetById(saveTestSubmissionParam.TestSubmissionId);
+                        if (testSubmission != null)
+                        {
+                            testSubmission.SpentTime = saveTestSubmissionParam.SpentTime;
+                            testSubmission.SubmissionDate = DateTime.UtcNow;
+                            testSubmission.Mark = Math.Round(saveTestSubmissionParam.Mark, 2);
+                            testSubmission.NumberOfRightAnswers = saveTestSubmissionParam.NumberOfRightAnswers;
+                            _uow.TestSubmissionRepository.Update(testSubmission);
+                        } else
+                        {
+                            testSubmission = new TestSubmission()
+                            {
+                                TestId = saveTestSubmissionParam.TestId,
+                                SpentTime = saveTestSubmissionParam.SpentTime,
+                                SubmissionDate = DateTime.UtcNow,
+                                NumberOfRightAnswers = saveTestSubmissionParam.NumberOfRightAnswers,
+                                Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
+                                UserId = user.Id
+                            };
+                            _uow.TestSubmissionRepository.Insert(testSubmission);
+                        }
                     }
 
-                    _uow.TranscriptRepository.Insert(new Transcript()
+                    int subjectId = (int) test.SubjectId;
+                    
+                    if (test.IsSuggestedTest)
                     {
-                        UserId = userId,
-                        DateRecord = DateTime.UtcNow,
-                        Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
-                        TranscriptTypeId = 3,
-                        SubjectId = subjectId,
-                        IsUpdate = true,
-                        Status = Consts.STATUS_ACTIVE
-                    });
+                        IEnumerable<Transcript> transcripts = await _uow.TranscriptRepository
+                                .Get(t => t.TranscriptTypeId == 3 && t.UserId == user.Id
+                                && t.SubjectId == subjectId && t.Status == Consts.STATUS_ACTIVE);
+
+                        if (transcripts.Any())
+                        {
+                            foreach (Transcript transcript in transcripts)
+                            {
+                                transcript.DateRecord = DateTime.UtcNow;
+                                transcript.IsUpdate = false;
+                                transcript.Status = Consts.STATUS_INACTIVE;
+                            }
+                            _uow.TranscriptRepository.UpdateRange(transcripts);
+                        }
+
+                        _uow.TranscriptRepository.Insert(new Transcript()
+                        {
+                            UserId = user.Id,
+                            DateRecord = DateTime.UtcNow,
+                            Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
+                            TranscriptTypeId = 3,
+                            SubjectId = subjectId,
+                            IsUpdate = true,
+                            Status = Consts.STATUS_ACTIVE
+                        });
+
+                    }
 
 
                     if ((await _uow.CommitAsync()) > 0)
@@ -220,6 +252,105 @@
                 }
                 response.Errors.Add(ex.Message);
                 return response;
+            }
+            return response;
+        }
+
+        public async Task<Response<int>> SaveFirstTestSubmission(FirstTestSubmissionParam saveTestSubmissionParam, string token)
+        {
+            Response<int> response = new Response<int>();
+            using var tran = _uow.GetTransaction();
+            try
+            {
+                User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Bạn chưa đăng nhập!");
+                    return response;
+                }
+
+                Test test = await _uow.TestRepository.GetFirst(filter: t => t.Id == saveTestSubmissionParam.TestId
+                                                                && t.Status == Consts.STATUS_ACTIVE);
+                if (test == null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Bài thi không tồn tại!");
+                    return response;
+                }
+
+                TestSubmission testSubmission = new TestSubmission()
+                {
+                    TestId = saveTestSubmissionParam.TestId,
+                    SpentTime = 0,
+                    SubmissionDate = DateTime.UtcNow,
+                    NumberOfRightAnswers = 0,
+                    Mark = 0,
+                    UserId = user.Id
+                };
+
+                IEnumerable<Transcript> transcripts = await _uow.TranscriptRepository
+                                            .Get(filter: t => t.SubjectId == test.SubjectId
+                                                        && t.UserId == user.Id
+                                                        && t.TranscriptTypeId == 3
+                                                        && t.Status == Consts.STATUS_ACTIVE);
+                if (transcripts.Any())
+                {
+                    foreach (Transcript transcript in transcripts)
+                    {
+                        transcript.Status = Consts.STATUS_INACTIVE;
+                        transcript.DateRecord = DateTime.UtcNow;
+                    }
+                    _uow.TranscriptRepository.UpdateRange(transcripts);
+                }
+
+                Transcript newTranscript = new Transcript()
+                {
+                    Mark = 0,
+                    SubjectId = (int) test.SubjectId,
+                    UserId = user.Id,
+                    TranscriptTypeId = 3,
+                    DateRecord = DateTime.UtcNow,
+                    IsUpdate = true,
+                    Status = Consts.STATUS_ACTIVE
+                };
+
+                _uow.TranscriptRepository.Insert(newTranscript);
+                _uow.TestSubmissionRepository.Insert(testSubmission);
+
+                if ((await _uow.CommitAsync()) <= 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Lưu không thành công, lỗi hệ thống!");
+                }
+                
+                tran.Commit();
+                response.Succeeded = true;
+                response.Data = testSubmission.Id;
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                tran.Rollback();
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add(ex.Message);
             }
             return response;
         }

@@ -12,5 +12,6 @@ namespace CapstoneAPI.Features.Transcript.Service
     {
         Task<Response<IEnumerable<UserTranscriptTypeDataSet>>> GetMarkOfUser(string token);
         Task<Response<bool>> SaveMarkOfUser(string token, SubjectGroupParam subjectGroupParam);
+        Task<Response<bool>> SaveSingleTranscript(string token, TranscriptParam transcriptParam);
     }
 }

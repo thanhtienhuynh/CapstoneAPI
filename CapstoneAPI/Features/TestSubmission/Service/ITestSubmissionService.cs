@@ -13,6 +13,7 @@ namespace CapstoneAPI.Features.TestSubmission.Service
     {
         Task<Response<TestSubmissionDataSet>> ScoringTest(TestSubmissionParam testSubmissionParam);
         Task<Response<bool>> SaveTestSubmissions(List<SaveTestSubmissionParam> saveTestSubmissionParams, string token);
+        Task<Response<int>> SaveFirstTestSubmission(FirstTestSubmissionParam firstTestSubmissionParam, string token);
         Task<Response<List<UserTestSubmissionDataSet>>> GetTestSubmissionsByUser(string token, UserTestSubmissionQueryParam param);
         Task<Response<DetailTestSubmissionDataSet>> GetDetailTestSubmissionByUser(int testSubmissionId, string token);
         Task<IEnumerable<QuestionDataSet>> ScoringTest1(int testId);

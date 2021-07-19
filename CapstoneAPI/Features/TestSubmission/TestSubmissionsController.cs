@@ -40,6 +40,13 @@ namespace CapstoneAPI.Features.TestSubmission
             return Ok(await _service.SaveTestSubmissions(saveTestSubmissionParams, token));
         }
 
+        [HttpPost("first-saving")]
+        public async Task<ActionResult<Response<int>>> SaveFirstTestSubmission(FirstTestSubmissionParam saveTestSubmissionParam)
+        {
+            string token = Request.Headers["Authorization"];
+            return Ok(await _service.SaveFirstTestSubmission(saveTestSubmissionParam, token));
+        }
+
         [HttpGet()]
         public async Task<ActionResult<Response<List<UserTestSubmissionDataSet>>>> GetTestSubmissionsByUser([FromQuery] UserTestSubmissionQueryParam param)
         {

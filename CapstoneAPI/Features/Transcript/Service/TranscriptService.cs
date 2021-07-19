@@ -169,5 +169,77 @@ namespace CapstoneAPI.Features.Transcript.Service
             }
             return response;
         }
+
+        public async Task<Response<bool>> SaveSingleTranscript(string token, TranscriptParam transcriptParam)
+        {
+            Response<bool> response = new Response<bool>();
+            try
+            {
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Bạn chưa đăng nhập!");
+                    return response;
+                }
+
+                IEnumerable<Models.Transcript> transcripts = await _uow.TranscriptRepository
+                                            .Get(filter: t => t.SubjectId == transcriptParam.SubjectId
+                                                        && t.UserId == user.Id
+                                                        && t.TranscriptTypeId == transcriptParam.TranscriptTypeId 
+                                                        && t.Status == Consts.STATUS_ACTIVE);
+                if (transcripts.Any())
+                {
+                    foreach (Models.Transcript transcript in transcripts)
+                    {
+                        transcript.Status = Consts.STATUS_INACTIVE;
+                        transcript.DateRecord = DateTime.UtcNow;
+                    }
+                    _uow.TranscriptRepository.UpdateRange(transcripts);
+                }
+
+                Models.Transcript newTranscript = new Models.Transcript()
+                {
+                    Mark = transcriptParam.Mark,
+                    SubjectId = transcriptParam.SubjectId,
+                    UserId = user.Id,
+                    TranscriptTypeId = transcriptParam.TranscriptTypeId,
+                    DateRecord = DateTime.UtcNow,
+                    IsUpdate = true,
+                    Status = Consts.STATUS_ACTIVE
+                };
+
+                _uow.TranscriptRepository.Insert(newTranscript);
+
+                if ((await _uow.CommitAsync()) <= 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Lưu điểm không thành công!");
+                    return response;
+                }
+                response.Succeeded = true;
+                response.Data = true;
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+            return response;
+        }
     }
 }
