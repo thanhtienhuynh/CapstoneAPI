@@ -1,10 +1,32 @@
-﻿using System;
+﻿using CapstoneAPI.Features.Major.DataSet;
+using CapstoneAPI.Features.TrainingProgram.DataSet;
+using CapstoneAPI.Features.University.DataSet;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace CapstoneAPI.Features.FollowingDetail.DataSet
 {
+    public class UserFollowingDetail
+    {
+        public AdminTrainingProgramDataSet TrainingProgramDataSet { get; set; }
+        public AdminMajorDataSet MajorDataSet { get; set; }
+        public DetailUniversityDataSet UniversityDataSet { get; set; }
+        public RankingInformation RankingInformation { get; set; }
+        public List<RankingUserInformationGroupByTranscriptType> RankingUserInformationsGroupByTranscriptType { get; set; }
+    }
+
+    public class RankingInformation
+    {
+        public List<SeasonDataSet> SeasonDataSets { get; set; }
+        public int? PositionOfUser { get; set; }
+        public int TotalUserCared { get; set; }
+        public int SubjectGroupId { get; set; }
+        public string SubjectGroupCode { get; set; }
+        public double? RankingMark { get; set; }
+    }
+
     public class RankingUserInformationGroupByTranscriptType
     {
         public int Id { get; set; }

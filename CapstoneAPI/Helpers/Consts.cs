@@ -49,6 +49,12 @@ namespace CapstoneAPI.Helpers
         public static string BUCKET = "unilinks-41d0e.appspot.com";
         public static string AUTH_MAIL = "storage@gmail.com";
         public static string AUTH_PASSWORD = "Matkhau123";
+
+        public const int SECOND = 1;
+        public const int MINUTE = 60 * SECOND;
+        public const int HOUR = 60 * MINUTE;
+        public const int DAY = 24 * HOUR;
+        public const int MONTH = 30 * DAY;
     }
 
     public class LogEvent

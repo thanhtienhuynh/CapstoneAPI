@@ -15,4 +15,9 @@ namespace CapstoneAPI.Features.User.DataSet
     {
         public string uidToken { get; set; }
     }
+
+    public class RegisterToken
+    {
+        public string token { get; set; }
+    }
 }

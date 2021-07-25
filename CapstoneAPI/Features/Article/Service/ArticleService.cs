@@ -70,7 +70,7 @@ namespace CapstoneAPI.Features.Article.Service
                 else
                 {
                     var articleCollapseDataSet = articles.Select(m => _mapper.Map<ArticleCollapseDataSet>(m)).ToList();
-                    var totalRecords = _uow.ArticleRepository
+                    var totalRecords = await _uow.ArticleRepository
                         .Count(filter: filter);
                     result = PaginationHelper.CreatePagedReponse(articleCollapseDataSet, validFilter, totalRecords);
                 }
@@ -151,7 +151,7 @@ namespace CapstoneAPI.Features.Article.Service
                 else
                 {
                     var articleCollapseDataSet = articles.Select(m => _mapper.Map<AdminArticleCollapseDataSet>(m)).ToList();
-                    var totalRecords = _uow.ArticleRepository.Count(filter);
+                    var totalRecords = await _uow.ArticleRepository.Count(filter);
                     result = PaginationHelper.CreatePagedReponse(articleCollapseDataSet, validFilter, totalRecords);
                 }
             }
@@ -437,25 +437,42 @@ namespace CapstoneAPI.Features.Article.Service
                                 //RESULT
                                 IEnumerable<Models.User> users = dictionaryUsers.Values;
                                 var messages = new List<Message>();
+                                List<Models.Notification> notifications = new List<Models.Notification>();
                                 foreach (Models.User user in users)
                                 {
+                                    Models.Notification notification = new Models.Notification()
+                                    {
+                                        DateRecord = DateTime.UtcNow,
+                                        Data = articleToUpdate.Id.ToString(),
+                                        Message = articleToUpdate.Title,
+                                        IsRead = false,
+                                        Type = 1,
+                                        UserId = user.Id
+                                    };
+                                    notifications.Add(notification);
                                     messages.Add(new Message()
                                     {
-                                        Notification = new Notification()
+                                        Notification = new FirebaseAdmin.Messaging.Notification()
                                         {
-                                            Title = articleToUpdate.Title,
-                                            Body = articleToUpdate.ShortDescription,
-                                            ImageUrl = articleToUpdate.PostImageUrl
+                                            Title = "Bạn có bài viết mới!",
+                                            Body = notification.Message
                                         },
                                         Data = new Dictionary<string, string>()
                                         {
-                                            {"id" , articleToUpdate.Id.ToString()},
-                                            {"title" , articleToUpdate.Title},
+                                            {"type" , notification.Type.ToString()},
+                                            {"message" , notification.Message},
+                                            {"data" , notification.Data},
                                         },
                                         Topic = user.Id.ToString()
                                     });
+                                    
                                 }
+                                _uow.NotificationRepository.InsertRange(notifications);
+                                await _uow.CommitAsync();
+                                #pragma warning disable
                                 _firebaseService.SendBatchMessage(messages);
+                                #pragma warning restore
+
                             }
                         }
                     }

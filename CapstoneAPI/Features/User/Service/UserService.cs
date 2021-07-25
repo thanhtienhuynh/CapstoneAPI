@@ -6,6 +6,7 @@
     using CapstoneAPI.Repositories;
     using CapstoneAPI.Wrappers;
     using FirebaseAdmin.Auth;
+    using FirebaseAdmin.Messaging;
     using Microsoft.IdentityModel.Tokens;
     using Serilog;
     using System;
@@ -100,6 +101,63 @@
                 response.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
             
+            return response;
+        }
+
+        public async Task<Response<bool>> UnsubscribeTopic(RegisterToken registerToken, string token)
+        {
+            Response<bool> response = new Response<bool>();
+            Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+            if (user == null)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Bạn chưa đăng nhập!");
+                return response;
+            }
+            var res = await FirebaseMessaging.DefaultInstance
+               .UnsubscribeFromTopicAsync(new List<string>{ registerToken.token}, user.Id.ToString());
+
+            if (res.SuccessCount > 0)
+            {
+                response.Succeeded = true;
+            } else
+            {
+                response.Succeeded = false;
+            }
+            return response;
+        }
+
+        public async Task<Response<bool>> SubscribeTopic(RegisterToken registerToken, string token)
+        {
+            Response<bool> response = new Response<bool>();
+            Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+            if (user == null)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Bạn chưa đăng nhập!");
+                return response;
+            }
+            var res = await FirebaseMessaging.DefaultInstance
+               .SubscribeToTopicAsync(new List<string> { registerToken.token }, user.Id.ToString());
+
+            if (res.SuccessCount > 0)
+            {
+                response.Succeeded = true;
+            }
+            else
+            {
+                response.Succeeded = false;
+            }
             return response;
         }
     }

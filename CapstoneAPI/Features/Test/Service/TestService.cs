@@ -100,9 +100,9 @@
                         if (transcript != null && transcript.DateRecord != null)
                         {
                             userTranscript = transcript.Mark;
-                            if (DateTime.Compare(transcript.DateRecord.Date.AddDays(30), DateTime.UtcNow.Date) > 0)
+                            if (DateTime.Compare(transcript.DateRecord.Date.AddDays(90), DateTime.UtcNow.Date) > 0)
                             {
-                                daysRemaining = transcript.DateRecord.Date.AddDays(30).Subtract(DateTime.UtcNow.Date).TotalDays;
+                                daysRemaining = transcript.DateRecord.Date.AddDays(90).Subtract(DateTime.UtcNow.Date).TotalDays;
                             }
                         }
 
@@ -474,7 +474,7 @@
                         testPagingDataSet.SubjectName = test.Subject.Name;
                         testPagingDataSets.Add(testPagingDataSet);
                     }
-                    var totalRecords = _uow.TestRepository.Count(filter);
+                    var totalRecords = await _uow.TestRepository.Count(filter);
                     result = PaginationHelper.CreatePagedReponse(testPagingDataSets, validFilter, totalRecords);
                 }
             }
@@ -965,7 +965,7 @@
                         testPagingDataSet.SubjectName = test.Subject.Name;
                         testPagingDataSets.Add(testPagingDataSet);
                     }
-                    var totalRecords = _uow.TestRepository.Count(filter);
+                    var totalRecords = await _uow.TestRepository.Count(filter);
                     result = PaginationHelper.CreatePagedReponse(testPagingDataSets, validFilter, totalRecords);
                 }
             }

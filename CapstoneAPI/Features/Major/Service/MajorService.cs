@@ -334,7 +334,7 @@ namespace CapstoneAPI.Features.Major.Service
                     offset: (validFilter.PageNumber - 1) * validFilter.PageSize, orderBy: o => o.OrderBy(m => m.Name)))
                     .Select(m => _mapper.Map<MajorSubjectWeightDataSet>(m)).ToList();
 
-                var totalRecords = _uow.MajorRepository.Count(filter: filter);
+                var totalRecords = await _uow.MajorRepository.Count(filter: filter);
                 if (majors != null && majors.Count > 0)
                 {
 

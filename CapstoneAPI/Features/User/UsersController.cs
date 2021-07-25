@@ -23,5 +23,19 @@
         {
             return Ok(await _service.Login(firebaseToken));
         }
+
+        [HttpPost("unsubscribe")]
+        public async Task<ActionResult<Response<bool>>> UnsubscribeTopic([FromBody] RegisterToken registerToken)
+        {
+            string token = Request.Headers["Authorization"];
+            return Ok(await _service.UnsubscribeTopic(registerToken, token));
+        }
+
+        [HttpPost("subscribe")]
+        public async Task<ActionResult<Response<bool>>> SubscribeTopic([FromBody] RegisterToken registerToken)
+        {
+            string token = Request.Headers["Authorization"];
+            return Ok(await _service.SubscribeTopic(registerToken, token));
+        }
     }
 }

@@ -1,10 +1,12 @@
 ﻿using AutoMapper;
+using CapstoneAPI.Features.FCM.Service;
 using CapstoneAPI.Features.FollowingDetail.DataSet;
 using CapstoneAPI.Features.Rank.DataSet;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
 using CapstoneAPI.Services.Email;
+using FirebaseAdmin.Messaging;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -18,13 +20,15 @@ namespace CapstoneAPI.Features.Rank.Service
         private IMapper _mapper;
         private readonly IUnitOfWork _uow;
         private readonly IEmailService _emailService;
+        private readonly IFCMService _firebaseService;
         private readonly ILogger _log = Log.ForContext<RankService>();
 
-        public RankService(IUnitOfWork uow, IMapper mapper, IEmailService emailService)
+        public RankService(IUnitOfWork uow, IMapper mapper, IEmailService emailService, IFCMService firebaseService)
         {
             _uow = uow;
             _mapper = mapper;
             _emailService = emailService;
+            _firebaseService = firebaseService;
         }
         public async Task<bool> UpdateRank()
         {
@@ -165,7 +169,11 @@ namespace CapstoneAPI.Features.Rank.Service
                      ";
                 string baseContent = @"<p>Trường: {0} - Ngành: {1} - Hệ đào tạo: {2}</p>
                                 <p>Thứ hạng cũ: {3} - Thứ hạng mới: {4}</p>";
+                string upNoti = @"Thứ hạng của bạn trong Trường {0} - Ngành {1} - Hệ {2} tăng từ top {3} lên top {4}";
+                string downNoti = @"Thứ hạng của bạn trong Trường {0} - Ngành {1} - Hệ {2} giảm từ top {3} xuống top {4}";
                 IEnumerable<IGrouping<Models.User, RankFollowingDetailDataSet>> emailedUserGroups = emailedFollowingDetails.GroupBy(u => u.User);
+                List<Models.Notification> notifications = new List<Models.Notification>();
+                var messages = new List<Message>();
                 foreach (IGrouping<Models.User, RankFollowingDetailDataSet> emailedUserGroup in emailedUserGroups)
                 {
                     string content = "";
@@ -176,11 +184,47 @@ namespace CapstoneAPI.Features.Rank.Service
                                                 rankingFollowingDetailDataSet.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.TrainingProgram.Name,
                                                 rankingFollowingDetailDataSet.RankDataSet.Position,
                                                 rankingFollowingDetailDataSet.RankDataSet.NewPosition);
+                        Models.Notification notification = new Models.Notification()
+                        {
+                            DateRecord = DateTime.UtcNow,
+                            Data = rankingFollowingDetailDataSet.RankDataSet.FollowingDetailId.ToString(),
+                            Message = string.Format(rankingFollowingDetailDataSet.RankDataSet.Position >
+                                                rankingFollowingDetailDataSet.RankDataSet.NewPosition ? upNoti : downNoti,
+                                                rankingFollowingDetailDataSet.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.University.Name,
+                                                rankingFollowingDetailDataSet.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.Major.Name,
+                                                rankingFollowingDetailDataSet.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.TrainingProgram.Name,
+                                                rankingFollowingDetailDataSet.RankDataSet.Position,
+                                                rankingFollowingDetailDataSet.RankDataSet.NewPosition),
+                            IsRead = false,
+                            Type = 2,
+                            UserId = emailedUserGroup.Key.Id
+                        };
+                        notifications.Add(notification);
+                        messages.Add(new Message()
+                        {
+                            Notification = new FirebaseAdmin.Messaging.Notification()
+                            {
+                                Title = "Thứ hạng của bạn đã được cập nhật!",
+                                Body = notification.Message,
+                            },
+                            Data = new Dictionary<string, string>()
+                            {
+                                {"type" , notification.Type.ToString()},
+                                {"message" , notification.Message},
+                                {"data" , notification.Data},
+                            },
+                            Topic = emailedUserGroup.Key.Id.ToString()
+                        });
                     }
+                   
                     string completedMessage = string.Format(message, emailedUserGroup.Key.Fullname, content);
                     _emailService.SendEmailAsync(emailedUserGroup.Key.Email, "MOHS RANK UPDATION", completedMessage);
                 }
-            } catch (Exception ex)
+                _uow.NotificationRepository.InsertRange(notifications);
+                await _uow.CommitAsync();
+                _firebaseService.SendBatchMessage(messages);
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.ToString());
                 return false;

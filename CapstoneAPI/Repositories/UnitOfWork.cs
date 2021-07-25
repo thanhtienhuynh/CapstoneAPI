@@ -43,6 +43,7 @@ namespace CapstoneAPI.Repositories
         private IGenericRepository<AdmissionMethod> _admissionMethodRepository;
         private IGenericRepository<SpecialSubjectGroup> _specialSubjectGroupRepository;
         private IGenericRepository<TestType> _testTypeRepository;
+        private IGenericRepository<Notification> _notificationRepository;
         public IGenericRepository<SubjectGroup> SubjectGroupRepository
         {
             get { return _subjectGroupRepository ??= new GenericRepository<SubjectGroup>(_context); }
@@ -176,6 +177,10 @@ namespace CapstoneAPI.Repositories
         public IGenericRepository<TestType> TestTypeRepository
         {
             get { return _testTypeRepository ??= new GenericRepository<TestType>(_context); }
+        }
+        public IGenericRepository<Notification> NotificationRepository
+        {
+            get { return _notificationRepository ??= new GenericRepository<Notification>(_context); }
         }
         public UnitOfWork(CapstoneDBContext context)
         {

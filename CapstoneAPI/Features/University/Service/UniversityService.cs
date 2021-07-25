@@ -664,7 +664,7 @@ namespace CapstoneAPI.Features.University.Service
 
 
                 var adminUniversityDataSet = universities.Select(m => _mapper.Map<AdminUniversityDataSet>(m)).ToList();
-                var totalRecords = _uow.UniversityRepository.Count(filter);
+                var totalRecords = await _uow.UniversityRepository.Count(filter);
                 result = PaginationHelper.CreatePagedReponse(adminUniversityDataSet, validFilter, totalRecords);
             } catch (Exception ex)
             {
@@ -721,7 +721,7 @@ namespace CapstoneAPI.Features.University.Service
 
 
                 var adminUniversityDataSet = universities.Select(m => _mapper.Map<AdminUniversityDataSet>(m)).ToList();
-                var totalRecords = _uow.UniversityRepository.Count(filter);
+                var totalRecords = await _uow.UniversityRepository.Count(filter);
                 result = PaginationHelper.CreatePagedReponse(adminUniversityDataSet, validFilter, totalRecords);
             } catch (Exception ex)
             {

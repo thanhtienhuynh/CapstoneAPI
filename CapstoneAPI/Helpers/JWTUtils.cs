@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CapstoneAPI.Helpers
 {
-    public class JWTUtils
+    public static class JWTUtils
     {
         public static string GetUserIdFromJwtToken(string token)
         {

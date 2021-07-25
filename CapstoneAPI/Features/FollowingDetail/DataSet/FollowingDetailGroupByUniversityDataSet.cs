@@ -36,7 +36,7 @@ namespace CapstoneAPI.Features.FollowingDetail.DataSet
         public string MajorCode { get; set; }
         public string Code { get; set; }
         public string Name { get; set; }
-        public SeasonDataSet SeasonDataSet { get; set; }
+        public List<SeasonDataSet> SeasonDataSets { get; set; }
         public int? PositionOfUser { get; set; }
         public int TotalUserCared { get; set; }
         public int SubjectGroupId { get; set; }

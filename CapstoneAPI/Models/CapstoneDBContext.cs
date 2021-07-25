@@ -28,6 +28,7 @@ namespace CapstoneAPI.Models
         public virtual DbSet<MajorCareer> MajorCareers { get; set; }
         public virtual DbSet<MajorDetail> MajorDetails { get; set; }
         public virtual DbSet<MajorSubjectGroup> MajorSubjectGroups { get; set; }
+        public virtual DbSet<Notification> Notifications { get; set; }
         public virtual DbSet<Option> Options { get; set; }
         public virtual DbSet<Province> Provinces { get; set; }
         public virtual DbSet<Question> Questions { get; set; }
@@ -267,6 +268,23 @@ namespace CapstoneAPI.Models
                     .HasForeignKey(d => d.SubjectGroupId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_MajorSubjectGroup_SubjectGroup");
+            });
+
+            modelBuilder.Entity<Notification>(entity =>
+            {
+                entity.ToTable("Notification");
+
+                entity.Property(e => e.Data).IsRequired();
+
+                entity.Property(e => e.DateRecord).HasColumnType("datetime");
+
+                entity.Property(e => e.UserId).HasColumnName("User_Id");
+
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.Notifications)
+                    .HasForeignKey(d => d.UserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_Notification_User");
             });
 
             modelBuilder.Entity<Option>(entity =>

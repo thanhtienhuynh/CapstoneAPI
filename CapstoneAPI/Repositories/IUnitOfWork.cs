@@ -43,6 +43,7 @@ namespace CapstoneAPI.Repositories
         IGenericRepository<MajorArticle> MajorArticleRepository { get; }
         IGenericRepository<TestType> TestTypeRepository { get; }
         IRankRepository RankRepository { get; }
+        IGenericRepository<Notification> NotificationRepository { get; }
         IDbContextTransaction GetTransaction();
         Task<int> CommitAsync();
     }

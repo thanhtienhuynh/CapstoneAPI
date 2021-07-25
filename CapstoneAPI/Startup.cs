@@ -43,6 +43,7 @@ using CapstoneAPI.Features.Transcript.Service;
 using CapstoneAPI.Features.University.Service;
 using CapstoneAPI.Features.Configuration.Service;
 using CapstoneAPI.Features.FCM.Service;
+using CapstoneAPI.Features.Notification.Service;
 
 namespace CapstoneAPI
 {
@@ -174,6 +175,7 @@ namespace CapstoneAPI
             services.AddScoped<IMajorSubjectGroupService, MajorSubjectGroupService>();
             services.AddScoped<ITranscriptService, TranscriptService>();
             services.AddScoped<ITestTypeService, TestTypeService>();
+            services.AddScoped<INotificationService, NotificationService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

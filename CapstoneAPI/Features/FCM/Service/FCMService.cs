@@ -21,7 +21,7 @@ namespace CapstoneAPI.Features.FCM.Service
                      {"title" , title},
                      {"body" , body }
                 },
-                Notification = new Notification
+                Notification = new FirebaseAdmin.Messaging.Notification
                 {
                     Title = title,
                     Body = body
@@ -46,7 +46,7 @@ namespace CapstoneAPI.Features.FCM.Service
             {
                 Topic = topic,
                 Data = data,
-                Notification = new Notification
+                Notification = new FirebaseAdmin.Messaging.Notification
                 {
                     Title = title,
                     Body = body
