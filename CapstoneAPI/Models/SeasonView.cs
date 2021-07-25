@@ -5,18 +5,12 @@ using System.Collections.Generic;
 
 namespace CapstoneAPI.Models
 {
-    public partial class Season
+    public partial class SeasonView
     {
-        public Season()
-        {
-            MajorDetails = new HashSet<MajorDetail>();
-        }
-
         public int Id { get; set; }
         public string Name { get; set; }
         public DateTime FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
         public int Status { get; set; }
-
-        public virtual ICollection<MajorDetail> MajorDetails { get; set; }
     }
 }

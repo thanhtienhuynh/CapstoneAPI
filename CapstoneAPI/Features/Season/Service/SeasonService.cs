@@ -29,7 +29,8 @@ namespace CapstoneAPI.Features.Season.Service
             Response<IEnumerable<AdminSeasonDataSet>> response = new Response<IEnumerable<AdminSeasonDataSet>>();
             try
             {
-                IEnumerable<AdminSeasonDataSet> seasons = (await _uow.SeasonRepository.Get(orderBy: s => s.OrderByDescending(o => o.FromDate)))
+                IEnumerable<AdminSeasonDataSet> seasons = (await _uow.SeasonRepository.Get(filter: s => s.Status == Consts.STATUS_ACTIVE,
+                                                            orderBy: s => s.OrderByDescending(o => o.FromDate)))
                                                             .Select(s => _mapper.Map<AdminSeasonDataSet>(s));
                 response.Data = seasons;
                 response.Succeeded = true;
@@ -57,7 +58,7 @@ namespace CapstoneAPI.Features.Season.Service
                 {
                     response.Errors = new List<string>();
                 }
-                response.Errors.Add("Tên năm không hợp lệ!");
+                response.Errors.Add("Tên mùa không hợp lệ!");
                 return response;
             }
             Models.Season currentSeason = await _uow.SeasonRepository.GetCurrentSeason();
@@ -68,11 +69,11 @@ namespace CapstoneAPI.Features.Season.Service
                 {
                     response.Errors = new List<string>();
                 }
-                response.Errors.Add("Năm đã tồn tại!");
+                response.Errors.Add("Mùa mới trùng ngày với các mùa trước!");
                 return response;
             }
             IEnumerable<Models.Season> seasons = await _uow.SeasonRepository.Get(filter: s => s.Name == createSeasonParam.Name
-            && s.Status == Consts.STATUS_ACTIVE);
+                                                                        && s.Status == Consts.STATUS_ACTIVE);
             if (seasons.Count() > 0)
             {
                 response.Succeeded = false;
@@ -80,7 +81,7 @@ namespace CapstoneAPI.Features.Season.Service
                 {
                     response.Errors = new List<string>();
                 }
-                response.Errors.Add("Tên năm này đã tồn tại trong hệ thống!");
+                response.Errors.Add("Tên mùa đã tồn tại trong hệ thống!");
                 return response;
             }
             using var tran = _uow.GetTransaction();
@@ -90,7 +91,6 @@ namespace CapstoneAPI.Features.Season.Service
                 {
                     Name = createSeasonParam.Name,
                     FromDate = createSeasonParam.FromDate,
-                    ToDate = createSeasonParam.ToDate,
                     Status = Consts.STATUS_ACTIVE,
                 };
                 _uow.SeasonRepository.Insert(season);

@@ -37,6 +37,7 @@ namespace CapstoneAPI.Models
         public virtual DbSet<Region> Regions { get; set; }
         public virtual DbSet<Role> Roles { get; set; }
         public virtual DbSet<Season> Seasons { get; set; }
+        public virtual DbSet<SeasonView> SeasonViews { get; set; }
         public virtual DbSet<SpecialSubjectGroup> SpecialSubjectGroups { get; set; }
         public virtual DbSet<SubAdmissionCriterion> SubAdmissionCriteria { get; set; }
         public virtual DbSet<Subject> Subjects { get; set; }
@@ -278,6 +279,8 @@ namespace CapstoneAPI.Models
 
                 entity.Property(e => e.DateRecord).HasColumnType("datetime");
 
+                entity.Property(e => e.Message).IsRequired();
+
                 entity.Property(e => e.UserId).HasColumnName("User_Id");
 
                 entity.HasOne(d => d.User)
@@ -415,13 +418,28 @@ namespace CapstoneAPI.Models
             {
                 entity.ToTable("Season");
 
-                entity.Property(e => e.FromDate).HasColumnType("datetime");
+                entity.Property(e => e.FromDate).HasColumnType("date");
+
+                entity.Property(e => e.Name)
+                    .IsRequired()
+                    .HasMaxLength(100);
+            });
+
+            modelBuilder.Entity<SeasonView>(entity =>
+            {
+                entity.HasNoKey();
+
+                entity.ToView("SeasonView");
+
+                entity.Property(e => e.FromDate).HasColumnType("date");
+
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
 
                 entity.Property(e => e.Name)
                     .IsRequired()
                     .HasMaxLength(100);
 
-                entity.Property(e => e.ToDate).HasColumnType("datetime");
+                entity.Property(e => e.ToDate).HasColumnType("date");
             });
 
             modelBuilder.Entity<SpecialSubjectGroup>(entity =>
