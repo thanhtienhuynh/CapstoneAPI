@@ -313,107 +313,110 @@ namespace CapstoneAPI.Services.Crawler
         {
             foreach (var article in articles)
             {
-                HtmlDocument htmlDocument = await CrawlerHelper.GetHtmlDocument(article.RootUrl);
-
-                var headerConfigTag = htmlDocument.DocumentNode.Descendants(
-                    configuration.SelectToken("VNExpress.details.headerTag.name").ToString()).First();
-                string headerConfig = string.Empty;
-
-                if (headerConfigTag != null)
+                try
                 {
-                    headerConfig = headerConfigTag.InnerText;
-                }
+                    HtmlDocument htmlDocument = await CrawlerHelper.GetHtmlDocument(article.RootUrl);
 
-                var titleTag = htmlDocument.DocumentNode.Descendants(
-                    configuration.SelectToken("VNExpress.details.titleTag.name").ToString())
-                    .Where(node => node.GetAttributeValue(
-                        configuration.SelectToken("VNExpress.details.titleTag.attribute").ToString(), string.Empty).Equals(
-                        configuration.SelectToken("VNExpress.details.titleTag.attributeValue").ToString()));
-                string title = string.Empty;
-                if (titleTag != null)
+                    var headerConfigTag = htmlDocument.DocumentNode.Descendants(
+                        configuration.SelectToken("VNExpress.details.headerTag.name").ToString()).First();
+                    string headerConfig = string.Empty;
+
+                    if (headerConfigTag != null)
+                    {
+                        headerConfig = headerConfigTag.InnerHtml;
+                    }
+
+                    var titleTag = htmlDocument.DocumentNode.Descendants(
+                        configuration.SelectToken("VNExpress.details.titleTag.name").ToString())
+                        .Where(node => node.GetAttributeValue(
+                            configuration.SelectToken("VNExpress.details.titleTag.attribute").ToString(), string.Empty).Equals(
+                            configuration.SelectToken("VNExpress.details.titleTag.attributeValue").ToString()));
+                    string title = string.Empty;
+                    if (titleTag != null)
+                    {
+                        title = titleTag.First().InnerText;
+                    }
+
+                    var descriptionTag = htmlDocument.DocumentNode.Descendants(
+                        configuration.SelectToken("VNExpress.details.descriptionTag.name").ToString())
+                       .Where(node => node.GetAttributeValue(
+                           configuration.SelectToken("VNExpress.details.descriptionTag.attribute").ToString(), string.Empty).Equals(
+                           configuration.SelectToken("VNExpress.details.descriptionTag.attributeValue").ToString()));
+                    string description = string.Empty;
+                    if (descriptionTag != null)
+                    {
+                        description = descriptionTag.First().InnerText;
+                    }
+
+                    var timeTag = htmlDocument.DocumentNode.Descendants(
+                        configuration.SelectToken("VNExpress.details.timeTag.name").ToString())
+                        .Where(node => node.GetAttributeValue(
+                            configuration.SelectToken("VNExpress.details.timeTag.attribute").ToString(), string.Empty).Equals(
+                            configuration.SelectToken("VNExpress.details.timeTag.attributeValue").ToString()));
+                    string timeInSeconds = string.Empty;
+                    if (timeTag != null && timeTag.Any())
+                    {
+                        timeInSeconds = timeTag.First().GetAttributeValue(
+                            configuration.SelectToken("VNExpress.details.timeTag.selection").ToString(), string.Empty);
+                    }
+
+                    DateTime postedDate = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+                    if (!string.IsNullOrEmpty(timeInSeconds))
+                    {
+                        postedDate = postedDate.AddSeconds(long.Parse(timeInSeconds)).ToLocalTime();
+                    }
+
+                    var detail = htmlDocument.DocumentNode.Descendants(
+                        configuration.SelectToken("VNExpress.details.content.name").ToString())
+                       .Where(node => node.GetAttributeValue(
+                           configuration.SelectToken("VNExpress.details.content.attribute").ToString(), string.Empty)
+                       .Contains(configuration.SelectToken("VNExpress.details.content.attributeValue").ToString())).First();
+
+                    var content = detail.ParentNode.ParentNode;
+                    content.RemoveAllChildren();
+                    content.AppendChild(detail);
+
+                    var imgs = detail.Descendants(configuration.SelectToken("VNExpress.details.imgUrlTag.name").ToString())
+                                    .Where(node => node.GetAttributeValue(
+                                        configuration.SelectToken("VNExpress.details.imgUrlTag.containAttribute").ToString(), "")
+                                    .Contains(configuration.SelectToken("VNExpress.details.imgUrlTag.containAttributeValue").ToString()));
+                    UpdateNewSrcInImgTag(imgs);
+
+                    var related = detail.Descendants(
+                        configuration.SelectToken("VNExpress.details.relatedTag.name").ToString())
+                        .Where(node => node.GetAttributeValue(
+                            configuration.SelectToken("VNExpress.details.relatedTag.attribute").ToString(), "")
+                        .Contains(configuration.SelectToken("VNExpress.details.relatedTag.attributeValue").ToString()));
+
+                    if (related.Count() > 0)
+                    {
+                        related.First().ParentNode.RemoveChild(related.First());
+                    }
+
+                    if (imgs != null && imgs.Count() > 0)
+                    {
+                        article.PostImageUrl = imgs.First().GetAttributeValue(
+                            configuration.SelectToken("VNExpress.postImgUrlTag.attribute").ToString(), "");
+                    }
+                    article.HeaderConfig = headerConfig;
+                    article.Status = 0;
+                    article.CrawlerDate = DateTime.UtcNow.AddHours(7);
+                    article.Content = detail.InnerHtml.Trim();
+                    article.PostedDate = postedDate;
+                    article.Title = title;
+                    article.ShortDescription = description;
+                }
+                catch (Exception ex)
                 {
-                    title = titleTag.First().InnerText;
+                    _log.Error(ex.ToString());
+                    continue;
                 }
-
-                var descriptionTag = htmlDocument.DocumentNode.Descendants(
-                    configuration.SelectToken("VNExpress.details.descriptionTag.name").ToString())
-                   .Where(node => node.GetAttributeValue(
-                       configuration.SelectToken("VNExpress.details.descriptionTag.attribute").ToString(), string.Empty).Equals(
-                       configuration.SelectToken("VNExpress.details.descriptionTag.attributeValue").ToString()));
-                string description = string.Empty;
-                if (descriptionTag != null)
-                {
-                    description = descriptionTag.First().InnerText;
-                }
-
-                var timeTag = htmlDocument.DocumentNode.Descendants(
-                    configuration.SelectToken("VNExpress.details.timeTag.name").ToString())
-                    .Where(node => node.GetAttributeValue(
-                        configuration.SelectToken("VNExpress.details.timeTag.attribute").ToString(), string.Empty).Equals(
-                        configuration.SelectToken("VNExpress.details.timeTag.attributeValue").ToString()));
-                string timeInSeconds = string.Empty;
-                if (timeTag != null && timeTag.Any())
-                {
-                    timeInSeconds = timeTag.First().GetAttributeValue(
-                        configuration.SelectToken("VNExpress.details.timeTag.selection").ToString(), string.Empty);
-                }
-
-                DateTime postedDate = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-                if (!string.IsNullOrEmpty(timeInSeconds))
-                {
-                    postedDate = postedDate.AddSeconds(long.Parse(timeInSeconds)).ToLocalTime();
-                }
-
-                var detail = htmlDocument.DocumentNode.Descendants(
-                    configuration.SelectToken("VNExpress.details.content.name").ToString())
-                   .Where(node => node.GetAttributeValue(
-                       configuration.SelectToken("VNExpress.details.content.attribute").ToString(), string.Empty)
-                   .Contains(configuration.SelectToken("VNExpress.details.content.attributeValue").ToString())).First();
-
-                var content = detail.ParentNode.ParentNode;
-                content.RemoveAllChildren();
-                content.AppendChild(detail);
-
-                var imgs = detail.Descendants(configuration.SelectToken("VNExpress.details.imgUrlTag.name").ToString())
-                                .Where(node => node.GetAttributeValue(
-                                    configuration.SelectToken("VNExpress.details.imgUrlTag.containAttribute").ToString(), "")
-                                .Contains(configuration.SelectToken("VNExpress.details.imgUrlTag.containAttributeValue").ToString()));
-                UpdateNewSrcInImgTag(imgs);
-
-                var related = detail.Descendants(
-                    configuration.SelectToken("VNExpress.details.relatedTag.name").ToString())
-                    .Where(node => node.GetAttributeValue(
-                        configuration.SelectToken("VNExpress.details.relatedTag.attribute").ToString(), "")
-                    .Contains(configuration.SelectToken("VNExpress.details.relatedTag.attributeValue").ToString()));
-
-                if (related.Count() > 0)
-                {
-                    related.First().ParentNode.RemoveChild(related.First());
-                }
-
-                if (imgs != null && imgs.Count() > 0)
-                {
-                    article.PostImageUrl = imgs.First().GetAttributeValue(
-                        configuration.SelectToken("VNExpress.postImgUrlTag.attribute").ToString(), "");
-                }
-                article.HeaderConfig = headerConfig;
-                article.Status = 0;
-                article.CrawlerDate = DateTime.UtcNow.AddHours(7);
-                article.Content = detail.InnerHtml.Trim();
-                article.PostedDate = postedDate;
-                article.Title = title;
-                article.ShortDescription = description;
             }
 
             _uow.ArticleRepository.InsertRange(articles);
             int result = await _uow.CommitAsync();
 
-            if (result > 0)
-            {
-                return articles.Count();
-            }
-
-            return 0;
+            return result;
         }
 
         private void UpdateNewSrcInImgTag(IEnumerable<HtmlNode> imgUrls)
