@@ -104,80 +104,28 @@ namespace CapstoneAPI.Features.Season.Service
                     response.Errors.Add("Thêm mùa mới bị lỗi!");
                     return response;
                 }
-                IEnumerable<Models.MajorDetail> majorDetails = await _uow.MajorDetailRepository.Get(filter: m =>
-                m.SeasonId == createSeasonParam.SeasonSourceId && m.Status == Consts.STATUS_ACTIVE,
-                includeProperties: "AdmissionCriterion,AdmissionCriterion.SubAdmissionCriteria,AdmissionCriterion.SubAdmissionCriteria.EntryMarks");
-
-                if (majorDetails.Any())
+                if (createSeasonParam.SeasonSourceId != null && createSeasonParam.SeasonSourceId > 0)
                 {
-                    foreach (Models.MajorDetail oldMajorDetail in majorDetails)
+                    IEnumerable<Models.MajorDetail> majorDetails = await _uow.MajorDetailRepository.Get(
+                        filter: m => m.SeasonId == createSeasonParam.SeasonSourceId && m.Status == Consts.STATUS_ACTIVE,
+                        includeProperties: "AdmissionCriterion,AdmissionCriterion.SubAdmissionCriteria,AdmissionCriterion.SubAdmissionCriteria.EntryMarks");
+
+                    if (majorDetails.Any())
                     {
-                        //MAJORDETAIL
-                        Models.MajorDetail newMajorDetail = new Models.MajorDetail
+                        foreach (Models.MajorDetail oldMajorDetail in majorDetails)
                         {
-                            UniversityId = oldMajorDetail.UniversityId,
-                            MajorId = oldMajorDetail.MajorId,
-                            MajorCode = oldMajorDetail.MajorCode,
-                            TrainingProgramId = oldMajorDetail.TrainingProgramId,
-                            SeasonId = season.Id,
-                            Status = Consts.STATUS_ACTIVE,
-                            UpdatedDate = DateTime.UtcNow,
-                        };
-                        _uow.MajorDetailRepository.Insert(newMajorDetail);
-                        if ((await _uow.CommitAsync()) <= 0)
-                        {
-                            response.Succeeded = false;
-                            if (response.Errors == null)
+                            //MAJORDETAIL
+                            Models.MajorDetail newMajorDetail = new Models.MajorDetail
                             {
-                                response.Errors = new List<string>();
-                            }
-                            response.Errors.Add("Thêm chi tiết ngành bị lỗi!");
-                            return response;
-                        }
-
-                        //ADDMISSION
-                        if (oldMajorDetail.AdmissionCriterion == null)
-                        {
-                            continue;
-                        }
-                        Models.AdmissionCriterion newAdmissionCriterion = new Models.AdmissionCriterion
-                        {
-                            MajorDetailId = newMajorDetail.Id,
-                            Quantity = null,
-                        };
-                        _uow.AdmissionCriterionRepository.Insert(newAdmissionCriterion);
-                        if ((await _uow.CommitAsync()) <= 0)
-                        {
-                            response.Succeeded = false;
-                            if (response.Errors == null)
-                            {
-                                response.Errors = new List<string>();
-                            }
-                            response.Errors.Add("Thêm chỉ tiêu tổng bị lỗi!");
-                            return response;
-                        }
-
-                       
-                        IEnumerable<Models.SubAdmissionCriterion> oldSubAdmissions = (oldMajorDetail.AdmissionCriterion.SubAdmissionCriteria)
-                            .Where(s => s.Status == Consts.STATUS_ACTIVE);
-                        //SUBADMISSION
-                        if (oldSubAdmissions == null|| oldSubAdmissions.Count() < 1)
-                        {
-                            continue;
-                        }
-                        foreach (var oldSubAdmission in oldSubAdmissions)
-                        {
-                            Models.SubAdmissionCriterion newSubAdmissionCriterion = new Models.SubAdmissionCriterion
-                            {
-                                AdmissionCriterionId = newAdmissionCriterion.MajorDetailId,
-                                Quantity = null,
-                                Gender = oldSubAdmission.Gender,
-                                ProvinceId = oldSubAdmission.ProvinceId,
-                                AdmissionMethodId = oldSubAdmission.AdmissionMethodId,
-                                Status = Consts.STATUS_ACTIVE
+                                UniversityId = oldMajorDetail.UniversityId,
+                                MajorId = oldMajorDetail.MajorId,
+                                MajorCode = oldMajorDetail.MajorCode,
+                                TrainingProgramId = oldMajorDetail.TrainingProgramId,
+                                SeasonId = season.Id,
+                                Status = Consts.STATUS_ACTIVE,
+                                UpdatedDate = DateTime.UtcNow,
                             };
-                            _uow.SubAdmissionCriterionRepository.Insert(newSubAdmissionCriterion);
-
+                            _uow.MajorDetailRepository.Insert(newMajorDetail);
                             if ((await _uow.CommitAsync()) <= 0)
                             {
                                 response.Succeeded = false;
@@ -185,27 +133,53 @@ namespace CapstoneAPI.Features.Season.Service
                                 {
                                     response.Errors = new List<string>();
                                 }
-                                response.Errors.Add("Thêm chỉ tiêu phụ bị lỗi!");
+                                response.Errors.Add("Thêm chi tiết ngành bị lỗi!");
                                 return response;
                             }
 
-                            //ENTRYMARKS
-                            
-                            IEnumerable<Models.EntryMark> oldEntryMarks = (oldSubAdmission.EntryMarks).Where(e => e.Status == Consts.STATUS_ACTIVE);
-                            if (oldEntryMarks == null || oldEntryMarks.Count() < 1)
+                            //ADDMISSION
+                            if (oldMajorDetail.AdmissionCriterion == null)
                             {
                                 continue;
                             }
-                            foreach (var oldEntryMark in oldEntryMarks)
+                            Models.AdmissionCriterion newAdmissionCriterion = new Models.AdmissionCriterion
                             {
-                                Models.EntryMark newEntryMark = new Models.EntryMark
+                                MajorDetailId = newMajorDetail.Id,
+                                Quantity = null,
+                            };
+                            _uow.AdmissionCriterionRepository.Insert(newAdmissionCriterion);
+                            if ((await _uow.CommitAsync()) <= 0)
+                            {
+                                response.Succeeded = false;
+                                if (response.Errors == null)
                                 {
-                                    MajorSubjectGroupId = oldEntryMark.MajorSubjectGroupId,
-                                    Mark = null,
-                                    SubAdmissionCriterionId = newSubAdmissionCriterion.Id,
-                                    Status = Consts.STATUS_ACTIVE,
+                                    response.Errors = new List<string>();
+                                }
+                                response.Errors.Add("Thêm chỉ tiêu tổng bị lỗi!");
+                                return response;
+                            }
+
+
+                            IEnumerable<Models.SubAdmissionCriterion> oldSubAdmissions = (oldMajorDetail.AdmissionCriterion.SubAdmissionCriteria)
+                                .Where(s => s.Status == Consts.STATUS_ACTIVE);
+                            //SUBADMISSION
+                            if (oldSubAdmissions == null || oldSubAdmissions.Count() < 1)
+                            {
+                                continue;
+                            }
+                            foreach (var oldSubAdmission in oldSubAdmissions)
+                            {
+                                Models.SubAdmissionCriterion newSubAdmissionCriterion = new Models.SubAdmissionCriterion
+                                {
+                                    AdmissionCriterionId = newAdmissionCriterion.MajorDetailId,
+                                    Quantity = null,
+                                    Gender = oldSubAdmission.Gender,
+                                    ProvinceId = oldSubAdmission.ProvinceId,
+                                    AdmissionMethodId = oldSubAdmission.AdmissionMethodId,
+                                    Status = Consts.STATUS_ACTIVE
                                 };
-                                _uow.EntryMarkRepository.Insert(newEntryMark);
+                                _uow.SubAdmissionCriterionRepository.Insert(newSubAdmissionCriterion);
+
                                 if ((await _uow.CommitAsync()) <= 0)
                                 {
                                     response.Succeeded = false;
@@ -213,14 +187,44 @@ namespace CapstoneAPI.Features.Season.Service
                                     {
                                         response.Errors = new List<string>();
                                     }
-                                    response.Errors.Add("Thêm chỉ điểm bị lỗi!");
+                                    response.Errors.Add("Thêm chỉ tiêu phụ bị lỗi!");
                                     return response;
                                 }
-                            }
-                        }
 
+                                //ENTRYMARKS
+
+                                IEnumerable<Models.EntryMark> oldEntryMarks = (oldSubAdmission.EntryMarks).Where(e => e.Status == Consts.STATUS_ACTIVE);
+                                if (oldEntryMarks == null || oldEntryMarks.Count() < 1)
+                                {
+                                    continue;
+                                }
+                                foreach (var oldEntryMark in oldEntryMarks)
+                                {
+                                    Models.EntryMark newEntryMark = new Models.EntryMark
+                                    {
+                                        MajorSubjectGroupId = oldEntryMark.MajorSubjectGroupId,
+                                        Mark = null,
+                                        SubAdmissionCriterionId = newSubAdmissionCriterion.Id,
+                                        Status = Consts.STATUS_ACTIVE,
+                                    };
+                                    _uow.EntryMarkRepository.Insert(newEntryMark);
+                                    if ((await _uow.CommitAsync()) <= 0)
+                                    {
+                                        response.Succeeded = false;
+                                        if (response.Errors == null)
+                                        {
+                                            response.Errors = new List<string>();
+                                        }
+                                        response.Errors.Add("Thêm chỉ điểm bị lỗi!");
+                                        return response;
+                                    }
+                                }
+                            }
+
+                        }
                     }
                 }
+                
                 tran.Commit();
                 response.Succeeded = true;
                 response.Data = _mapper.Map<AdminSeasonDataSet>(season);

@@ -1375,7 +1375,8 @@ namespace CapstoneAPI.Features.University.Service
         {
             Response<bool> response = new Response<bool>();
             if (updatingMajorUniversityParam.MajorDetailId <= 0
-                || updatingMajorUniversityParam.Status < 0)
+                || (updatingMajorUniversityParam.Status != Consts.STATUS_ACTIVE
+                && updatingMajorUniversityParam.Status != Consts.STATUS_INACTIVE))
             {
                 response.Succeeded = false;
                 if (response.Errors == null)
@@ -1424,16 +1425,28 @@ namespace CapstoneAPI.Features.University.Service
                 {
                     IEnumerable<Models.SubAdmissionCriterion> subAdmissionCriterias = await _uow.SubAdmissionCriterionRepository.Get(filter:
                        s => s.AdmissionCriterionId == MajorDetailExisted.Id && s.Status == Consts.STATUS_ACTIVE);
-                    if (subAdmissionCriterias != null && subAdmissionCriterias.Count() > 0)
+                    if (subAdmissionCriterias.Any())
                     {
                         foreach (SubAdmissionCriterion aSubAdmission in subAdmissionCriterias)
                         {
                             IEnumerable<Models.EntryMark> entryMarks = await _uow.EntryMarkRepository.Get(filter: e =>
                             e.SubAdmissionCriterionId == aSubAdmission.Id && e.Status == Consts.STATUS_ACTIVE);
-                            if (entryMarks != null && entryMarks.Count() >0)
+                            if (entryMarks.Any())
                             {
                                 foreach (EntryMark mark in entryMarks)
                                 {
+                                    IEnumerable<Models.FollowingDetail> followingDetails = await _uow.FollowingDetailRepository.Get(
+                                        filter: e => e.EntryMarkId == mark.Id && e.Status == Consts.STATUS_ACTIVE,
+                                        includeProperties: "User");
+                                    if (followingDetails.Any())
+                                    {
+                                        foreach (var followingDetail in followingDetails)
+                                        {
+                                            //Xoa major detail, xoa Follow, khong can update ranking
+                                            followingDetail.Status = Consts.STATUS_INACTIVE;
+                                            _uow.FollowingDetailRepository.Update(followingDetail);
+                                        }
+                                    }
                                     mark.Status = Consts.STATUS_INACTIVE;
                                     _uow.EntryMarkRepository.Update(mark);
                                 }
@@ -1463,7 +1476,6 @@ namespace CapstoneAPI.Features.University.Service
 
                     _uow.AdmissionCriterionRepository.Update(MajorDetailExisted.AdmissionCriterion);
 
-
                     //SUB ASSMISSION CAN NOT NULL
                     if (updatingMajorUniversityParam.UpdatingUniSubAdmissionParams == null
                         || updatingMajorUniversityParam.UpdatingUniSubAdmissionParams.Count < 1)
@@ -1473,92 +1485,299 @@ namespace CapstoneAPI.Features.University.Service
                         {
                             response.Errors = new List<string>();
                         }
-                        response.Errors.Add("Một ngành học phải có chỉ tiêu!");
+                        response.Errors.Add("Ngành học phải có chỉ tiêu!");
                         return response;
                     }
 
                     foreach (UpdatingUniSubAdmissionParam subAdmissionParam in updatingMajorUniversityParam.UpdatingUniSubAdmissionParams)
                     {
-                        Models.SubAdmissionCriterion newSubAdmissionCriterion = new SubAdmissionCriterion();
-                        newSubAdmissionCriterion.AdmissionCriterionId = MajorDetailExisted.Id;
-                        newSubAdmissionCriterion.AdmissionMethodId = subAdmissionParam.AdmissionMethodId;
-                        newSubAdmissionCriterion.Gender = subAdmissionParam.GenderId;
-                        newSubAdmissionCriterion.ProvinceId = subAdmissionParam.ProvinceId;
-                        newSubAdmissionCriterion.Quantity = subAdmissionParam.Quantity;
-                        newSubAdmissionCriterion.Status = subAdmissionParam.Status;
+                        //Thêm chỉ tiêu phụ
                         if (subAdmissionParam.SubAdmissionId == null || subAdmissionParam.SubAdmissionId <= 0)
                         {
-                            _uow.SubAdmissionCriterionRepository.Insert(newSubAdmissionCriterion);
-                        }
-                        else
-                        {
-                            newSubAdmissionCriterion.Id = (int)subAdmissionParam.SubAdmissionId;
-                            _uow.SubAdmissionCriterionRepository.Update(newSubAdmissionCriterion);
-                        }
-
-                        if ((await _uow.CommitAsync()) <= 0)
-                        {
-                            response.Succeeded = false;
-                            if (response.Errors == null)
+                            var subAdmissions = await _uow.SubAdmissionCriterionRepository.Get(
+                                filter: s => s.Gender == subAdmissionParam.GenderId &&
+                                            s.ProvinceId == subAdmissionParam.ProvinceId
+                                            && s.AdmissionMethodId == subAdmissionParam.AdmissionMethodId
+                                            && s.AdmissionCriterionId == MajorDetailExisted.AdmissionCriterion.MajorDetailId
+                                            && s.Status == Consts.STATUS_ACTIVE);
+                            if (subAdmissions.Any())
                             {
-                                response.Errors = new List<string>();
+                                response.Succeeded = false;
+                                if (response.Errors == null)
+                                {
+                                    response.Errors = new List<string>();
+                                }
+                                response.Errors.Add("Chỉ tiêu phụ bị trùng!");
+                                return response;
                             }
-                            response.Errors.Add("Cập nhật chỉ tiêu phụ bị lỗi!");
-                            return response;
-                        }
-                        if(subAdmissionParam.MajorDetailEntryMarkParams != null)
-                        {
-                            foreach (var entryMarkParam in subAdmissionParam.MajorDetailEntryMarkParams)
+                            Models.SubAdmissionCriterion newSubAdmissionCriterion = new SubAdmissionCriterion();
+                            newSubAdmissionCriterion.AdmissionMethodId = subAdmissionParam.AdmissionMethodId;
+                            newSubAdmissionCriterion.AdmissionCriterionId = MajorDetailExisted.AdmissionCriterion.MajorDetailId;
+                            newSubAdmissionCriterion.Gender = subAdmissionParam.GenderId;
+                            newSubAdmissionCriterion.ProvinceId = subAdmissionParam.ProvinceId;
+                            newSubAdmissionCriterion.Quantity = subAdmissionParam.Quantity;
+                            newSubAdmissionCriterion.Status = Consts.STATUS_ACTIVE;
+                            _uow.SubAdmissionCriterionRepository.Insert(newSubAdmissionCriterion);
+                            if ((await _uow.CommitAsync()) <= 0)
                             {
-                                if (entryMarkParam.Mark < 0 || entryMarkParam.MajorSubjectGroupId <= 0)
+                                response.Succeeded = false;
+                                if (response.Errors == null)
                                 {
-                                    response.Succeeded = false;
-                                    if (response.Errors == null)
-                                    {
-                                        response.Errors = new List<string>();
-                                    }
-                                    response.Errors.Add("Điểm chuẩn không hợp lệ");
-                                    return response;
+                                    response.Errors = new List<string>();
                                 }
+                                response.Errors.Add("Thêm chỉ tiêu phụ bị lỗi!");
+                                return response;
+                            }
 
-                                Models.MajorSubjectGroup majorSubjectGroup = await _uow.MajorSubjectGroupRepository.GetById(entryMarkParam.MajorSubjectGroupId);
-                                if (majorSubjectGroup == null || majorSubjectGroup.Status != Consts.STATUS_ACTIVE)
+                            //Insert entrymarks
+                            if (subAdmissionParam.MajorDetailEntryMarkParams != null)
+                            {
+                                foreach (var entryMarkParam in subAdmissionParam.MajorDetailEntryMarkParams)
                                 {
-                                    response.Succeeded = false;
-                                    if (response.Errors == null)
+                                    //Validate param
+                                    if (entryMarkParam.Mark < 0 || entryMarkParam.MajorSubjectGroupId <= 0)
                                     {
-                                        response.Errors = new List<string>();
+                                        response.Succeeded = false;
+                                        if (response.Errors == null)
+                                        {
+                                            response.Errors = new List<string>();
+                                        }
+                                        response.Errors.Add("Điểm chuẩn không hợp lệ");
+                                        return response;
                                     }
-                                    response.Errors.Add("Khối không hợp lệ");
-                                    return response;
-                                }
 
-                                Models.EntryMark entryMark = new EntryMark
-                                {
-                                    SubAdmissionCriterionId = newSubAdmissionCriterion.Id,
-                                    MajorSubjectGroupId = entryMarkParam.MajorSubjectGroupId,
-                                    Mark = entryMarkParam.Mark,
-                                    Status = entryMarkParam.Status
-                                };
-                                if (entryMarkParam.EntryMarkId == null || entryMarkParam.EntryMarkId <= 0)
-                                {
+                                    //Check subject group tồn tại
+                                    Models.MajorSubjectGroup majorSubjectGroup = await _uow.MajorSubjectGroupRepository
+                                        .GetById(entryMarkParam.MajorSubjectGroupId);
+                                    if (majorSubjectGroup == null || majorSubjectGroup.Status != Consts.STATUS_ACTIVE)
+                                    {
+                                        response.Succeeded = false;
+                                        if (response.Errors == null)
+                                        {
+                                            response.Errors = new List<string>();
+                                        }
+                                        response.Errors.Add("Khối không hợp lệ");
+                                        return response;
+                                    }
+
+                                    var entryMarks = await _uow.EntryMarkRepository.Get(
+                                        filter: e => e.SubAdmissionCriterionId == newSubAdmissionCriterion.Id
+                                                && e.MajorSubjectGroupId == entryMarkParam.MajorSubjectGroupId
+                                                && e.Status == Consts.STATUS_ACTIVE);
+                                    if (entryMarks.Any())
+                                    {
+                                        response.Succeeded = false;
+                                        if (response.Errors == null)
+                                        {
+                                            response.Errors = new List<string>();
+                                        }
+                                        response.Errors.Add("Các khối tuyển bị trùng!");
+                                        return response;
+                                    }
+                                    //Tạo model
+                                    var entryMark = new EntryMark
+                                    {
+                                        SubAdmissionCriterionId = newSubAdmissionCriterion.Id,
+                                        MajorSubjectGroupId = entryMarkParam.MajorSubjectGroupId,
+                                        Mark = entryMarkParam.Mark,
+                                        Status = Consts.STATUS_ACTIVE
+                                    };
                                     _uow.EntryMarkRepository.Insert(entryMark);
 
-                                }
-                                else
-                                {
-                                    entryMark.Id = (int)entryMarkParam.EntryMarkId;
-                                    _uow.EntryMarkRepository.Update(entryMark);
-                                }
-                                if ((await _uow.CommitAsync()) <= 0)
-                                {
-                                    response.Succeeded = false;
-                                    if (response.Errors == null)
+                                    //Insert
+                                    if ((await _uow.CommitAsync()) <= 0)
                                     {
-                                        response.Errors = new List<string>();
+                                        response.Succeeded = false;
+                                        if (response.Errors == null)
+                                        {
+                                            response.Errors = new List<string>();
+                                        }
+                                        response.Errors.Add("Cập nhật điểm chuẩn bị lỗi!");
+                                        return response;
                                     }
-                                    response.Errors.Add("Cập nhật điểm chuẩn bị lỗi!");
-                                    return response;
+                                }
+                            }
+                        }
+                        //Cập nhật chỉ tiêu phụ
+                        else
+                        {
+                            if (subAdmissionParam.Status != Consts.STATUS_ACTIVE && subAdmissionParam.Status != Consts.STATUS_INACTIVE)
+                            {
+                                response.Succeeded = false;
+                                if (response.Errors == null)
+                                {
+                                    response.Errors = new List<string>();
+                                }
+                                response.Errors.Add("Cập nhật trạng thái chỉ tiêu không hợp lệ!");
+                                return response;
+                            }
+                            var subAdmissionCriterion = await _uow.SubAdmissionCriterionRepository
+                                .GetById(subAdmissionParam.SubAdmissionId);
+                            if (subAdmissionCriterion == null)
+                            {
+                                response.Succeeded = false;
+                                if (response.Errors == null)
+                                {
+                                    response.Errors = new List<string>();
+                                }
+                                response.Errors.Add("Chỉ tiêu phụ không tồn tại!");
+                                return response;
+                            }
+                            subAdmissionCriterion.Quantity = subAdmissionParam.Quantity;
+                            subAdmissionCriterion.Status = subAdmissionParam.Status;
+                            _uow.SubAdmissionCriterionRepository.Update(subAdmissionCriterion);
+                            if ((await _uow.CommitAsync()) <= 0)
+                            {
+                                response.Succeeded = false;
+                                if (response.Errors == null)
+                                {
+                                    response.Errors = new List<string>();
+                                }
+                                response.Errors.Add("Cập nhật chỉ tiêu phụ bị lỗi!");
+                                return response;
+                            }
+
+                            //Xóa chỉ tiêu phụ
+                            if (subAdmissionParam.Status == Consts.STATUS_INACTIVE)
+                            {
+                                IEnumerable<Models.EntryMark> entryMarks = await _uow.EntryMarkRepository.Get(filter: e =>
+                                    e.SubAdmissionCriterionId == subAdmissionParam.SubAdmissionId && e.Status == Consts.STATUS_ACTIVE);
+                                if (entryMarks.Any())
+                                {
+                                    foreach (EntryMark mark in entryMarks)
+                                    {
+                                        IEnumerable<Models.FollowingDetail> followingDetails = await _uow.FollowingDetailRepository.Get(
+                                            filter: e => e.EntryMarkId == mark.Id && e.Status == Consts.STATUS_ACTIVE,
+                                            includeProperties: "User");
+                                        if (followingDetails.Any())
+                                        {
+                                            foreach (var followingDetail in followingDetails)
+                                            {
+                                                //Xoa chỉ tiêu phụ, xoa Follow, khong can update ranking
+                                                followingDetail.Status = Consts.STATUS_INACTIVE;
+                                                _uow.FollowingDetailRepository.Update(followingDetail);
+                                            }
+                                        }
+                                        mark.Status = Consts.STATUS_INACTIVE;
+                                        _uow.EntryMarkRepository.Update(mark);
+                                    }
+                                    if ((await _uow.CommitAsync()) <= 0)
+                                    {
+                                        response.Succeeded = false;
+                                        if (response.Errors == null)
+                                        {
+                                            response.Errors = new List<string>();
+                                        }
+                                        response.Errors.Add("Xóa điểm chuẩn bị lỗi!");
+                                        return response;
+                                    }
+                                }
+                                
+                            }
+                            //Sửa chỉ tiêu phụ
+                            else
+                            {
+                                if (subAdmissionParam.MajorDetailEntryMarkParams != null)
+                                {
+                                    foreach (var entryMarkParam in subAdmissionParam.MajorDetailEntryMarkParams)
+                                    {
+                                        //Validate điểm chuẩn
+                                        if (entryMarkParam.Mark < 0 )
+                                        {
+                                            response.Succeeded = false;
+                                            if (response.Errors == null)
+                                            {
+                                                response.Errors = new List<string>();
+                                            }
+                                            response.Errors.Add("Điểm chuẩn không hợp lệ");
+                                            return response;
+                                        }
+                                        //Check subject group tồn tại
+
+                                        //Thêm điểm chuẩn
+                                        if (entryMarkParam.EntryMarkId == null || entryMarkParam.EntryMarkId <= 0)
+                                        {
+                                            Models.MajorSubjectGroup majorSubjectGroup = await _uow.MajorSubjectGroupRepository
+                                           .GetById(entryMarkParam.MajorSubjectGroupId);
+                                            if (majorSubjectGroup == null || majorSubjectGroup.Status != Consts.STATUS_ACTIVE)
+                                            {
+                                                response.Succeeded = false;
+                                                if (response.Errors == null)
+                                                {
+                                                    response.Errors = new List<string>();
+                                                }
+                                                response.Errors.Add("Khối không hợp lệ");
+                                                return response;
+                                            }
+                                            var entryMarks = await _uow.EntryMarkRepository.Get(
+                                                filter: e => e.SubAdmissionCriterionId == subAdmissionCriterion.Id
+                                                    && e.MajorSubjectGroupId == entryMarkParam.MajorSubjectGroupId
+                                                    && e.Status == Consts.STATUS_ACTIVE);
+                                            if (entryMarks.Any())
+                                            {
+                                                response.Succeeded = false;
+                                                if (response.Errors == null)
+                                                {
+                                                    response.Errors = new List<string>();
+                                                }
+                                                response.Errors.Add("Các khối tuyển bị trùng!");
+                                                return response;
+                                            }
+                                            Models.EntryMark entryMark = new EntryMark
+                                            {
+                                                SubAdmissionCriterionId = (int) subAdmissionParam.SubAdmissionId,
+                                                MajorSubjectGroupId = entryMarkParam.MajorSubjectGroupId,
+                                                Mark = entryMarkParam.Mark,
+                                                Status = Consts.STATUS_ACTIVE
+                                            };
+                                            _uow.EntryMarkRepository.Insert(entryMark);
+
+                                        }
+                                        //Sửa điểm chuẩn
+                                        else
+                                        {
+                                            EntryMark entryMark = await _uow.EntryMarkRepository.GetById(entryMarkParam.EntryMarkId);
+                                            if (entryMark == null)
+                                            {
+                                                response.Succeeded = false;
+                                                if (response.Errors == null)
+                                                {
+                                                    response.Errors = new List<string>();
+                                                }
+                                                response.Errors.Add("Điểm chuẩn không tồn tại!");
+                                                return response;
+                                            }
+                                            entryMark.Mark = entryMarkParam.Mark;
+                                            entryMark.Status = entryMarkParam.Status;
+                                            _uow.EntryMarkRepository.Update(entryMark);
+
+                                            if (entryMark.Status == Consts.STATUS_INACTIVE)
+                                            {
+                                                IEnumerable<Models.FollowingDetail> followingDetails = await _uow.FollowingDetailRepository.Get(
+                                                     filter: e => e.EntryMarkId == entryMark.Id && e.Status == Consts.STATUS_ACTIVE,
+                                                     includeProperties: "User");
+                                                if (followingDetails.Any())
+                                                {
+                                                    foreach (var followingDetail in followingDetails)
+                                                    {
+                                                        //Xoa chỉ tiêu phụ, xoa Follow, khong can update ranking
+                                                        followingDetail.Status = Consts.STATUS_INACTIVE;
+                                                        _uow.FollowingDetailRepository.Update(followingDetail);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if ((await _uow.CommitAsync()) <= 0)
+                                        {
+                                            response.Succeeded = false;
+                                            if (response.Errors == null)
+                                            {
+                                                response.Errors = new List<string>();
+                                            }
+                                            response.Errors.Add("Cập nhật điểm chuẩn bị lỗi!");
+                                            return response;
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1566,6 +1785,7 @@ namespace CapstoneAPI.Features.University.Service
 
                     tran.Commit();
                     response.Succeeded = true;
+                    response.Data = true;
                 }                
             }
             catch (Exception ex)

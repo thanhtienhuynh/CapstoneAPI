@@ -9,7 +9,7 @@ namespace CapstoneAPI.Features.Season.DataSet
     {
         public string Name { get; set; }
         public DateTime FromDate { get; set; }
-        public int SeasonSourceId { get; set; }
+        public int? SeasonSourceId { get; set; }
     }
 
     public class UpdateSeasonParam
