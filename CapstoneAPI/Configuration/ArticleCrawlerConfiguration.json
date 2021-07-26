@@ -138,6 +138,9 @@
         "attribute": "data-campaign",
         "attributeValue": "Box-Related"
       }
+    },
+    "postImgUrlTag": {
+      "attribute": "src"
     }
   }
 }

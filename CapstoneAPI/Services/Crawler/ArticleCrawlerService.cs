@@ -393,7 +393,8 @@ namespace CapstoneAPI.Services.Crawler
 
                 if (imgs != null && imgs.Count() > 0)
                 {
-                    article.PostImageUrl = imgs.First().OuterHtml;
+                    article.PostImageUrl = imgs.First().GetAttributeValue(
+                        configuration.SelectToken("VNExpress.postImgUrlTag.attribute").ToString(), "");
                 }
                 article.HeaderConfig = headerConfig;
                 article.Status = 0;
