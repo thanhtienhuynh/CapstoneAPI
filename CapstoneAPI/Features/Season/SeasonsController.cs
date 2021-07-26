@@ -19,6 +19,7 @@ namespace CapstoneAPI.Features.Season
         {
             _service = service;
         }
+
         [HttpGet]
         public async Task<ActionResult<Response<IEnumerable<AdminSeasonDataSet>>>> GetSeasons()
         {
@@ -29,6 +30,12 @@ namespace CapstoneAPI.Features.Season
         public async Task<ActionResult<Response<AdminSeasonDataSet>>> CreateSeason([FromBody] CreateSeasonParam createSeasonParam)
         {
             return Ok(await _service.CreateSeason(createSeasonParam));
+        }
+
+        [HttpPut]
+        public async Task<ActionResult<Response<AdminSeasonDataSet>>> UpdateSeason([FromBody] UpdateSeasonParam updateSeasonParam)
+        {
+            return Ok(await _service.UpdateSeason(updateSeasonParam));
         }
     }
 }

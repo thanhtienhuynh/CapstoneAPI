@@ -1533,7 +1533,6 @@ namespace CapstoneAPI.Features.University.Service
                                     return response;
                                 }
 
-
                                 Models.EntryMark entryMark = new EntryMark
                                 {
                                     SubAdmissionCriterionId = newSubAdmissionCriterion.Id,

@@ -11,4 +11,12 @@ namespace CapstoneAPI.Features.Season.DataSet
         public DateTime FromDate { get; set; }
         public int SeasonSourceId { get; set; }
     }
+
+    public class UpdateSeasonParam
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public DateTime FromDate { get; set; }
+        public int Status { get; set; }
+    }
 }

@@ -238,5 +238,217 @@ namespace CapstoneAPI.Features.Season.Service
             }
             return response;
         }
+
+        public async Task<Response<bool>> UpdateSeason(UpdateSeasonParam updateSeasonParam)
+        {
+            Response<bool> response = new Response<bool>();
+            using var tran = _uow.GetTransaction();
+            try
+            {
+                Models.Season season = await _uow.SeasonRepository.GetById(updateSeasonParam.Id);
+                if (season == null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Mùa này không tồn tại!");
+                    return response;
+                }
+                if (updateSeasonParam.Status == Consts.STATUS_INACTIVE)
+                {
+                    season.Status = Consts.STATUS_INACTIVE;
+                    if ((await _uow.CommitAsync()) <= 0)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Xóa mùa bị lỗi!");
+                        return response;
+                    }
+                    IEnumerable<Models.MajorDetail> majorDetails = await _uow.MajorDetailRepository.Get(
+                        filter: m => m.SeasonId == season.Id && m.Status == Consts.STATUS_ACTIVE,
+                        includeProperties: "AdmissionCriterion");
+
+                    if (majorDetails.Any())
+                    {
+                        foreach (Models.MajorDetail majorDetail in majorDetails)
+                        {
+                            //MAJORDETAIL
+                            majorDetail.Status = Consts.STATUS_INACTIVE;
+                            _uow.MajorDetailRepository.Update(majorDetail);
+                            if ((await _uow.CommitAsync()) <= 0)
+                            {
+                                response.Succeeded = false;
+                                if (response.Errors == null)
+                                {
+                                    response.Errors = new List<string>();
+                                }
+                                response.Errors.Add("Xóa ngành bị lỗi!");
+                                return response;
+                            }
+
+                            //ADDMISSION
+                            if (majorDetail.AdmissionCriterion == null)
+                            {
+                                continue;
+                            }
+
+                            IEnumerable<Models.SubAdmissionCriterion> subAdmissions = await _uow.SubAdmissionCriterionRepository.
+                                   Get(filter: s => s.Id == majorDetail.Id && s.Status == Consts.STATUS_ACTIVE);
+
+                            //SUBADMISSION
+                            if (!subAdmissions.Any())
+                            {
+                                continue;
+                            }
+
+                            foreach (var subAdmission in subAdmissions)
+                            {
+                                subAdmission.Status = Consts.STATUS_INACTIVE;
+                                _uow.SubAdmissionCriterionRepository.Update(subAdmission);
+
+                                if ((await _uow.CommitAsync()) <= 0)
+                                {
+                                    response.Succeeded = false;
+                                    if (response.Errors == null)
+                                    {
+                                        response.Errors = new List<string>();
+                                    }
+                                    response.Errors.Add("Xóa chỉ tiêu phụ bị lỗi!");
+                                    return response;
+                                }
+
+                                //ENTRYMARKS
+
+                                IEnumerable<Models.EntryMark> entryMarks = await _uow.EntryMarkRepository.Get(
+                                    filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == subAdmission.Id);
+                                if (!entryMarks.Any())
+                                {
+                                    continue;
+                                }
+
+                                foreach (var entryMark in entryMarks)
+                                {
+                                    entryMark.Status = Consts.STATUS_INACTIVE;
+                                    _uow.EntryMarkRepository.Update(entryMark);
+                                    if ((await _uow.CommitAsync()) <= 0)
+                                    {
+                                        response.Succeeded = false;
+                                        if (response.Errors == null)
+                                        {
+                                            response.Errors = new List<string>();
+                                        }
+                                        response.Errors.Add("Xóa điểm chuẩn bị lỗi!");
+                                        return response;
+                                    }
+
+                                    //Following
+                                    IEnumerable<Models.FollowingDetail> followingDetails = await _uow.FollowingDetailRepository.Get(
+                                    filter: f => f.Status == Consts.STATUS_ACTIVE && f.EntryMarkId == entryMark.Id);
+                                    if (!entryMarks.Any())
+                                    {
+                                        continue;
+                                    }
+
+                                    foreach (var followingDetail in followingDetails)
+                                    {
+                                        followingDetail.Status = Consts.STATUS_INACTIVE;
+                                        _uow.FollowingDetailRepository.Update(followingDetail);
+                                        if ((await _uow.CommitAsync()) <= 0)
+                                        {
+                                            response.Succeeded = false;
+                                            if (response.Errors == null)
+                                            {
+                                                response.Errors = new List<string>();
+                                            }
+                                            response.Errors.Add("Xóa theo dõi bị lỗi!");
+                                            return response;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } 
+                else if (updateSeasonParam.Status == Consts.STATUS_ACTIVE)
+                {
+                    if (updateSeasonParam.Name == null || updateSeasonParam.Name.Trim().Length < 1)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Tên mùa không hợp lệ!");
+                        return response;
+                    }
+                    Models.Season currentSeason = await _uow.SeasonRepository.GetCurrentSeason();
+                    if (DateTime.Compare(currentSeason.FromDate, updateSeasonParam.FromDate) > 0)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Mùa mới trùng ngày với các mùa trước!");
+                        return response;
+                    }
+                    IEnumerable<Models.Season> seasons = await _uow.SeasonRepository.Get(filter: s => s.Name == updateSeasonParam.Name
+                                                                                && s.Status == Consts.STATUS_ACTIVE);
+                    if (seasons.Count() > 0)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Tên mùa đã tồn tại trong hệ thống!");
+                        return response;
+                    }
+
+                    season.Name = updateSeasonParam.Name;
+                    season.FromDate = updateSeasonParam.FromDate;
+                    if ((await _uow.CommitAsync()) <= 0)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Cập nhật mùa bị lỗi!");
+                        return response;
+                    }
+                } else
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Trạng thái mùa cập nhật không hợp lệ!");
+                    return response;
+                }
+
+                tran.Commit();
+                response.Succeeded = true;
+                response.Data = true;
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                tran.Rollback();
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống! " + ex.Message);
+            }
+            return response;
+        }
     }
 }

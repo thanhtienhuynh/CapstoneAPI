@@ -72,7 +72,6 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.SpecialSubjectGroup, SpecialSubjectGroupDataSet>();
             CreateMap<Models.AdmissionMethod, AdmissionMethodDataSet>();
             CreateMap<Models.Season, AdminSeasonDataSet>();
-            CreateMap<AdminSeasonDataSet, Models.Season>();
 
             CreateMap<Models.Major, MajorSubjectWeightDataSet>();
             CreateMap<CreateMajorSubjectWeightDataSet, Models.Major>();
