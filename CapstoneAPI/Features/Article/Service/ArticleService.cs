@@ -566,6 +566,77 @@ namespace CapstoneAPI.Features.Article.Service
             return response;
         }
 
+        public async Task<Response<List<HomeArticle>>> GetHomeArticles()
+        {
+            Response<List<HomeArticle>> response = new Response<List<HomeArticle>>();
+            var topArticles = new List<AdminArticleCollapseDataSet>();
+            var todayArticles = new List<AdminArticleCollapseDataSet>();
+            var oldArticles = new List<AdminArticleCollapseDataSet>();
+
+            try
+            {
+                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
+                DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
+
+                topArticles = (await _uow.ArticleRepository
+                .Get(filter: a => a.Status == 3
+                    && (a.PublicFromDate != null && a.PublicFromDate <= currentDate)
+                    && (a.PublicToDate != null && a.PublicToDate >= currentDate)
+                    && (a.ImportantLevel != null && a.ImportantLevel > 0),
+                orderBy: o => o.OrderByDescending(a => a.ImportantLevel)))
+                .Select(m => _mapper.Map<AdminArticleCollapseDataSet>(m)).ToList();
+
+                todayArticles = (await _uow.ArticleRepository
+                .Get(filter: a => a.Status == 3
+                    && (a.PublicFromDate != null && a.PublicFromDate == currentDate)
+                    && (a.PublicToDate != null && a.PublicToDate >= currentDate),
+                orderBy: o => o.OrderByDescending(a => a.PublicFromDate)))
+                .Select(m => _mapper.Map<AdminArticleCollapseDataSet>(m)).ToList();
+
+                var date = currentDate.Date;
+
+                oldArticles = (await _uow.ArticleRepository
+                .Get(filter: a => a.Status == 3
+                    && (a.PublicFromDate != null && a.PublicFromDate < date)
+                    && (a.PublicToDate != null && a.PublicToDate >= currentDate),
+                orderBy: o => o.OrderByDescending(a => a.PublicFromDate)))
+                .Select(m => _mapper.Map<AdminArticleCollapseDataSet>(m)).Take(8).ToList();
+
+                List<HomeArticle> homeArticles = new List<HomeArticle>()
+                {
+                    new HomeArticle()
+                    {
+                        Type = 1,
+                        Articles = topArticles
+                    },
+                    new HomeArticle()
+                    {
+                        Type = 2,
+                        Articles = todayArticles
+                    },
+                    new HomeArticle()
+                    {
+                        Type = 3,
+                        Articles = oldArticles
+                    }
+                };
+
+                response = new Response<List<HomeArticle>>(homeArticles.OrderBy(a => a.Type).ToList());
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+
+            return response;
+        }
+
         public async Task<Response<List<AdminArticleCollapseDataSet>>> SetTopArticles(List<int> articleIds, string token)
         {
             Response<List<AdminArticleCollapseDataSet>> response = new Response<List<AdminArticleCollapseDataSet>>();

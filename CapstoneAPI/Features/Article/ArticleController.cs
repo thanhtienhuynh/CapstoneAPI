@@ -54,6 +54,7 @@ namespace CapstoneAPI.Features.Article
                 return NoContent();
             return Ok(articles);
         }
+
         [HttpGet("admin-all-not-paging")]
         public async Task<ActionResult<Response<List<ArticleCollapseDataSet>>>> GetListArticleNotPagination([FromQuery] AdminArticleFilter articleFilter)
         {
@@ -66,6 +67,7 @@ namespace CapstoneAPI.Features.Article
                 return NoContent();
             return Ok(articles);
         }
+        
         [HttpGet("approved-article-ids")]
         public async Task<ActionResult<Response<List<int>>>> GetApprovedArticleIds()
         {
@@ -78,6 +80,7 @@ namespace CapstoneAPI.Features.Article
                 return NoContent();
             return Ok(articles);
         }
+        
         [HttpGet("admin-top")]
         public async Task<ActionResult<Response<List<ArticleCollapseDataSet>>>> GetTopArticlesForAdmin()
         {
@@ -90,6 +93,13 @@ namespace CapstoneAPI.Features.Article
                 return NoContent();
             return Ok(articles);
         }
+
+        [HttpGet("home")]
+        public async Task<ActionResult<Response<List<HomeArticle>>>> GetHomeArticles()
+        {
+            return Ok(await _service.GetHomeArticles());
+        }
+
         [HttpGet("admin-detail/{id}")]
         public async Task<ActionResult<Response<AdminArticleDetailDataSet>>> GetArticleDetailsForAdmin(int id)
         {
@@ -99,6 +109,7 @@ namespace CapstoneAPI.Features.Article
                 return NoContent();
             return Ok(article);
         }
+        
         [HttpGet("admin-unapproved-articles")]
         public async Task<ActionResult<Response<List<int>>>> GetUnApprovedArticleIds()
         {
@@ -107,6 +118,7 @@ namespace CapstoneAPI.Features.Article
                 return NoContent();
             return Ok(article);
         }
+        
         [HttpPut()]
         public async Task<ActionResult<Response<ApprovingArticleDataSet>>> ApprovingArticle([FromBody] ApprovingArticleDataSet approvingArticleDataSet)
         {
@@ -116,6 +128,7 @@ namespace CapstoneAPI.Features.Article
                 return NoContent();
             return Ok(result);
         }
+        
         [HttpPut("top")]
         public async Task<ActionResult<Response<List<ArticleCollapseDataSet>>>> SetTopArticles([FromBody] List<int> articleIds)
         {
@@ -166,6 +179,7 @@ namespace CapstoneAPI.Features.Article
             }
             return Ok(result);
         }
+        
         [HttpPut("update-exprire-article")]
         public async Task<ActionResult<Response<bool>>> UpdateExpireStatus()
         {
