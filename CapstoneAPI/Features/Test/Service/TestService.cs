@@ -825,7 +825,9 @@
             var tran = _uow.GetTransaction();
             try
             {
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -835,19 +837,7 @@
                     response.Errors.Add("Bạn chưa đăng nhập!");
                     return response;
                 }
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
 
-                if (userIdString == null || userIdString.Length <= 0)
-                {
-                    response.Succeeded = false;
-                    if (response.Errors == null)
-                    {
-                        response.Errors = new List<string>();
-                    }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
-                    return response;
-                }
-                int userId = Int32.Parse(userIdString);
                 Models.Test test = await _uow.TestRepository.GetById(setSuggestedTestParam.TestId);
                 if (test == null)
                 {
@@ -859,25 +849,23 @@
                     response.Errors.Add("Bài kiểm tra không tồn tại!");
                     return response;
                 }
-                IEnumerable<Models.Test> tests = await _uow.TestRepository.Get(filter: t => t.SubjectId == test.SubjectId && t.IsSuggestedTest);
-                foreach (var item in tests)
-                {
-                    item.IsSuggestedTest = false;
-                }
-                _uow.TestRepository.UpdateRange(tests);
-                test.IsSuggestedTest = true;
-                _uow.TestRepository.Update(test);
-                IEnumerable<Transcript> transcripts = await _uow.TranscriptRepository.Get(filter: u => u.SubjectId == test.SubjectId 
-                                                            && u.Status == Consts.STATUS_ACTIVE && u.TranscriptTypeId == 3,
-                                                            includeProperties: "User");
-                foreach (var transcript in transcripts)
-                {
-                    transcript.IsUpdate = true;
-                    transcript.Status = Consts.STATUS_INACTIVE;
-                }
-                _uow.TranscriptRepository.UpdateRange(transcripts);
+                IEnumerable<Models.Test> tests = await _uow.TestRepository.Get(
+                    filter: t => t.SubjectId == test.SubjectId && t.IsSuggestedTest
+                    && t.Status == Consts.STATUS_ACTIVE && t.Id != setSuggestedTestParam.TestId);
 
-                IEnumerable<Models.User> users = transcripts.Select(s => s.User);
+                if (!setSuggestedTestParam.IsSuggestTest && !tests.Any())
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Hệ thống phải có tối thiểu 1 bài thi thử!");
+                    return response;
+                }
+                test.IsSuggestedTest = setSuggestedTestParam.IsSuggestTest;
+                _uow.TestRepository.Update(test);
+                
                 if (await _uow.CommitAsync() <= 0)
                 {
                     response.Succeeded = false;
