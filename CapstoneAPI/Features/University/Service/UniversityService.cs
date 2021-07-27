@@ -1251,6 +1251,17 @@ namespace CapstoneAPI.Features.University.Service
                     return response;
                 }
 
+                if (addingMajorUniversityParam.TotalAdmissionQuantity < 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Chỉ tiêu không hợp lệ");
+                    return response;
+                }
+
                 AdmissionCriterion admissionCriterion = new AdmissionCriterion()
                 {
                     MajorDetailId = majorDetail.Id,
@@ -1333,6 +1344,16 @@ namespace CapstoneAPI.Features.University.Service
                                 response.Errors = new List<string>();
                             }
                             response.Errors.Add("Ngành này chưa có khối mà bạn thêm vào!");
+                            return response;
+                        }
+                        if (item.EntryMarkPerGroup < 0)
+                        {
+                            response.Succeeded = false;
+                            if (response.Errors == null)
+                            {
+                                response.Errors = new List<string>();
+                            }
+                            response.Errors.Add("Điểm chuẩn không hợp lệ");
                             return response;
                         }
                         Models.EntryMark entryMark = new EntryMark
