@@ -38,7 +38,7 @@
             {
                 int correctAnswer = 0;
                 Models.Test loadedTest = await _uow.TestRepository.GetById(testSubmissionParam.TestId);
-                if (loadedTest == null)
+                if (loadedTest == null || loadedTest.Status != Consts.STATUS_ACTIVE)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)

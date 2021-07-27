@@ -233,7 +233,9 @@
             using var tran = _uow.GetTransaction();
             try
             {
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -244,20 +246,6 @@
                     return response;
                 }
 
-
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-
-                if (userIdString == null || userIdString.Length <= 0)
-                {
-                    response.Succeeded = false;
-                    if (response.Errors == null)
-                    {
-                        response.Errors = new List<string>();
-                    }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
-                    return response;
-                }
-                int userId = Int32.Parse(userIdString);
                 string path = Path.Combine(Path
                     .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
                 JObject configuration = JObject.Parse(File.ReadAllText(path));
@@ -298,7 +286,7 @@
                 }
                 Test t = _mapper.Map<Test>(testParam);
                 t.NumberOfQuestion = t.Questions.Count();
-                t.UserId = userId;
+                t.UserId = user.Id;
                 t.Status = Consts.STATUS_ACTIVE;
                 t.IsSuggestedTest = false;
                 foreach (var item in t.Questions)
@@ -525,7 +513,9 @@
             var tran = _uow.GetTransaction();
             try
             {
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -535,26 +525,15 @@
                     response.Errors.Add("Bạn chưa đăng nhập!");
                     return response;
                 }
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-
-                if (userIdString == null || userIdString.Length <= 0)
-                {
-                    response.Succeeded = false;
-                    if (response.Errors == null)
-                    {
-                        response.Errors = new List<string>();
-                    }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
-                    return response;
-                }
-                int userId = Int32.Parse(userIdString);
 
                 string path = Path.Combine(Path
                     .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
                 JObject configuration = JObject.Parse(File.ReadAllText(path));
                 var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
                 DateTime currentDate = DateTime.UtcNow.AddHours(double.Parse(currentTimeZone));
-                Models.Test test = await _uow.TestRepository.GetFirst(filter: t => t.Id == testParam.Id, includeProperties: "Questions");
+                Models.Test test = await _uow.TestRepository.GetFirst(
+                    filter: t => t.Id == testParam.Id && t.Status == Consts.STATUS_ACTIVE, 
+                    includeProperties: "Questions");
                 if (test == null)
                 {
                     response.Succeeded = false;
@@ -657,7 +636,7 @@
                         CreateDate = currentDate,
                         SubjectId = testParam.SubjectId,
                         TestTypeId = testParam.TestTypeId,
-                        UserId = userId,
+                        UserId = user.Id,
                         UniversityId = testParam.UniversityId,
                         Year = testParam.Year,
                         TimeLimit = testParam.TimeLimit,
@@ -711,7 +690,7 @@
                         test.CreateDate = currentDate;
                         test.SubjectId = testParam.SubjectId;
                         test.TestTypeId = testParam.TestTypeId;
-                        test.UserId = userId;
+                        test.UserId = user.Id;
                         test.UniversityId = testParam.UniversityId;
                         test.Year = testParam.Year;
                         test.TimeLimit = testParam.TimeLimit;
@@ -839,7 +818,7 @@
                 }
 
                 Models.Test test = await _uow.TestRepository.GetById(setSuggestedTestParam.TestId);
-                if (test == null)
+                if (test == null && test.Status != Consts.STATUS_ACTIVE)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
