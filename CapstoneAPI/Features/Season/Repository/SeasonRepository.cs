@@ -19,20 +19,9 @@ namespace CapstoneAPI.Features.Season.Repository
         public async Task<Models.Season> GetCurrentSeason()
         {
             DateTime currentDate = DateTime.UtcNow;
-            SeasonView seasonView = await _context.SeasonViews.Where(s => s.Status == Consts.STATUS_ACTIVE &&
-                    ((currentDate >= s.FromDate && currentDate <= s.ToDate)
-                    || (currentDate >= s.FromDate && s.ToDate == null))).FirstOrDefaultAsync();
-            if (seasonView == null)
-            {
-                return null;
-            }
-            Models.Season season = new Models.Season()
-            {
-                Id = seasonView.Id,
-                FromDate = seasonView.FromDate,
-                Name = seasonView.Name,
-                Status = seasonView.Status
-            };
+
+            Models.Season season = (await Get(filter: s => s.FromDate <= currentDate && s.Status == Consts.STATUS_ACTIVE,
+                                        orderBy: s => s.OrderByDescending(s => s.FromDate))).FirstOrDefault();
             return season;
         }
 
