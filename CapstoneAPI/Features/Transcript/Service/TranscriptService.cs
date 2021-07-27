@@ -139,7 +139,7 @@ namespace CapstoneAPI.Features.Transcript.Service
                             Data = followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion
                                     .MajorDetail.UniversityId.ToString(),
                             DateRecord = DateTime.UtcNow,
-                            IsRead = true,
+                            IsRead = false,
                             Message = string.Format(message, followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.Major,
                                 followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.TrainingProgram,
                                 followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.University),

@@ -17,7 +17,6 @@ namespace CapstoneAPI.Models
         //1: New article
         //2: New rank
         //3: Update tt uni
-        //4: Update tt major
         //5: Bai viet crawl moi
         //6: Thay doi tt suggest => remove follow
         

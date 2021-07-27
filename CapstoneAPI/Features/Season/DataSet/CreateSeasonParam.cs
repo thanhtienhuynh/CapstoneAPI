@@ -14,7 +14,7 @@ namespace CapstoneAPI.Features.Season.DataSet
 
     public class UpdateSeasonParam
     {
-        public string Id { get; set; }
+        public int Id { get; set; }
         public string Name { get; set; }
         public DateTime FromDate { get; set; }
         public int Status { get; set; }

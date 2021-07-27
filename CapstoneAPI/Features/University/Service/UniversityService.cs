@@ -20,6 +20,8 @@ using Serilog;
 using CapstoneAPI.Features.University.DataSet;
 using CapstoneAPI.Features.FollowingDetail.DataSet;
 using CapstoneAPI.Features.SubjectGroup.DataSet;
+using FirebaseAdmin.Messaging;
+using CapstoneAPI.Features.FCM.Service;
 
 namespace CapstoneAPI.Features.University.Service
 {
@@ -28,11 +30,13 @@ namespace CapstoneAPI.Features.University.Service
         private IMapper _mapper;
         private readonly IUnitOfWork _uow;
         private readonly ILogger _log = Log.ForContext<UniversityService>();
+        private readonly IFCMService _firebaseService;
 
-        public UniversityService(IUnitOfWork uow, IMapper mapper)
+        public UniversityService(IUnitOfWork uow, IMapper mapper, IFCMService firebaseService)
         {
             _uow = uow;
             _mapper = mapper;
+            _firebaseService = firebaseService;
         }
 
         public async Task<Response<IEnumerable<TrainingProgramBasedUniversityDataSet>>> GetUniversityBySubjectGroupAndMajor(UniversityParam universityParam, string token)
@@ -1419,6 +1423,18 @@ namespace CapstoneAPI.Features.University.Service
                     response.Errors.Add("Cập nhật ngành bị lỗi!");
                     return response;
                 }
+                var currentSeason = await _uow.SeasonRepository.GetCurrentSeason();
+                var shouldNoti = false;
+                if (currentSeason != null && currentSeason.Id == MajorDetailExisted.SeasonId)
+                {
+                    shouldNoti = true;
+                }
+                string deleteMajorDetail = "Trường {0} đã không còn tuyển sinh Ngành {1} - Hệ {2}";
+                string deleteSubAdmiss = "Trường {0} đã thay đổi phương thức tuyển sinh Ngành {1} - Hệ {2}";
+                string deleteEntryMark = "Trường {0} đã không còn tuyển sinh Ngành {1} - Hệ {2} theo tổ hợp môn {3}";
+                string updateSubvsEn = "Trường {0} đã cập nhật thông tin tuyển sinh Ngành {1} - Hệ {2}";
+                var notifications = new List<Models.Notification>();
+                var messages = new List<Message>();
 
                 //REMOVE MAJORDETAIL
                 if (updatingMajorUniversityParam.Status == Consts.STATUS_INACTIVE)
@@ -1436,8 +1452,7 @@ namespace CapstoneAPI.Features.University.Service
                                 foreach (EntryMark mark in entryMarks)
                                 {
                                     IEnumerable<Models.FollowingDetail> followingDetails = await _uow.FollowingDetailRepository.Get(
-                                        filter: e => e.EntryMarkId == mark.Id && e.Status == Consts.STATUS_ACTIVE,
-                                        includeProperties: "User");
+                                        filter: e => e.EntryMarkId == mark.Id && e.Status == Consts.STATUS_ACTIVE);
                                     if (followingDetails.Any())
                                     {
                                         foreach (var followingDetail in followingDetails)
@@ -1445,6 +1460,38 @@ namespace CapstoneAPI.Features.University.Service
                                             //Xoa major detail, xoa Follow, khong can update ranking
                                             followingDetail.Status = Consts.STATUS_INACTIVE;
                                             _uow.FollowingDetailRepository.Update(followingDetail);
+                                            if (shouldNoti)
+                                            {
+                                                var uniName = (await _uow.UniversityRepository.GetById(MajorDetailExisted.UniversityId)).Name;
+                                                var majorName = (await _uow.MajorRepository.GetById(MajorDetailExisted.MajorId)).Name;
+                                                var trainingProgramName = (await _uow.TrainingProgramRepository
+                                                            .GetById(MajorDetailExisted.TrainingProgramId)).Name;
+                                                var notification = new Models.Notification()
+                                                {
+                                                    Data = MajorDetailExisted.UniversityId.ToString(),
+                                                    DateRecord = DateTime.UtcNow,
+                                                    IsRead = false,
+                                                    Message = string.Format(deleteMajorDetail, uniName, majorName, trainingProgramName),
+                                                    Type = 3,
+                                                    UserId = followingDetail.UserId
+                                                };
+                                                notifications.Add(notification);
+                                                messages.Add(new Message()
+                                                {
+                                                    Notification = new FirebaseAdmin.Messaging.Notification()
+                                                    {
+                                                        Title = "Thông báo!",
+                                                        Body = notification.Message,
+                                                    },
+                                                    Data = new Dictionary<string, string>()
+                                                    {
+                                                        {"type" , notification.Type.ToString()},
+                                                        {"message" , notification.Message},
+                                                        {"data" , notification.Data},
+                                                    },
+                                                    Topic = followingDetail.UserId.ToString()
+                                                });
+                                            }
                                         }
                                     }
                                     mark.Status = Consts.STATUS_INACTIVE;
@@ -1465,10 +1512,8 @@ namespace CapstoneAPI.Features.University.Service
                             return response;
                         }
                     }
-                    tran.Commit();
-                    response.Succeeded = true;
                 }
-
+                //Update majorDetail
                 else
                 {
                     //UPDATE ADMISSION QUANTITY
@@ -1623,6 +1668,11 @@ namespace CapstoneAPI.Features.University.Service
                                 response.Errors.Add("Chỉ tiêu phụ không tồn tại!");
                                 return response;
                             }
+                            var isSubAdmissionEdited = false;
+                            if (subAdmissionCriterion.Quantity != subAdmissionParam.Quantity)
+                            {
+                                isSubAdmissionEdited = true;
+                            }
                             subAdmissionCriterion.Quantity = subAdmissionParam.Quantity;
                             subAdmissionCriterion.Status = subAdmissionParam.Status;
                             _uow.SubAdmissionCriterionRepository.Update(subAdmissionCriterion);
@@ -1647,8 +1697,7 @@ namespace CapstoneAPI.Features.University.Service
                                     foreach (EntryMark mark in entryMarks)
                                     {
                                         IEnumerable<Models.FollowingDetail> followingDetails = await _uow.FollowingDetailRepository.Get(
-                                            filter: e => e.EntryMarkId == mark.Id && e.Status == Consts.STATUS_ACTIVE,
-                                            includeProperties: "User");
+                                            filter: e => e.EntryMarkId == mark.Id && e.Status == Consts.STATUS_ACTIVE);
                                         if (followingDetails.Any())
                                         {
                                             foreach (var followingDetail in followingDetails)
@@ -1656,6 +1705,38 @@ namespace CapstoneAPI.Features.University.Service
                                                 //Xoa chỉ tiêu phụ, xoa Follow, khong can update ranking
                                                 followingDetail.Status = Consts.STATUS_INACTIVE;
                                                 _uow.FollowingDetailRepository.Update(followingDetail);
+                                                if (shouldNoti)
+                                                {
+                                                    var uniName = (await _uow.UniversityRepository.GetById(MajorDetailExisted.UniversityId)).Name;
+                                                    var majorName = (await _uow.MajorRepository.GetById(MajorDetailExisted.MajorId)).Name;
+                                                    var trainingProgramName = (await _uow.TrainingProgramRepository
+                                                                .GetById(MajorDetailExisted.TrainingProgramId)).Name;
+                                                    var notification = new Models.Notification()
+                                                    {
+                                                        Data = MajorDetailExisted.UniversityId.ToString(),
+                                                        DateRecord = DateTime.UtcNow,
+                                                        IsRead = false,
+                                                        Message = string.Format(deleteSubAdmiss, uniName, majorName, trainingProgramName),
+                                                        Type = 3,
+                                                        UserId = followingDetail.UserId
+                                                    };
+                                                    notifications.Add(notification);
+                                                    messages.Add(new Message()
+                                                    {
+                                                        Notification = new FirebaseAdmin.Messaging.Notification()
+                                                        {
+                                                            Title = "Thông báo!",
+                                                            Body = notification.Message,
+                                                        },
+                                                        Data = new Dictionary<string, string>()
+                                                        {
+                                                            {"type" , notification.Type.ToString()},
+                                                            {"message" , notification.Message},
+                                                            {"data" , notification.Data},
+                                                        },
+                                                        Topic = followingDetail.UserId.ToString()
+                                                    });
+                                                }
                                             }
                                         }
                                         mark.Status = Consts.STATUS_INACTIVE;
@@ -1672,7 +1753,6 @@ namespace CapstoneAPI.Features.University.Service
                                         return response;
                                     }
                                 }
-                                
                             }
                             //Sửa chỉ tiêu phụ
                             else
@@ -1736,6 +1816,16 @@ namespace CapstoneAPI.Features.University.Service
                                         //Sửa điểm chuẩn
                                         else
                                         {
+                                            if (entryMarkParam.Status != Consts.STATUS_ACTIVE && entryMarkParam.Status != Consts.STATUS_INACTIVE)
+                                            {
+                                                response.Succeeded = false;
+                                                if (response.Errors == null)
+                                                {
+                                                    response.Errors = new List<string>();
+                                                }
+                                                response.Errors.Add("Cập nhật trạng thái điểm chuẩn không hợp lệ!");
+                                                return response;
+                                            }
                                             EntryMark entryMark = await _uow.EntryMarkRepository.GetById(entryMarkParam.EntryMarkId);
                                             if (entryMark == null)
                                             {
@@ -1747,22 +1837,109 @@ namespace CapstoneAPI.Features.University.Service
                                                 response.Errors.Add("Điểm chuẩn không tồn tại!");
                                                 return response;
                                             }
+                                            var isEntryMarkEdited = false;
+                                            if (entryMark.Mark != entryMarkParam.Mark)
+                                            {
+                                                isEntryMarkEdited = true;
+                                            }
                                             entryMark.Mark = entryMarkParam.Mark;
                                             entryMark.Status = entryMarkParam.Status;
                                             _uow.EntryMarkRepository.Update(entryMark);
 
+                                            //Xoa diem chuan,
                                             if (entryMark.Status == Consts.STATUS_INACTIVE)
                                             {
                                                 IEnumerable<Models.FollowingDetail> followingDetails = await _uow.FollowingDetailRepository.Get(
                                                      filter: e => e.EntryMarkId == entryMark.Id && e.Status == Consts.STATUS_ACTIVE,
-                                                     includeProperties: "User");
+                                                     includeProperties: "Rank");
                                                 if (followingDetails.Any())
                                                 {
                                                     foreach (var followingDetail in followingDetails)
                                                     {
-                                                        //Xoa chỉ tiêu phụ, xoa Follow, khong can update ranking
+                                                        //Sua chỉ tiêu phụ, xoa entrymark, xoa follow, update ranking
                                                         followingDetail.Status = Consts.STATUS_INACTIVE;
                                                         _uow.FollowingDetailRepository.Update(followingDetail);
+                                                        if (followingDetail.Rank != null)
+                                                        {
+                                                            followingDetail.Rank.IsUpdate = true;
+                                                        }
+                                                        if (shouldNoti)
+                                                        {
+                                                            var uniName = (await _uow.UniversityRepository.GetById(MajorDetailExisted.UniversityId)).Name;
+                                                            var majorName = (await _uow.MajorRepository.GetById(MajorDetailExisted.MajorId)).Name;
+                                                            var trainingProgramName = (await _uow.TrainingProgramRepository
+                                                                        .GetById(MajorDetailExisted.TrainingProgramId)).Name;
+                                                            var subjectGroupName = (await _uow.MajorSubjectGroupRepository.GetFirst(
+                                                        filter: m => m.Id == entryMark.MajorSubjectGroupId, includeProperties: "SubjectGroup")).SubjectGroup.GroupCode;
+                                                            var notification = new Models.Notification()
+                                                            {
+                                                                Data = MajorDetailExisted.UniversityId.ToString(),
+                                                                DateRecord = DateTime.UtcNow,
+                                                                IsRead = false,
+                                                                Message = string.Format(deleteEntryMark, uniName, majorName, trainingProgramName, subjectGroupName),
+                                                                Type = 3,
+                                                                UserId = followingDetail.UserId
+                                                            };
+                                                            notifications.Add(notification);
+                                                            messages.Add(new Message()
+                                                            {
+                                                                Notification = new FirebaseAdmin.Messaging.Notification()
+                                                                {
+                                                                    Title = "Thông báo!",
+                                                                    Body = notification.Message,
+                                                                },
+                                                                Data = new Dictionary<string, string>()
+                                                                {
+                                                                    {"type" , notification.Type.ToString()},
+                                                                    {"message" , notification.Message},
+                                                                    {"data" , notification.Data},
+                                                                },
+                                                                Topic = followingDetail.UserId.ToString()
+                                                            });
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            //Sua diem chuan
+                                            else if ((isEntryMarkEdited || isSubAdmissionEdited) && shouldNoti)
+                                            {
+                                                IEnumerable<Models.FollowingDetail> followingDetails = await _uow.FollowingDetailRepository.Get(
+                                                     filter: e => e.EntryMarkId == entryMark.Id && e.Status == Consts.STATUS_ACTIVE);
+                                                if (followingDetails.Any())
+                                                {
+                                                    foreach (var followingDetail in followingDetails)
+                                                    {
+
+                                                        var uniName = (await _uow.UniversityRepository.GetById(MajorDetailExisted.UniversityId)).Name;
+                                                        var majorName = (await _uow.MajorRepository.GetById(MajorDetailExisted.MajorId)).Name;
+                                                        var trainingProgramName = (await _uow.TrainingProgramRepository
+                                                                    .GetById(MajorDetailExisted.TrainingProgramId)).Name;
+                                                        var notification = new Models.Notification()
+                                                        {
+                                                            Data = MajorDetailExisted.UniversityId.ToString(),
+                                                            DateRecord = DateTime.UtcNow,
+                                                            IsRead = false,
+                                                            Message = string.Format(updateSubvsEn, uniName, majorName, trainingProgramName),
+                                                            Type = 3,
+                                                            UserId = followingDetail.UserId
+                                                        };
+                                                        notifications.Add(notification);
+                                                        messages.Add(new Message()
+                                                        {
+                                                            Notification = new FirebaseAdmin.Messaging.Notification()
+                                                            {
+                                                                Title = "Thông báo!",
+                                                                Body = notification.Message,
+                                                            },
+                                                            Data = new Dictionary<string, string>()
+                                                            {
+                                                                {"type" , notification.Type.ToString()},
+                                                                {"message" , notification.Message},
+                                                                {"data" , notification.Data},
+                                                            },
+                                                            Topic = followingDetail.UserId.ToString()
+                                                        });
+                                                        
                                                     }
                                                 }
                                             }
@@ -1782,11 +1959,29 @@ namespace CapstoneAPI.Features.University.Service
                             }
                         }
                     }
+                }
+                if (notifications.Any())
+                {
+                    _uow.NotificationRepository.InsertRange(notifications);
+                    if ((await _uow.CommitAsync()) <= 0)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Cập nhật ngành bị lỗi!");
+                        return response;
+                    }
+                }
+                tran.Commit();
+                if (messages.Any())
+                {
+                    _firebaseService.SendBatchMessage(messages);
+                }
+                response.Succeeded = true;
+                response.Data = true;
 
-                    tran.Commit();
-                    response.Succeeded = true;
-                    response.Data = true;
-                }                
             }
             catch (Exception ex)
             {
