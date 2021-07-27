@@ -108,7 +108,7 @@ namespace CapstoneAPI.Features.Season.Service
                 {
                     IEnumerable<Models.MajorDetail> majorDetails = await _uow.MajorDetailRepository.Get(
                         filter: m => m.SeasonId == createSeasonParam.SeasonSourceId && m.Status == Consts.STATUS_ACTIVE,
-                        includeProperties: "AdmissionCriterion,AdmissionCriterion.SubAdmissionCriteria,AdmissionCriterion.SubAdmissionCriteria.EntryMarks");
+                        includeProperties: "AdmissionCriterion");
 
                     if (majorDetails.Any())
                     {
@@ -160,10 +160,10 @@ namespace CapstoneAPI.Features.Season.Service
                             }
 
 
-                            IEnumerable<Models.SubAdmissionCriterion> oldSubAdmissions = (oldMajorDetail.AdmissionCriterion.SubAdmissionCriteria)
-                                .Where(s => s.Status == Consts.STATUS_ACTIVE);
+                            IEnumerable<Models.SubAdmissionCriterion> oldSubAdmissions = await _uow.SubAdmissionCriterionRepository
+                                .Get(filter: s => s.AdmissionCriterionId == oldMajorDetail.Id && s.Status == Consts.STATUS_ACTIVE);
                             //SUBADMISSION
-                            if (oldSubAdmissions == null || oldSubAdmissions.Count() < 1)
+                            if (oldSubAdmissions.Any())
                             {
                                 continue;
                             }
@@ -193,8 +193,10 @@ namespace CapstoneAPI.Features.Season.Service
 
                                 //ENTRYMARKS
 
-                                IEnumerable<Models.EntryMark> oldEntryMarks = (oldSubAdmission.EntryMarks).Where(e => e.Status == Consts.STATUS_ACTIVE);
-                                if (oldEntryMarks == null || oldEntryMarks.Count() < 1)
+                                var oldEntryMarks = await _uow.EntryMarkRepository.Get(
+                                    filter: e => e.SubAdmissionCriterionId == oldSubAdmission.Id
+                                            && e.Status == Consts.STATUS_ACTIVE);
+                                if (oldEntryMarks.Any())
                                 {
                                     continue;
                                 }
