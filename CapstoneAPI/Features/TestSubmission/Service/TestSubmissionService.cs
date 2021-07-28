@@ -360,7 +360,9 @@
             Response<List<UserTestSubmissionDataSet>> response = new Response<List<UserTestSubmissionDataSet>>();
             try
             {
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -371,22 +373,19 @@
                     return response;
                 }
 
-
-
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-                if (string.IsNullOrEmpty(userIdString) || !Int32.TryParse(userIdString, out int userId))
+                if (!user.IsActive)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
+                    return response;
                 }
 
-                userId = Int32.Parse(userIdString);
                 IEnumerable<TestSubmission> testSubmissionDataSets = (await _uow.TestSubmissionRepository
-                    .Get(filter: t => t.UserId == userId,
+                    .Get(filter: t => t.UserId == user.Id,
                         includeProperties: "Test",
                         orderBy: t => t.OrderBy(t => t.SpentTime))).GroupBy(t => t.TestId).Select(g => g.Last());
                 if (param.SubjectId != null)
@@ -434,7 +433,7 @@
                     userTestSubmissionDataSet.TimeLimit = (int)testSubmission.Test.TimeLimit;
                     userTestSubmissionDataSet.NumberOfQuestion = testSubmission.Test.NumberOfQuestion;
                     userTestSubmissionDataSet.NumberOfCompletion = (await _uow.TestSubmissionRepository
-                        .Get(filter: t => t.UserId == userId && t.TestId == testSubmission.TestId)).Count();
+                        .Get(filter: t => t.UserId == user.Id && t.TestId == testSubmission.TestId)).Count();
                     userTestSubmissionDataSet.TestName = testSubmission.Test.Name;
                     userTestSubmissionDataSet.SubmissionDate = DateTime.Parse(userTestSubmissionDataSet.SubmissionDate.ToString("MM/dd/yyyy h:mm tt"));
                     userTestSubmissionDataSets.Add(userTestSubmissionDataSet);
@@ -465,7 +464,9 @@
 
             try
             {
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -476,21 +477,18 @@
                     return response;
                 }
 
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-
-                if (userIdString == null || userIdString.Trim().Length <= 0)
+                if (!user.IsActive)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
                     return response;
                 }
-                int userId = Int32.Parse(userIdString);
                 TestSubmission testSubmission = await _uow.TestSubmissionRepository
-                   .GetFirst(filter: t => t.Id == testSubmissionId && t.UserId == userId,
+                   .GetFirst(filter: t => t.Id == testSubmissionId && t.UserId == user.Id,
                             includeProperties: "Test");
 
                 if (testSubmission == null)
@@ -531,7 +529,7 @@
                 DetailTestSubmissionDataSet detailTestSubmissionDataSet = _mapper.Map<DetailTestSubmissionDataSet>(testSubmission);
 
                 detailTestSubmissionDataSet.NumberOfCompletion = (await _uow.TestSubmissionRepository
-                            .Get(filter: t => t.UserId == userId && t.TestId == testSubmission.TestId)).Count();
+                            .Get(filter: t => t.UserId == user.Id && t.TestId == testSubmission.TestId)).Count();
                 detailTestSubmissionDataSet.QuestionSubmissions = questionSubmissionDataSets;
                 detailTestSubmissionDataSet.NumberOfQuestion = testSubmission.Test.NumberOfQuestion;
                 detailTestSubmissionDataSet.TimeLimit = (int)testSubmission.Test.TimeLimit;

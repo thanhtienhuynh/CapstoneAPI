@@ -275,25 +275,29 @@ namespace CapstoneAPI.Features.Article.Service
             try
             {
                 int? oldStatus = null;
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
+                    response.Succeeded = false;
                     if (response.Errors == null)
+                    {
                         response.Errors = new List<string>();
+                    }
                     response.Errors.Add("Bạn chưa đăng nhập!");
                     return response;
                 }
 
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-
-                if (userIdString == null || userIdString.Length <= 0)
+                if (!user.IsActive)
                 {
+                    response.Succeeded = false;
                     if (response.Errors == null)
+                    {
                         response.Errors = new List<string>();
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    }
+                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
                     return response;
                 }
-
-                int userId = Int32.Parse(userIdString);
                 if (approvingArticleDataSet != null)
                 {
                     Models.Article articleToUpdate = await _uow.ArticleRepository
@@ -342,7 +346,7 @@ namespace CapstoneAPI.Features.Article.Service
                         articleToUpdate.PublicFromDate = approvingArticleDataSet?.PublicFromDate;
                         articleToUpdate.PublicToDate = approvingArticleDataSet?.PublicToDate;
                         articleToUpdate.Status = approvingArticleDataSet.Status;
-                        articleToUpdate.Censor = userId;
+                        articleToUpdate.Censor = user.Id;
 
                         _uow.UniversityArticleRepository.DeleteComposite(filter: uniArt => uniArt.ArticleId == approvingArticleDataSet.Id);
                         foreach (var item in approvingArticleDataSet.University)
@@ -444,7 +448,7 @@ namespace CapstoneAPI.Features.Article.Service
                                 IEnumerable<Models.User> users = dictionaryUsers.Values;
                                 var messages = new List<Message>();
                                 List<Models.Notification> notifications = new List<Models.Notification>();
-                                foreach (Models.User user in users)
+                                foreach (Models.User userEl in users)
                                 {
                                     Models.Notification notification = new Models.Notification()
                                     {
@@ -453,7 +457,7 @@ namespace CapstoneAPI.Features.Article.Service
                                         Message = articleToUpdate.Title,
                                         IsRead = false,
                                         Type = 1,
-                                        UserId = user.Id
+                                        UserId = userEl.Id
                                     };
                                     notifications.Add(notification);
                                     messages.Add(new Message()
@@ -850,8 +854,9 @@ namespace CapstoneAPI.Features.Article.Service
 
             try
             {
-                //GET USER ID
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -862,20 +867,16 @@ namespace CapstoneAPI.Features.Article.Service
                     return response;
                 }
 
-
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-
-                if (userIdString == null || userIdString.Length <= 0)
+                if (!user.IsActive)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
                     return response;
                 }
-                int userId = Int32.Parse(userIdString);
 
                 //GET CURRENT TIME
                 var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
@@ -885,7 +886,7 @@ namespace CapstoneAPI.Features.Article.Service
                 //GET LIST ARTICLE
                 Dictionary<int, Models.Article> articlesByUser = new Dictionary<int, Models.Article>();
                 IEnumerable<Models.FollowingDetail> followingDetailPerUser = await _uow.FollowingDetailRepository
-                .Get(filter: f => f.IsReceiveNotification == true && f.UserId == userId && f.Status == Consts.STATUS_ACTIVE,
+                .Get(filter: f => f.IsReceiveNotification == true && f.UserId == user.Id && f.Status == Consts.STATUS_ACTIVE,
                 includeProperties: "EntryMark,EntryMark.MajorSubjectGroup,EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail");
                 if (followingDetailPerUser.Count() > 0)
                 {
@@ -962,8 +963,9 @@ namespace CapstoneAPI.Features.Article.Service
             using var tran = _uow.GetTransaction();
             try
             {
-                //GET USER ID
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -973,19 +975,17 @@ namespace CapstoneAPI.Features.Article.Service
                     response.Errors.Add("Bạn chưa đăng nhập!");
                     return response;
                 }
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
 
-                if (userIdString == null || userIdString.Length <= 0)
+                if (!user.IsActive)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
                     return response;
                 }
-                int userId = Int32.Parse(userIdString);
                 if (createArticleParam.Content == null || createArticleParam.Content.Trim().Length == 0 ||
                     createArticleParam.Title == null || createArticleParam.Title.Trim().Length == 0 ||
                     createArticleParam.ShortDescription == null || createArticleParam.ShortDescription.Trim().Length == 0)
@@ -1003,7 +1003,7 @@ namespace CapstoneAPI.Features.Article.Service
                     Title = createArticleParam.Title,
                     Content = await FirebaseHelper.UploadBase64ImgToFirebase(createArticleParam.Content),
                     ShortDescription = createArticleParam.ShortDescription,
-                    Censor = userId,
+                    Censor = user.Id,
                     Status = Consts.STATUS_ACTIVE,
                 };
                 IFormFile postImage = createArticleParam.PostImage;
@@ -1155,8 +1155,9 @@ namespace CapstoneAPI.Features.Article.Service
             using var tran = _uow.GetTransaction();
             try
             {
-                //GET USER ID
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -1166,20 +1167,17 @@ namespace CapstoneAPI.Features.Article.Service
                     response.Errors.Add("Bạn chưa đăng nhập!");
                     return response;
                 }
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
 
-                if (userIdString == null || userIdString.Length <= 0)
+                if (!user.IsActive)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
                     return response;
                 }
-                int userId = Int32.Parse(userIdString);
-
 
                 if (updateArticleParam.Content == null || updateArticleParam.Content.Trim().Length == 0 ||
                     updateArticleParam.Title == null || updateArticleParam.Title.Trim().Length == 0 ||
@@ -1220,6 +1218,7 @@ namespace CapstoneAPI.Features.Article.Service
                 article.Title = updateArticleParam.Title;
                 article.Content = await FirebaseHelper.UploadBase64ImgToFirebase(updateArticleParam.Content);
                 article.ShortDescription = updateArticleParam.ShortDescription;
+                article.Censor = user.Id;
 
                 IFormFile postImage = updateArticleParam.PostImage;
                 if (postImage != null)
@@ -1343,7 +1342,7 @@ namespace CapstoneAPI.Features.Article.Service
                         {
                             response.Errors = new List<string>();
                         }
-                        response.Errors.Add("Thêm bài viết không thành công, lỗi hệ thống!");
+                        response.Errors.Add("Cập nhật bài viết không thành công, lỗi hệ thống!");
                         return response;
                     }
                 }

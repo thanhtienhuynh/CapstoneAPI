@@ -44,15 +44,7 @@ namespace CapstoneAPI.Features.University.Service
             Response<IEnumerable<TrainingProgramBasedUniversityDataSet>> response = new Response<IEnumerable<TrainingProgramBasedUniversityDataSet>>();
             try
             {
-                int userId = 0;
-                if (token != null && token.Trim().Length > 0)
-                {
-                    string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-                    if (userIdString != null && userIdString.Length > 0)
-                    {
-                        userId = Int32.Parse(userIdString);
-                    }
-                }
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
 
                 List<TrainingProgramBasedUniversityDataSet> trainingProgramBasedUniversityDataSets = new List<TrainingProgramBasedUniversityDataSet>();
 
@@ -186,10 +178,10 @@ namespace CapstoneAPI.Features.University.Service
                         seasonDataSets.Add(previousSeasonDataSet);
                         seasonDataSets.Add(currentSeasonDataSet);
                         trainingProgramDataSet.SeasonDataSets = seasonDataSets;
-                        if (userId > 0)
+                        if (user != null && user.IsActive)
                         {
                             trainingProgramDataSet.FollowingDetail = _mapper.Map<FollowingDetailDataSet>(await _uow.FollowingDetailRepository
-                                                                                        .GetFirst(filter: f => f.UserId == userId
+                                                                                        .GetFirst(filter: f => f.UserId == user.Id
                                                                                         && f.Status == Consts.STATUS_ACTIVE
                                                                                         && f.EntryMarkId == currentEntryMark.Id));
                         }
@@ -293,7 +285,9 @@ namespace CapstoneAPI.Features.University.Service
             Response<MockTestBasedUniversity> response = new Response<MockTestBasedUniversity>();
             try
             {
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -304,28 +298,14 @@ namespace CapstoneAPI.Features.University.Service
                     return response;
                 }
 
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-                if (string.IsNullOrEmpty(userIdString) || !Int32.TryParse(userIdString, out int userId))
+                if (!user.IsActive)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
-                }
-
-                userId = Int32.Parse(userIdString);
-
-                Models.User user = await _uow.UserRepository.GetById(userId);
-                if (user == null)
-                {
-                    response.Succeeded = false;
-                    if (response.Errors == null)
-                    {
-                        response.Errors = new List<string>();
-                    }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
                     return response;
                 }
 
@@ -339,7 +319,7 @@ namespace CapstoneAPI.Features.University.Service
                 List<MarkParam> marks = new List<MarkParam>();
 
                 IEnumerable<Models.Transcript> transcripts = await _uow.TranscriptRepository
-                        .Get(filter: t => t.UserId == userId && t.TranscriptTypeId == 3 && t.Status == Consts.STATUS_ACTIVE);
+                        .Get(filter: t => t.UserId == user.Id && t.TranscriptTypeId == 3 && t.Status == Consts.STATUS_ACTIVE);
                 foreach (Models.Transcript transcript in transcripts)
                 {
                     MarkParam markParam = new MarkParam();
@@ -351,7 +331,7 @@ namespace CapstoneAPI.Features.University.Service
                 if (subjectGroupDetails.Where(s => s.SubjectId == 10).Any())
                 {
                     MarkParam markParam = new MarkParam();
-                    markParam.Mark = await _uow.TranscriptRepository.GetLiteratureTestMark(userId);
+                    markParam.Mark = await _uow.TranscriptRepository.GetLiteratureTestMark(user.Id);
                     markParam.SubjectId = 10;
                     marks.Add(markParam);
                 }
@@ -485,12 +465,12 @@ namespace CapstoneAPI.Features.University.Service
                         seasonDataSets.Add(previousSeasonDataSet);
                         seasonDataSets.Add(currentSeasonDataSet);
                         trainingProgramDataSet.SeasonDataSets = seasonDataSets;
-                        if (userId > 0)
-                        {
-                            trainingProgramDataSet.FollowingDetail = _mapper.Map<FollowingDetailDataSet>(await _uow.FollowingDetailRepository.GetFirst(filter: f => f.UserId == userId
-                                                                                        && f.Status == Consts.STATUS_ACTIVE
-                                                                                        && f.EntryMarkId == currentEntryMark.Id));
-                        }
+
+                        trainingProgramDataSet.FollowingDetail = _mapper.Map<FollowingDetailDataSet>(
+                            await _uow.FollowingDetailRepository.GetFirst(filter: f => f.UserId == user.Id
+                                                            && f.Status == Consts.STATUS_ACTIVE
+                                                            && f.EntryMarkId == currentEntryMark.Id));
+                        
                         trainingProgramDataSet.NumberOfCaring = (await _uow.FollowingDetailRepository.Get(
                                 filter: f => currentEntryMarkIds.Contains(f.EntryMarkId)
                                 && f.Status == Consts.STATUS_ACTIVE)).Count();
@@ -2017,6 +1997,7 @@ namespace CapstoneAPI.Features.University.Service
                 tran.Commit();
                 if (messages.Any())
                 {
+                    #pragma warning disable
                     _firebaseService.SendBatchMessage(messages);
                 }
                 response.Succeeded = true;

@@ -2,9 +2,11 @@
 {
     using CapstoneAPI.Features.User.DataSet;
     using CapstoneAPI.Features.User.Service;
+    using CapstoneAPI.Filters;
     using CapstoneAPI.Wrappers;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
 
     [Route("api/v1/user")]
@@ -22,6 +24,26 @@
         public async Task<ActionResult<Response<LoginResponse>>> LoginGoogle([FromBody] Token firebaseToken)
         {
             return Ok(await _service.Login(firebaseToken));
+        }
+
+        [HttpGet()]
+        public async Task<ActionResult<PagedResponse<List<UserDataSet>>>> GetUsers([FromQuery] PaginationFilter paging,
+            [FromQuery] AdminUserFilter query)
+        {
+            return Ok(await _service.GetListUsers(paging, query));
+        }
+
+        [HttpGet("validation")]
+        public async Task<ActionResult<UserDataSet>> ValidateToken()
+        {
+            string token = Request.Headers["Authorization"];
+            return Ok(await _service.ValidateJwtToken(token));
+        }
+
+        [HttpPut()]
+        public async Task<ActionResult<Response<bool>>> UpdateUser([FromBody] UpdateUserParam param)
+        {
+            return Ok(await _service.UpdateUser(param));
         }
 
         [HttpPost("unsubscribe")]

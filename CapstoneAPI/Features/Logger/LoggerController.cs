@@ -22,7 +22,7 @@ namespace CapstoneAPI.Features.Logger
         {
             public string Message { get; set; }
         }
-
+        #pragma warning disable
         [HttpPost()]
         public async Task<ActionResult<Object>> WriteLog([FromBody] ErrorMessage error)
         {

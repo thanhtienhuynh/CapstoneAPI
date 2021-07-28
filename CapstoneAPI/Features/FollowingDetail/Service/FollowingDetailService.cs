@@ -58,20 +58,29 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                     return response;
                 }
 
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
 
-                if (userIdString == null || userIdString.Length <= 0)
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    response.Errors.Add("Bạn chưa đăng nhập!");
                     return response;
                 }
 
-                int userId = Int32.Parse(userIdString);
+                if (!user.IsActive)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
+                    return response;
+                }
 
                 MajorDetail majorDetail = await _uow.MajorDetailRepository
                                             .GetFirst(filter: m => m.MajorId == followingDetailParam.MajorId
@@ -127,7 +136,7 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                 }
 
                 Models.FollowingDetail followingDetail = await _uow.FollowingDetailRepository
-                                                .GetFirst(filter: u => u.UserId == userId
+                                                .GetFirst(filter: u => u.UserId == user.Id
                                                             && u.EntryMarkId == entryMark.Id && u.Status == Consts.STATUS_ACTIVE);
                 if (followingDetail == null)
                 {
@@ -141,7 +150,7 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                     followingDetail = new Models.FollowingDetail()
                     {
                         EntryMarkId = entryMark.Id,
-                        UserId = userId,
+                        UserId = user.Id,
                         IsReceiveNotification = true,
                         Status = Consts.STATUS_ACTIVE,
                         Rank = new Models.Rank()
@@ -183,7 +192,9 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
         public async Task<Response<bool>> RemoveFollowingDetail(int followingDetailId, string token)
         {
             Response<bool> response = new Response<bool>();
-            if (token == null || token.Trim().Length == 0)
+            Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+            if (user == null)
             {
                 response.Succeeded = false;
                 if (response.Errors == null)
@@ -194,22 +205,19 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                 return response;
             }
 
-            string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-
-            if (userIdString == null || userIdString.Length <= 0)
+            if (!user.IsActive)
             {
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
                     response.Errors = new List<string>();
                 }
-                response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                response.Errors.Add("Tài khoản của bạn đã bị khóa!");
                 return response;
             }
 
-            int userId = Int32.Parse(userIdString);
-
-            Models.FollowingDetail followingDetail = await _uow.FollowingDetailRepository.GetFirst(filter: f => f.Id == followingDetailId && f.Status == Consts.STATUS_ACTIVE,
+            Models.FollowingDetail followingDetail = await _uow.FollowingDetailRepository.GetFirst(filter: f => f.Id == followingDetailId && f.Status == Consts.STATUS_ACTIVE
+                                                                                                        && f.UserId == user.Id,
                                                                                                         includeProperties: "Rank");
             if (followingDetail == null)
             {
@@ -277,6 +285,17 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                         response.Errors = new List<string>();
                     }
                     response.Errors.Add("Bạn chưa đăng nhập!");
+                    return response;
+                }
+
+                if (!user.IsActive)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
                     return response;
                 }
 
@@ -392,7 +411,9 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
 
             try
             {
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -403,16 +424,14 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                     return response;
                 }
 
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-
-                if (userIdString == null || userIdString.Length <= 0)
+                if (!user.IsActive)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
                     return response;
                 }
 
@@ -430,10 +449,9 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                     return response;
                 }
 
-                int userId = Int32.Parse(userIdString);
 
                 IEnumerable<Models.FollowingDetail> followingDetails = await _uow.FollowingDetailRepository.
-                                    Get(filter: u => u.UserId == userId && u.EntryMark.Status == Consts.STATUS_ACTIVE && u.Status == Consts.STATUS_ACTIVE,
+                                    Get(filter: u => u.UserId == user.Id && u.EntryMark.Status == Consts.STATUS_ACTIVE && u.Status == Consts.STATUS_ACTIVE,
                                     includeProperties: "EntryMark,Rank," +
                                     "EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.TrainingProgram," +
                                     "EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.University," +

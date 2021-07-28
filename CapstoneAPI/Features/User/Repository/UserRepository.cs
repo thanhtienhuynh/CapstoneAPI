@@ -3,7 +3,9 @@ using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
 using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace CapstoneAPI.Features.User.Repository
@@ -19,16 +21,31 @@ namespace CapstoneAPI.Features.User.Repository
                 return null;
             }
 
-            string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
+            var handler = new JwtSecurityTokenHandler();
+            var tokenString = handler.ReadToken(token.Substring(7)) as JwtSecurityToken;
+            var tokenUserId = tokenString.Claims.FirstOrDefault(claim => claim.Type == "userId").Value;
+            var tokenRoleId = tokenString.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.Role)?.Value;
+            var tokenUsername = tokenString.Claims.FirstOrDefault(claim => claim.Type == "userName").Value;
 
-            if (string.IsNullOrEmpty(userIdString) || !Int32.TryParse(userIdString, out int userId))
+            if (string.IsNullOrEmpty(tokenUserId) || !int.TryParse(tokenUserId, out _))
             {
                 return null;
             }
 
-            userId = Int32.Parse(userIdString);
+            if (string.IsNullOrEmpty(tokenRoleId) || !int.TryParse(tokenRoleId, out _))
+            {
+                return null;
+            }
 
-            Models.User user = await GetById(userId);
+            if (string.IsNullOrEmpty(tokenUsername))
+            {
+                return null;
+            }
+
+            int userId = int.Parse(tokenUserId);
+            int roleId = int.Parse(tokenRoleId);
+            Models.User user = await GetFirst(u => u.Id == userId && u.RoleId == roleId
+                                            && u.Username == tokenUsername && u.IsActive == true);
 
             return user;
         }

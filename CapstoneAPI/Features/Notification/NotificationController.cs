@@ -5,7 +5,9 @@ using System.Threading.Tasks;
 using CapstoneAPI.Features.Notification.DataSet;
 using CapstoneAPI.Features.Notification.Service;
 using CapstoneAPI.Filters;
+using CapstoneAPI.Helpers;
 using CapstoneAPI.Wrappers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,6 +26,7 @@ namespace CapstoneAPI.Features.Notification
 
 
         [HttpGet("user")]
+        [Authorize(Roles = Roles.Student)]
         public async Task<ActionResult<PagedResponse<List<NotificationDataSet>>>> GetNotificationsByUser([FromQuery] PaginationFilter filter)
         {
             string token = Request.Headers["Authorization"];

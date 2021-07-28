@@ -8,14 +8,6 @@ namespace CapstoneAPI.Helpers
 {
     public static class JWTUtils
     {
-        public static string GetUserIdFromJwtToken(string token)
-        {
-            var handler = new JwtSecurityTokenHandler();
-            var tokenString = handler.ReadToken(token.Substring(7)) as JwtSecurityToken;
-            var userId = tokenString.Claims.First(claim => claim.Type == "sub").Value;
-            return userId;
-        }
-
         public static string CalculateTimeAgo(DateTime recordDate)
         {
             var ts = new TimeSpan(DateTime.UtcNow.Ticks - recordDate.Ticks);

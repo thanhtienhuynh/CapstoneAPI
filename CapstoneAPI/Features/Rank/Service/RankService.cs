@@ -218,6 +218,7 @@ namespace CapstoneAPI.Features.Rank.Service
                     }
                    
                     string completedMessage = string.Format(message, emailedUserGroup.Key.Fullname, content);
+                    #pragma warning disable
                     _emailService.SendEmailAsync(emailedUserGroup.Key.Email, "MOHS RANK UPDATION", completedMessage);
                 }
                 _uow.NotificationRepository.InsertRange(notifications);

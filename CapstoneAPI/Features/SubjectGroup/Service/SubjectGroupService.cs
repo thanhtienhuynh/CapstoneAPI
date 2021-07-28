@@ -656,7 +656,7 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
             }
             return response;
         }
-
+        #pragma warning disable
         public async Task<Response<CreateSubjectGroupDataset>> UpdateSubjectGroup(UpdateSubjectGroupParam updateSubjectGroupParam)
         {
             Response<CreateSubjectGroupDataset> response = new Response<CreateSubjectGroupDataset>();
@@ -853,7 +853,9 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
             try
             {
                 UserSuggestionInformation userSuggestionSubjectGroup = null;
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -864,37 +866,20 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
                     return response;
                 }
 
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-
-                if (userIdString == null || userIdString.Length <= 0)
+                if (!user.IsActive)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
-                    return response;
-                }
-
-                int userId = Int32.Parse(userIdString);
-
-                Models.User user = await _uow.UserRepository.GetFirst(filter: u => u.Id == userId && u.IsActive == true);
-
-                if (user == null)
-                {
-                    response.Succeeded = false;
-                    if (response.Errors == null)
-                    {
-                        response.Errors = new List<string>();
-                    }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
                     return response;
                 }
 
                 userSuggestionSubjectGroup = new UserSuggestionInformation()
                 {
-                    TranscriptDetails = await _uow.TranscriptRepository.GetUserTranscripts(userId),
+                    TranscriptDetails = await _uow.TranscriptRepository.GetUserTranscripts(user.Id),
                     Gender = user.Gender,
                     ProvinceId = user.ProvinceId
                 };

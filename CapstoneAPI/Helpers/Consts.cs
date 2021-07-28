@@ -17,9 +17,6 @@ namespace CapstoneAPI.Helpers
         public static string QUESTION_FOLDER = "Question";
         public static int TEST_HT_TYPE_ID = 2;
         public static int TEST_THPTQG_TYPE_ID = 1;
-        //Role
-        public static string ADMIN_ROLE = "Admin";
-        public static string USER_ROLE = "User";
         //Firebase
         public static string FIREBASE_KEY_PATH = "FirebaseKey\\unilinks-41d0e-firebase-adminsdk-th8o0-c0b4d125e8.json";
         //Year
@@ -62,5 +59,12 @@ namespace CapstoneAPI.Helpers
         //Subject
         public const int GetAllSubjects = 1000;
         public const int Login = 2000;
+    }
+
+    public static class Roles
+    {
+        public const string Admin = "3";
+        public const string Staff = "1";
+        public const string Student = "2";
     }
 }

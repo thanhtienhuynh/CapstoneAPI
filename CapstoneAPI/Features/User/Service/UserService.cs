@@ -2,6 +2,7 @@
 {
     using AutoMapper;
     using CapstoneAPI.Features.User.DataSet;
+    using CapstoneAPI.Filters;
     using CapstoneAPI.Helpers;
     using CapstoneAPI.Repositories;
     using CapstoneAPI.Wrappers;
@@ -12,6 +13,8 @@
     using System;
     using System.Collections.Generic;
     using System.IdentityModel.Tokens.Jwt;
+    using System.Linq;
+    using System.Linq.Expressions;
     using System.Security.Claims;
     using System.Text;
     using System.Threading.Tasks;
@@ -27,6 +30,41 @@
             _mapper = mapper;
         }
 
+        public async Task<Response<UserDataSet>> ValidateJwtToken(string token)
+        {
+            Response<UserDataSet> response = new Response<UserDataSet>();
+
+            try
+            {
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+                
+                if (user == null || !user.IsActive)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                } else
+                {
+                    response.Succeeded = true;
+                    response.Data = _mapper.Map<UserDataSet>(user);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+
+            return response;
+        }
+
         public async Task<Response<LoginResponse>> Login(Token firebaseToken)
         {
             Response<LoginResponse> response = new Response<LoginResponse>();
@@ -39,7 +77,6 @@
                 user = await _uow.UserRepository.GetFirst(filter: u => u.Email.Equals(decodedToken.Claims["email"].ToString()), includeProperties: "Role");
                 if (user == null)
                 {
-                    int userRoleId = (await _uow.RoleRepository.GetFirst(filter: r => r.Name.Equals(Consts.USER_ROLE))).Id;
                     user = new Models.User()
                     {
                         Email = decodedToken.Claims["email"].ToString(),
@@ -47,7 +84,7 @@
                         Fullname = decodedToken.Claims["name"].ToString(),
                         AvatarUrl = decodedToken.Claims["picture"].ToString(),
                         IsActive = true,
-                        RoleId = userRoleId
+                        RoleId = 2
                     };
                     _uow.UserRepository.Insert(user);
 
@@ -62,15 +99,11 @@
                         return response;
                     }
                 }
-                bool isAdmin = user.Role.Name.Equals(Consts.ADMIN_ROLE);
                 var claims = new[]
                 {
-                        new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                        new Claim(ClaimTypes.Role, isAdmin ? Consts.ADMIN_ROLE : Consts.USER_ROLE),
-                        new Claim(ClaimTypes.GivenName, user.Fullname ?? ""),
-                        new Claim(ClaimTypes.MobilePhone, user.Phone ?? ""),
-                        new Claim(ClaimTypes.Uri, user.AvatarUrl ?? ""),
-                        new Claim(ClaimTypes.Email, user.Email ?? ""),
+                        new Claim(ClaimTypes.Role, user.RoleId.ToString() ?? ""),
+                        new Claim("userId", user.Id.ToString() ?? ""),
+                        new Claim("userName", user.Username ?? ""),
                         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
                 };
 
@@ -82,7 +115,6 @@
                                                     expires: DateTime.UtcNow.AddSeconds(Consts.TOKEN_EXPIRED_TIME),
                                                     signingCredentials: creds);
                 UserDataSet userResponse = _mapper.Map<UserDataSet>(user);
-                userResponse.IsAdmin = isAdmin;
                 LoginResponse loginResponse = new LoginResponse()
                 {
                     User = userResponse,
@@ -101,6 +133,93 @@
                 response.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
             
+            return response;
+        }
+
+        public async Task<PagedResponse<List<UserDataSet>>> GetListUsers(PaginationFilter paging, AdminUserFilter query)
+        {
+            PagedResponse<List<UserDataSet>> response = new PagedResponse<List<UserDataSet>>();
+
+            try
+            {
+                Expression<Func<Models.User, bool>> filter = null;
+
+                filter = u => (string.IsNullOrEmpty(query.Fullname) || u.Fullname.Contains(query.Fullname))
+                && (string.IsNullOrEmpty(query.Email) || u.Fullname.Contains(query.Email))
+                && (!query.IsActive.HasValue || u.IsActive == query.IsActive)
+                && (!query.Role.HasValue || u.RoleId == query.Role);
+
+                List<UserDataSet> users = (await _uow.UserRepository
+                    .Get(filter: filter, orderBy: o => o.OrderByDescending(u => u.Fullname),
+                    first: paging.PageSize, offset: (paging.PageNumber - 1) * paging.PageSize))
+                    .Select(u => _mapper.Map<UserDataSet>(u)).ToList();
+
+                var totalRecords = await _uow.UserRepository.Count(filter);
+                response = PaginationHelper.CreatePagedReponse(users, paging, totalRecords);
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+
+            return response;
+        }
+
+        public async Task<Response<bool>> UpdateUser(UpdateUserParam param)
+        {
+            Response<bool> response = new Response<bool>();
+
+            try
+            {
+                Models.User user = await _uow.UserRepository.GetById(param.Id);
+                if (user == null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Tài khoản này không tồn tại");
+                }
+
+                if (param.IsActive != null)
+                {
+                    user.IsActive = (bool) param.IsActive;
+                }
+
+                if (param.Role != null)
+                {
+                    user.IsActive = (bool)param.IsActive;
+                }
+
+                if (await _uow.CommitAsync() <= 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Lỗi hệ thống!");
+                }
+                response.Data = true;
+                response.Succeeded = true;
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
             return response;
         }
 

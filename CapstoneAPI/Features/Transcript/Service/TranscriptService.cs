@@ -33,7 +33,9 @@ namespace CapstoneAPI.Features.Transcript.Service
             Response<IEnumerable<UserTranscriptTypeDataSet>> response = new Response<IEnumerable<UserTranscriptTypeDataSet>>();
             try
             {
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -43,19 +45,18 @@ namespace CapstoneAPI.Features.Transcript.Service
                     response.Errors.Add("Bạn chưa đăng nhập!");
                     return response;
                 }
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-                if (userIdString == null && userIdString.Length <= 0)
+
+                if (!user.IsActive)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
                     return response;
                 }
-                int userId = Int32.Parse(userIdString);
-                IEnumerable<UserTranscriptTypeDataSet> result = await _uow.TranscriptRepository.GetUserTranscripts(userId);
+                IEnumerable<UserTranscriptTypeDataSet> result = await _uow.TranscriptRepository.GetUserTranscripts(user.Id);
                 response.Succeeded = true;
                 response.Data = result;
             } catch (Exception ex)
@@ -184,6 +185,7 @@ namespace CapstoneAPI.Features.Transcript.Service
                 response.Data = true;
                 if (messages.Any())
                 {
+                    #pragma warning disable
                     _firebaseService.SendBatchMessage(messages);
                 }
             }
