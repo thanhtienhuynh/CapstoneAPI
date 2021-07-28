@@ -44,7 +44,7 @@ namespace CapstoneAPI.Features.Article.Service
             configuration = JObject.Parse(File.ReadAllText(path));
         }
 
-        public async Task<PagedResponse<List<ArticleCollapseDataSet>>> GetListArticleForGuest(PaginationFilter validFilter)
+        public async Task<PagedResponse<List<ArticleCollapseDataSet>>> GetListArticleForGuest(PaginationFilter validFilter, string title)
         {
             PagedResponse<List<ArticleCollapseDataSet>> result = new PagedResponse<List<ArticleCollapseDataSet>>();
 
@@ -56,7 +56,9 @@ namespace CapstoneAPI.Features.Article.Service
 
                 Expression<Func<Models.Article, bool>> filter = null;
                 filter = a => a.Status == 3 && a.PublicFromDate != null && a.PublicToDate != null
-                    && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0;
+                    && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0
+                    && a.PublicFromDate <= currentDate
+                    && (string.IsNullOrEmpty(title) || a.Title.Contains(title));
 
                 IEnumerable<Models.Article> articles = await _uow.ArticleRepository
                     .Get(filter: filter, orderBy: o => o.OrderByDescending(a => a.PostedDate),
@@ -70,6 +72,10 @@ namespace CapstoneAPI.Features.Article.Service
                 else
                 {
                     var articleCollapseDataSet = articles.Select(m => _mapper.Map<ArticleCollapseDataSet>(m)).ToList();
+                    foreach(var article in articleCollapseDataSet)
+                    {
+                        article.TimeAgo = JWTUtils.CalculateTimeAgo(article.PublicFromDate);
+                    }
                     var totalRecords = await _uow.ArticleRepository
                         .Count(filter: filter);
                     result = PaginationHelper.CreatePagedReponse(articleCollapseDataSet, validFilter, totalRecords);
@@ -569,9 +575,9 @@ namespace CapstoneAPI.Features.Article.Service
         public async Task<Response<List<HomeArticle>>> GetHomeArticles()
         {
             Response<List<HomeArticle>> response = new Response<List<HomeArticle>>();
-            var topArticles = new List<AdminArticleCollapseDataSet>();
-            var todayArticles = new List<AdminArticleCollapseDataSet>();
-            var oldArticles = new List<AdminArticleCollapseDataSet>();
+            var topArticles = new List<ArticleCollapseDataSet>();
+            var todayArticles = new List<ArticleCollapseDataSet>();
+            var oldArticles = new List<ArticleCollapseDataSet>();
 
             try
             {
@@ -584,23 +590,35 @@ namespace CapstoneAPI.Features.Article.Service
                     && (a.PublicToDate != null && a.PublicToDate >= currentDate)
                     && (a.ImportantLevel != null && a.ImportantLevel > 0),
                 orderBy: o => o.OrderByDescending(a => a.ImportantLevel)))
-                .Select(m => _mapper.Map<AdminArticleCollapseDataSet>(m)).ToList();
+                .Select(m => _mapper.Map<ArticleCollapseDataSet>(m)).ToList();
+                foreach (var article in topArticles)
+                {
+                    article.TimeAgo = JWTUtils.CalculateTimeAgo(article.PublicFromDate);
+                }
+
+                var date = currentDate.Date;
 
                 todayArticles = (await _uow.ArticleRepository
                 .Get(filter: a => a.Status == 3
-                    && (a.PublicFromDate != null && a.PublicFromDate == currentDate)
+                    && (a.PublicFromDate != null && a.PublicFromDate >= date && a.PublicFromDate < date.AddDays(1))
                     && (a.PublicToDate != null && a.PublicToDate >= currentDate),
                 orderBy: o => o.OrderByDescending(a => a.PublicFromDate)))
-                .Select(m => _mapper.Map<AdminArticleCollapseDataSet>(m)).ToList();
-
-                var date = currentDate.Date;
+                .Select(m => _mapper.Map<ArticleCollapseDataSet>(m)).ToList();
+                foreach (var article in todayArticles)
+                {
+                    article.TimeAgo = JWTUtils.CalculateTimeAgo(article.PublicFromDate);
+                }
 
                 oldArticles = (await _uow.ArticleRepository
                 .Get(filter: a => a.Status == 3
                     && (a.PublicFromDate != null && a.PublicFromDate < date)
                     && (a.PublicToDate != null && a.PublicToDate >= currentDate),
                 orderBy: o => o.OrderByDescending(a => a.PublicFromDate)))
-                .Select(m => _mapper.Map<AdminArticleCollapseDataSet>(m)).Take(8).ToList();
+                .Select(m => _mapper.Map<ArticleCollapseDataSet>(m)).Take(8).ToList();
+                foreach (var article in oldArticles)
+                {
+                    article.TimeAgo = JWTUtils.CalculateTimeAgo(article.PublicFromDate);
+                }
 
                 List<HomeArticle> homeArticles = new List<HomeArticle>()
                 {
@@ -936,9 +954,9 @@ namespace CapstoneAPI.Features.Article.Service
             return response;
         }
 
-        public async Task<Response<ArticleCollapseDataSet>> CreateNewArticle(CreateArticleParam createArticleParam, string token)
+        public async Task<Response<AdminArticleCollapseDataSet>> CreateNewArticle(CreateArticleParam createArticleParam, string token)
         {
-            Response<ArticleCollapseDataSet> response = new Response<ArticleCollapseDataSet>();
+            Response<AdminArticleCollapseDataSet> response = new Response<AdminArticleCollapseDataSet>();
 
             //Update Block
             using var tran = _uow.GetTransaction();
@@ -1110,7 +1128,7 @@ namespace CapstoneAPI.Features.Article.Service
                         return response;
                     }
                 }
-                response.Data = _mapper.Map<ArticleCollapseDataSet>(article);
+                response.Data = _mapper.Map<AdminArticleCollapseDataSet>(article);
                 response.Succeeded = true;
                 tran.Commit();
             }

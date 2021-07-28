@@ -198,14 +198,19 @@ namespace CapstoneAPI.Features.University.Service
                                 && f.Status == Consts.STATUS_ACTIVE)).Count();
                         if (trainingProgramDataSet.FollowingDetail == null)
                         {
-                            trainingProgramDataSet.NumberOfCaring += 1; 
-                        }
-
-                        IEnumerable<Models.Rank> ranks = (await _uow.FollowingDetailRepository
+                            trainingProgramDataSet.NumberOfCaring += 1;
+                            IEnumerable<Models.Rank> ranks = (await _uow.FollowingDetailRepository
                                                                 .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE,
                                                                     includeProperties: "Rank"))
                                                                 .Select(u => u.Rank).Where(r => r != null);
-                        trainingProgramDataSet.Rank = _uow.RankRepository.CalculateRank(universityParam.TranscriptTypeId, universityParam.TotalMark, ranks);
+                            trainingProgramDataSet.Rank = _uow.RankRepository.CalculateRank(universityParam.TranscriptTypeId, universityParam.TotalMark, ranks);
+                        } else
+                        {
+                            trainingProgramDataSet.Rank = (await _uow.RankRepository
+                                .GetById(trainingProgramDataSet.FollowingDetail.Id)).Position;
+                        }
+
+                        
                         double? ration = null;
                         
                         if (currentSeasonDataSet.NumberOfStudents != null)

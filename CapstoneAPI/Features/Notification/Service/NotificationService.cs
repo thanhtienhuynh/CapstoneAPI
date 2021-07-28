@@ -49,7 +49,7 @@ namespace CapstoneAPI.Features.Notification.Service
                                                         .Select(n => _mapper.Map<NotificationDataSet>(n)).ToList();
                 foreach (NotificationDataSet notification in result)
                 {
-                    notification.TimeAgo = CalculateTimeAgo(notification.DateRecord);
+                    notification.TimeAgo = JWTUtils.CalculateTimeAgo(notification.DateRecord);
                 }
                 response = PaginationHelper.CreatePagedReponse(result, validFilter, allNotifications.Count());
             } catch (Exception ex)
@@ -184,33 +184,6 @@ namespace CapstoneAPI.Features.Notification.Service
             }
             return response;
         }
-        public string CalculateTimeAgo(DateTime recordDate)
-        {
-            var ts = new TimeSpan(DateTime.UtcNow.Ticks - recordDate.Ticks);
-            double delta = Math.Abs(ts.TotalSeconds);
-
-            if (delta < 1 * Consts.MINUTE)
-                return  ts.Seconds + " giây trước";
-
-            if (delta < 45 * Consts.MINUTE)
-                return ts.Minutes + " phút trước";
-
-            if (delta < 24 * Consts.HOUR)
-                return ts.Hours + " giờ trước";
-
-            if (delta < 30 * Consts.DAY)
-                return ts.Days + " ngày trước";
-
-            if (delta < 12 * Consts.MONTH)
-            {
-                int months = Convert.ToInt32(Math.Floor((double)ts.Days / 30));
-                return months + " tháng trước";
-            }
-            else
-            {
-                int years = Convert.ToInt32(Math.Floor((double)ts.Days / 365));
-                return  years + " năm trước";
-            }
-        }
+        
     }
 }

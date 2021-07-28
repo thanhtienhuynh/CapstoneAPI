@@ -9,7 +9,7 @@ namespace CapstoneAPI.Features.Article.Service
 {
     public interface IArticleService
     {
-        Task<PagedResponse<List<ArticleCollapseDataSet>>> GetListArticleForGuest(PaginationFilter validFilter);
+        Task<PagedResponse<List<ArticleCollapseDataSet>>> GetListArticleForGuest(PaginationFilter validFilter, string title);
         Task<PagedResponse<List<AdminArticleCollapseDataSet>>> GetListArticleForAdmin(PaginationFilter validFilter, 
             AdminArticleFilter articleFilter);
         Task<Response<ArticleDetailDataSet>> GetArticleById(int id);
@@ -22,7 +22,7 @@ namespace CapstoneAPI.Features.Article.Service
         Task<Response<List<int>>> GetApprovedArticleIds();
         Task<Response<List<AdminArticleCollapseDataSet>>> GetListArticleNotPagination(AdminArticleFilter articleFilter);
         Task<PagedResponse<List<ArticleCollapseDataSet>>> GetListFollowingArticle(PaginationFilter validFilter, string token);
-        Task<Response<ArticleCollapseDataSet>> CreateNewArticle(CreateArticleParam createArticleParam, string token);
+        Task<Response<AdminArticleCollapseDataSet>> CreateNewArticle(CreateArticleParam createArticleParam, string token);
         Task<Response<AdminArticleDetailDataSet>> UpdateArticle(UpdateArticleParam updateArticleParam, string token);
         Task<Response<bool>> UpdateExpireStatus();
     }

@@ -21,11 +21,12 @@ namespace CapstoneAPI.Features.Article
         }
 
         [HttpGet("all")]
-        public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListArticleForGuest([FromQuery] PaginationFilter filter)
+        public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListArticleForGuest([FromQuery] PaginationFilter filter,
+                                                                                            [FromQuery] string title)
         {
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
 
-            PagedResponse<List<ArticleCollapseDataSet>> articles = await _service.GetListArticleForGuest(validFilter);
+            PagedResponse<List<ArticleCollapseDataSet>> articles = await _service.GetListArticleForGuest(validFilter, title);
 
             if (articles == null)
                 return NoContent();
@@ -155,11 +156,11 @@ namespace CapstoneAPI.Features.Article
         }
 
         [HttpPost]
-        public async Task<ActionResult<Response<ArticleCollapseDataSet>>> CreateANewArticle([FromForm] CreateArticleParam createArticleParam)
+        public async Task<ActionResult<Response<AdminArticleCollapseDataSet>>> CreateANewArticle([FromForm] CreateArticleParam createArticleParam)
         {
             string token = Request.Headers["Authorization"];
 
-            Response<ArticleCollapseDataSet> result = await _service.CreateNewArticle(createArticleParam, token);
+            Response<AdminArticleCollapseDataSet> result = await _service.CreateNewArticle(createArticleParam, token);
             if(result == null)
             {
                 return NoContent();

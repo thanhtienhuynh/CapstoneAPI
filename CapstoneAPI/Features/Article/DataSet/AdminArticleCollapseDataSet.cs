@@ -27,6 +27,6 @@ namespace CapstoneAPI.Features.Article.DataSet
         //1 Top
         //2 Today
         //3 Old
-        public List<AdminArticleCollapseDataSet> Articles { get; set; }
+        public List<ArticleCollapseDataSet> Articles { get; set; }
     }
 }
