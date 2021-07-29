@@ -123,7 +123,7 @@ namespace CapstoneAPI.Features.Season.Service
                                 TrainingProgramId = oldMajorDetail.TrainingProgramId,
                                 SeasonId = season.Id,
                                 Status = Consts.STATUS_ACTIVE,
-                                UpdatedDate = DateTime.UtcNow,
+                                UpdatedDate = JWTUtils.GetCurrentTimeInVN(),
                             };
                             _uow.MajorDetailRepository.Insert(newMajorDetail);
                             if ((await _uow.CommitAsync()) <= 0)

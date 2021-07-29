@@ -1,7 +1,10 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace CapstoneAPI.Helpers
@@ -10,7 +13,7 @@ namespace CapstoneAPI.Helpers
     {
         public static string CalculateTimeAgo(DateTime recordDate)
         {
-            var ts = new TimeSpan(DateTime.UtcNow.Ticks - recordDate.Ticks);
+            var ts = new TimeSpan(JWTUtils.GetCurrentTimeInVN().Ticks - recordDate.Ticks);
             double delta = Math.Abs(ts.TotalSeconds);
 
             if (delta < 1 * Consts.MINUTE)
@@ -35,6 +38,17 @@ namespace CapstoneAPI.Helpers
                 int years = Convert.ToInt32(Math.Floor((double)ts.Days / 365));
                 return years + " năm trước";
             }
+        }
+
+        public static DateTime GetCurrentTimeInVN()
+        {
+            string path = Path.Combine(Path
+               .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
+            JObject configuration = JObject.Parse(File.ReadAllText(path));
+            var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
+
+            DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
+            return currentDate;
         }
     }
 }

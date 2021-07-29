@@ -94,15 +94,15 @@
                     {
                         Transcript transcript = await _uow.TranscriptRepository.GetFirst(
                         filter: t => t.UserId == user.Id && t.SubjectId == subjectId && t.Status == Consts.STATUS_ACTIVE
-                                && t.TranscriptTypeId == 3);
+                                && t.TranscriptTypeId == TranscriptTypes.ThiThu);
                         double? daysRemaining = null;
                         double? userTranscript = null;
                         if (transcript != null && transcript.DateRecord != null)
                         {
                             userTranscript = transcript.Mark;
-                            if (DateTime.Compare(transcript.DateRecord.Date.AddDays(90), DateTime.UtcNow.Date) > 0)
+                            if (DateTime.Compare(transcript.DateRecord.Date.AddDays(90), JWTUtils.GetCurrentTimeInVN().Date) > 0)
                             {
-                                daysRemaining = transcript.DateRecord.Date.AddDays(90).Subtract(DateTime.UtcNow.Date).TotalDays;
+                                daysRemaining = transcript.DateRecord.Date.AddDays(90).Subtract(JWTUtils.GetCurrentTimeInVN().Date).TotalDays;
                             }
                         }
 
@@ -266,7 +266,7 @@
                                 question.Result += "0";
                             }
                         }
-                        if (question.Type == 1 && question.Result.Count(r => r == '1') != 1)
+                        if (question.Type == QuestionTypes.SingleChoice && question.Result.Count(r => r == '1') != 1)
                         {
                             response.Succeeded = false;
                             if (response.Errors == null)
@@ -366,10 +366,7 @@
                     return response;
                 }
 
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
-                DateTime currentDate = DateTime.UtcNow.AddHours(double.Parse(currentTimeZone));
-                t.CreateDate = currentDate;
-
+                t.CreateDate = JWTUtils.GetCurrentTimeInVN();
 
                 _uow.TestRepository.Insert(t);
 
@@ -526,11 +523,7 @@
                     return response;
                 }
 
-                string path = Path.Combine(Path
-                    .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
-                JObject configuration = JObject.Parse(File.ReadAllText(path));
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
-                DateTime currentDate = DateTime.UtcNow.AddHours(double.Parse(currentTimeZone));
+                DateTime currentDate = JWTUtils.GetCurrentTimeInVN();
                 Models.Test test = await _uow.TestRepository.GetFirst(
                     filter: t => t.Id == testParam.Id && t.Status == Consts.STATUS_ACTIVE, 
                     includeProperties: "Questions");
@@ -726,7 +719,7 @@
                                     newQuestion.NumberOfOption++;
                                 }
                             }
-                            if (newQuestion.Type == 1 && newQuestion.Result.Count(r => r == '1') != 1)
+                            if (newQuestion.Type == QuestionTypes.SingleChoice && newQuestion.Result.Count(r => r == '1') != 1)
                             {
                                 response.Succeeded = false;
                                 if (response.Errors == null)

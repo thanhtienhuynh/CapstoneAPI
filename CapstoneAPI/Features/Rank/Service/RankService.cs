@@ -64,7 +64,7 @@ namespace CapstoneAPI.Features.Rank.Service
                         {
                             followingDetail.Rank.IsUpdate = true;
                             followingDetail.Rank.TranscriptTypeId = newRank.TranscriptTypeId;
-                            followingDetail.Rank.UpdatedDate = DateTime.UtcNow;
+                            followingDetail.Rank.UpdatedDate = JWTUtils.GetCurrentTimeInVN();
                             followingDetail.Rank.TotalMark = newRank.TotalMark;
                             _uow.RankRepository.Update(followingDetail.Rank);
                         }
@@ -75,7 +75,7 @@ namespace CapstoneAPI.Features.Rank.Service
                         if (transcript.IsUpdate)
                         {
                             transcript.IsUpdate = false;
-                            transcript.DateRecord = DateTime.UtcNow;
+                            transcript.DateRecord = JWTUtils.GetCurrentTimeInVN();
                         }
                         _uow.TranscriptRepository.Update(transcript);
                     }
@@ -114,7 +114,7 @@ namespace CapstoneAPI.Features.Rank.Service
                                 Position = rankDataSet.NewPosition,
                                 TotalMark = rankDataSet.TotalMark,
                                 TranscriptTypeId = rankDataSet.TranscriptTypeId,
-                                UpdatedDate = DateTime.UtcNow,
+                                UpdatedDate = JWTUtils.GetCurrentTimeInVN(),
                                 FollowingDetailId = rankDataSet.FollowingDetailId,
                                 IsReceiveNotification = rankDataSet.IsReceiveNotification
                             };
@@ -186,7 +186,7 @@ namespace CapstoneAPI.Features.Rank.Service
                                                 rankingFollowingDetailDataSet.RankDataSet.NewPosition);
                         Models.Notification notification = new Models.Notification()
                         {
-                            DateRecord = DateTime.UtcNow,
+                            DateRecord = JWTUtils.GetCurrentTimeInVN(),
                             Data = rankingFollowingDetailDataSet.RankDataSet.FollowingDetailId.ToString(),
                             Message = string.Format(rankingFollowingDetailDataSet.RankDataSet.Position >
                                                 rankingFollowingDetailDataSet.RankDataSet.NewPosition ? upNoti : downNoti,
@@ -196,7 +196,7 @@ namespace CapstoneAPI.Features.Rank.Service
                                                 rankingFollowingDetailDataSet.RankDataSet.Position,
                                                 rankingFollowingDetailDataSet.RankDataSet.NewPosition),
                             IsRead = false,
-                            Type = 2,
+                            Type = NotificationTypes.NewRank,
                             UserId = emailedUserGroup.Key.Id
                         };
                         notifications.Add(notification);

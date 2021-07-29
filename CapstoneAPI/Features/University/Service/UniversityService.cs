@@ -117,18 +117,22 @@ namespace CapstoneAPI.Features.University.Service
                         }
 
                         if (currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria == null
-                            || !currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria.Where(s => s.Status == Consts.STATUS_ACTIVE).Any()
+                            || !currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                                .Where(s => s.Status == Consts.STATUS_ACTIVE).Any()
                             || previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria == null
-                            || !previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria.Where(s => s.Status == Consts.STATUS_ACTIVE).Any())
+                            || !previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                                .Where(s => s.Status == Consts.STATUS_ACTIVE).Any())
                         {
                             continue;
                         }
 
-                        List<SubAdmissionCriterion> currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && a.Quantity != 0 && (a.Gender == universityParam.Gender || a.Gender == null)
+                        var currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == AdmissionMethodTypes.THPTQG
+                                    && a.Quantity != 0 && (a.Gender == universityParam.Gender || a.Gender == null)
                              && (a.ProvinceId == universityParam.ProvinceId || a.ProvinceId == null)).ToList();
-                        List<SubAdmissionCriterion> previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && a.Quantity != 0 && (a.Gender == universityParam.Gender || a.Gender == null)
+                        var previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == AdmissionMethodTypes.THPTQG
+                            && a.Quantity != 0 && (a.Gender == universityParam.Gender || a.Gender == null)
                              && (a.ProvinceId == universityParam.ProvinceId || a.ProvinceId == null)).ToList();
 
                         if (!currentSubAdmissionCriterias.Any() || !previousSubAdmissionCriterias.Any())
@@ -142,8 +146,11 @@ namespace CapstoneAPI.Features.University.Service
                         foreach (SubAdmissionCriterion currentSubAdmissionCriteria in currentSubAdmissionCriterias)
                         {
                             currentEntryMark = (await _uow.EntryMarkRepository
-                                .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == currentSubAdmissionCriteria.Id && e.MajorSubjectGroupId != null,
-                                    includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup,SubAdmissionCriterion,FollowingDetails"))
+                                .Get(filter: e => e.Status == Consts.STATUS_ACTIVE
+                                    && e.SubAdmissionCriterionId == currentSubAdmissionCriteria.Id
+                                    && e.MajorSubjectGroupId != null,
+                                    includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup," +
+                                                        "SubAdmissionCriterion,FollowingDetails"))
                                     .Where(e => e.MajorSubjectGroup.SubjectGroupId == universityParam.SubjectGroupId
                                                 && e.MajorSubjectGroup.MajorId == universityParam.MajorId).FirstOrDefault();
                             if (currentEntryMark != null)
@@ -151,11 +158,14 @@ namespace CapstoneAPI.Features.University.Service
                                 break;
                             }
                         }
-                        foreach (SubAdmissionCriterion previousSubAdmissionCriteria in previousSubAdmissionCriterias)
+                        foreach (var previousSubAdmissionCriteria in previousSubAdmissionCriterias)
                         {
                             previousEntryMark = (await _uow.EntryMarkRepository
-                                .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == previousSubAdmissionCriteria.Id && e.MajorSubjectGroupId != null,
-                                    includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup,SubAdmissionCriterion"))
+                                .Get(filter: e => e.Status == Consts.STATUS_ACTIVE
+                                        && e.SubAdmissionCriterionId == previousSubAdmissionCriteria.Id
+                                        && e.MajorSubjectGroupId != null,
+                                    includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup," +
+                                                        "SubAdmissionCriterion"))
                                     .Where(e => e.MajorSubjectGroup.SubjectGroupId == universityParam.SubjectGroupId
                                                 && e.MajorSubjectGroup.MajorId == universityParam.MajorId).FirstOrDefault();
                             if (previousEntryMark != null)
@@ -164,7 +174,8 @@ namespace CapstoneAPI.Features.University.Service
                             }
                         }
 
-                        if (currentEntryMark == null || previousEntryMark == null || previousEntryMark.Mark == null || previousEntryMark.Mark > universityParam.TotalMark)
+                        if (currentEntryMark == null || previousEntryMark == null || previousEntryMark.Mark == null
+                            || previousEntryMark.Mark > universityParam.TotalMark)
                         {
                             continue;
                         }
@@ -173,17 +184,17 @@ namespace CapstoneAPI.Features.University.Service
                         previousSeasonDataSet.NumberOfStudents = previousEntryMark.SubAdmissionCriterion.Quantity;
                         currentSeasonDataSet.NumberOfStudents = currentEntryMark.SubAdmissionCriterion.Quantity;
                         List<int> currentEntryMarkIds = (await _uow.EntryMarkRepository
-                                                        .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == currentEntryMark.SubAdmissionCriterionId))
-                                                        .Select(e => e.Id).ToList();
+                                                .Get(filter: e => e.Status == Consts.STATUS_ACTIVE
+                                                && e.SubAdmissionCriterionId == currentEntryMark.SubAdmissionCriterionId))
+                                                .Select(e => e.Id).ToList();
                         seasonDataSets.Add(previousSeasonDataSet);
                         seasonDataSets.Add(currentSeasonDataSet);
                         trainingProgramDataSet.SeasonDataSets = seasonDataSets;
                         if (user != null && user.IsActive)
                         {
-                            trainingProgramDataSet.FollowingDetail = _mapper.Map<FollowingDetailDataSet>(await _uow.FollowingDetailRepository
-                                                                                        .GetFirst(filter: f => f.UserId == user.Id
-                                                                                        && f.Status == Consts.STATUS_ACTIVE
-                                                                                        && f.EntryMarkId == currentEntryMark.Id));
+                            trainingProgramDataSet.FollowingDetail = _mapper.Map<FollowingDetailDataSet>(
+                                await _uow.FollowingDetailRepository.GetFirst(filter: f => f.UserId == user.Id
+                                    && f.Status == Consts.STATUS_ACTIVE && f.EntryMarkId == currentEntryMark.Id));
                         }
                         trainingProgramDataSet.NumberOfCaring = (await _uow.FollowingDetailRepository.Get(
                                 filter: f => currentEntryMarkIds.Contains(f.EntryMarkId)
@@ -195,13 +206,13 @@ namespace CapstoneAPI.Features.University.Service
                                                                 .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE,
                                                                     includeProperties: "Rank"))
                                                                 .Select(u => u.Rank).Where(r => r != null);
-                            trainingProgramDataSet.Rank = _uow.RankRepository.CalculateRank(universityParam.TranscriptTypeId, universityParam.TotalMark, ranks);
+                            trainingProgramDataSet.Rank = _uow.RankRepository
+                                .CalculateRank(universityParam.TranscriptTypeId, universityParam.TotalMark, ranks);
                         } else
                         {
                             trainingProgramDataSet.Rank = (await _uow.RankRepository
                                 .GetById(trainingProgramDataSet.FollowingDetail.Id)).Position;
                         }
-
                         
                         double? ration = null;
                         
@@ -210,15 +221,15 @@ namespace CapstoneAPI.Features.University.Service
                             ration = Math.Round(trainingProgramDataSet.Rank / (double)currentSeasonDataSet.NumberOfStudents, 3);
                         }
                         trainingProgramDataSet.Ratio = ration;
-                        if (ration == null || ration <= 1)
+                        if (ration == null || ration <= UniversityRatios.Green)
                         {
-                            trainingProgramDataSet.DividedClass = 1;
-                        } else if (ration <= 1.5)
+                            trainingProgramDataSet.DividedClass = UniversityRatios.GreenGroup;
+                        } else if (ration <= UniversityRatios.Yellow)
                         {
-                            trainingProgramDataSet.DividedClass = 2;
+                            trainingProgramDataSet.DividedClass = UniversityRatios.YellowGroup;
                         } else
                         {
-                            trainingProgramDataSet.DividedClass = 3;
+                            trainingProgramDataSet.DividedClass = UniversityRatios.RedGroup;
                         }
                         trainingProgramDataSets.Add(trainingProgramDataSet);
                         highestEntryMark = (double)previousEntryMark.Mark > highestEntryMark ? (double)previousEntryMark.Mark : highestEntryMark;
@@ -319,7 +330,8 @@ namespace CapstoneAPI.Features.University.Service
                 List<MarkParam> marks = new List<MarkParam>();
 
                 IEnumerable<Models.Transcript> transcripts = await _uow.TranscriptRepository
-                        .Get(filter: t => t.UserId == user.Id && t.TranscriptTypeId == 3 && t.Status == Consts.STATUS_ACTIVE);
+                        .Get(filter: t => t.UserId == user.Id && t.TranscriptTypeId == TranscriptTypes.ThiThu
+                        && t.Status == Consts.STATUS_ACTIVE);
                 foreach (Models.Transcript transcript in transcripts)
                 {
                     MarkParam markParam = new MarkParam();
@@ -328,11 +340,11 @@ namespace CapstoneAPI.Features.University.Service
                     marks.Add(markParam);
                 }
 
-                if (subjectGroupDetails.Where(s => s.SubjectId == 10).Any())
+                if (subjectGroupDetails.Where(s => s.SubjectId == Subjects.Literature).Any())
                 {
                     MarkParam markParam = new MarkParam();
                     markParam.Mark = await _uow.TranscriptRepository.GetLiteratureTestMark(user.Id);
-                    markParam.SubjectId = 10;
+                    markParam.SubjectId = Subjects.Literature;
                     marks.Add(markParam);
                 }
                 
@@ -410,12 +422,16 @@ namespace CapstoneAPI.Features.University.Service
                             continue;
                         }
 
-                        List<SubAdmissionCriterion> currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == user.Gender || a.Gender == null)
-                             && a.Quantity != 0 && (a.ProvinceId == user.ProvinceId || a.ProvinceId == null)).ToList();
-                        List<SubAdmissionCriterion> previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == user.Gender || a.Gender == null)
-                             && a.Quantity != 0 && (a.ProvinceId == user.ProvinceId || a.ProvinceId == null)).ToList();
+                        var currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == AdmissionMethodTypes.THPTQG
+                            && (a.Gender == user.Gender || a.Gender == null)
+                             && a.Quantity != 0 && (a.ProvinceId == user.ProvinceId || a.ProvinceId == null))
+                            .ToList();
+                        var previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == AdmissionMethodTypes.THPTQG
+                            && (a.Gender == user.Gender || a.Gender == null)
+                             && a.Quantity != 0 && (a.ProvinceId == user.ProvinceId || a.ProvinceId == null))
+                            .ToList();
 
                         if (!currentSubAdmissionCriterias.Any() || !previousSubAdmissionCriterias.Any())
                         {
@@ -490,17 +506,17 @@ namespace CapstoneAPI.Features.University.Service
                             ration = Math.Round(trainingProgramDataSet.Rank / (double)currentSeasonDataSet.NumberOfStudents, 3);
                         }
                         trainingProgramDataSet.Ratio = ration;
-                        if (ration == null || ration <= 1)
+                        if (ration == null || ration <= UniversityRatios.Green)
                         {
-                            trainingProgramDataSet.DividedClass = 1;
+                            trainingProgramDataSet.DividedClass = UniversityRatios.GreenGroup;
                         }
-                        else if (ration <= 1.5)
+                        else if (ration <= UniversityRatios.Yellow)
                         {
-                            trainingProgramDataSet.DividedClass = 2;
+                            trainingProgramDataSet.DividedClass = UniversityRatios.YellowGroup;
                         }
                         else
                         {
-                            trainingProgramDataSet.DividedClass = 3;
+                            trainingProgramDataSet.DividedClass = UniversityRatios.RedGroup;
                         }
                         highestEntryMark = (double)previousEntryMark.Mark > highestEntryMark ? (double)previousEntryMark.Mark : highestEntryMark;
                         trainingProgramDataSets.Add(trainingProgramDataSet);
@@ -1219,7 +1235,7 @@ namespace CapstoneAPI.Features.University.Service
                     TrainingProgramId = addingMajorUniversityParam.TrainingProgramId,
                     SeasonId = addingMajorUniversityParam.SeasonId,
                     MajorCode = addingMajorUniversityParam.MajorCode,
-                    UpdatedDate = DateTime.UtcNow,
+                    UpdatedDate = JWTUtils.GetCurrentTimeInVN(),
                     Status = Consts.STATUS_ACTIVE,
                 };
 
@@ -1416,7 +1432,7 @@ namespace CapstoneAPI.Features.University.Service
             try
             {
                 MajorDetailExisted.MajorCode = updatingMajorUniversityParam.MajorCode;
-                MajorDetailExisted.UpdatedDate = DateTime.Now;
+                MajorDetailExisted.UpdatedDate = JWTUtils.GetCurrentTimeInVN();
                 MajorDetailExisted.Status = updatingMajorUniversityParam.Status;
                 _uow.MajorDetailRepository.Update(MajorDetailExisted);
                 if ((await _uow.CommitAsync()) <= 0)
@@ -1475,10 +1491,10 @@ namespace CapstoneAPI.Features.University.Service
                                                 var notification = new Models.Notification()
                                                 {
                                                     Data = MajorDetailExisted.UniversityId.ToString(),
-                                                    DateRecord = DateTime.UtcNow,
+                                                    DateRecord = JWTUtils.GetCurrentTimeInVN(),
                                                     IsRead = false,
                                                     Message = string.Format(deleteMajorDetail, uniName, majorName, trainingProgramName),
-                                                    Type = 3,
+                                                    Type = NotificationTypes.UpdateUniversity,
                                                     UserId = followingDetail.UserId
                                                 };
                                                 notifications.Add(notification);
@@ -1731,10 +1747,10 @@ namespace CapstoneAPI.Features.University.Service
                                                         var notification = new Models.Notification()
                                                         {
                                                             Data = MajorDetailExisted.UniversityId.ToString(),
-                                                            DateRecord = DateTime.UtcNow,
+                                                            DateRecord = JWTUtils.GetCurrentTimeInVN(),
                                                             IsRead = false,
                                                             Message = string.Format(deleteSubAdmiss, uniName, majorName, trainingProgramName),
-                                                            Type = 3,
+                                                            Type = NotificationTypes.UpdateUniversity,
                                                             UserId = followingDetail.UserId
                                                         };
                                                         notifications.Add(notification);
@@ -1891,10 +1907,10 @@ namespace CapstoneAPI.Features.University.Service
                                                                 var notification = new Models.Notification()
                                                                 {
                                                                     Data = MajorDetailExisted.UniversityId.ToString(),
-                                                                    DateRecord = DateTime.UtcNow,
+                                                                    DateRecord = JWTUtils.GetCurrentTimeInVN(),
                                                                     IsRead = false,
                                                                     Message = string.Format(deleteEntryMark, uniName, majorName, trainingProgramName, subjectGroupName),
-                                                                    Type = 3,
+                                                                    Type = NotificationTypes.UpdateUniversity,
                                                                     UserId = followingDetail.UserId
                                                                 };
                                                                 notifications.Add(notification);
@@ -1934,10 +1950,10 @@ namespace CapstoneAPI.Features.University.Service
                                                             var notification = new Models.Notification()
                                                             {
                                                                 Data = MajorDetailExisted.UniversityId.ToString(),
-                                                                DateRecord = DateTime.UtcNow,
+                                                                DateRecord = JWTUtils.GetCurrentTimeInVN(),
                                                                 IsRead = false,
                                                                 Message = string.Format(updateSubvsEn, uniName, majorName, trainingProgramName),
-                                                                Type = 3,
+                                                                Type = NotificationTypes.UpdateUniversity,
                                                                 UserId = followingDetail.UserId
                                                             };
                                                             notifications.Add(notification);

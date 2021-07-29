@@ -76,7 +76,7 @@
                     Mark = mark,
                     NumberOfRightAnswers = correctAnswer,
                     SpentTime = testSubmissionParam.SpentTime,
-                    SubmissionDate = DateTime.UtcNow,
+                    SubmissionDate = JWTUtils.GetCurrentTimeInVN(),
                     NumberOfQuestion = loadedTest.NumberOfQuestion,
                     SubjectId = (int)loadedTest.SubjectId,
                     ResultQuestions = resultQuestions
@@ -138,7 +138,7 @@
                         {
                             TestId = saveTestSubmissionParam.TestId,
                             SpentTime = saveTestSubmissionParam.SpentTime,
-                            SubmissionDate = DateTime.UtcNow,
+                            SubmissionDate = JWTUtils.GetCurrentTimeInVN(),
                             NumberOfRightAnswers = saveTestSubmissionParam.NumberOfRightAnswers,
                             Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
                             UserId = user.Id
@@ -151,7 +151,7 @@
                         if (testSubmission != null)
                         {
                             testSubmission.SpentTime = saveTestSubmissionParam.SpentTime;
-                            testSubmission.SubmissionDate = DateTime.UtcNow;
+                            testSubmission.SubmissionDate = JWTUtils.GetCurrentTimeInVN();
                             testSubmission.Mark = Math.Round(saveTestSubmissionParam.Mark, 2);
                             testSubmission.NumberOfRightAnswers = saveTestSubmissionParam.NumberOfRightAnswers;
                             _uow.TestSubmissionRepository.Update(testSubmission);
@@ -161,7 +161,7 @@
                             {
                                 TestId = saveTestSubmissionParam.TestId,
                                 SpentTime = saveTestSubmissionParam.SpentTime,
-                                SubmissionDate = DateTime.UtcNow,
+                                SubmissionDate = JWTUtils.GetCurrentTimeInVN(),
                                 NumberOfRightAnswers = saveTestSubmissionParam.NumberOfRightAnswers,
                                 Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
                                 UserId = user.Id
@@ -175,14 +175,14 @@
                     if (test.IsSuggestedTest)
                     {
                         IEnumerable<Transcript> transcripts = await _uow.TranscriptRepository
-                                .Get(t => t.TranscriptTypeId == 3 && t.UserId == user.Id
+                                .Get(t => t.TranscriptTypeId == TranscriptTypes.ThiThu && t.UserId == user.Id
                                 && t.SubjectId == subjectId && t.Status == Consts.STATUS_ACTIVE);
 
                         if (transcripts.Any())
                         {
                             foreach (Transcript transcript in transcripts)
                             {
-                                transcript.DateRecord = DateTime.UtcNow;
+                                transcript.DateRecord = JWTUtils.GetCurrentTimeInVN();
                                 transcript.IsUpdate = false;
                                 transcript.Status = Consts.STATUS_INACTIVE;
                             }
@@ -192,9 +192,9 @@
                         _uow.TranscriptRepository.Insert(new Transcript()
                         {
                             UserId = user.Id,
-                            DateRecord = DateTime.UtcNow,
+                            DateRecord = JWTUtils.GetCurrentTimeInVN(),
                             Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
-                            TranscriptTypeId = 3,
+                            TranscriptTypeId = TranscriptTypes.ThiThu,
                             SubjectId = subjectId,
                             IsUpdate = true,
                             Status = Consts.STATUS_ACTIVE
@@ -292,7 +292,7 @@
                 {
                     TestId = saveTestSubmissionParam.TestId,
                     SpentTime = 0,
-                    SubmissionDate = DateTime.UtcNow,
+                    SubmissionDate = JWTUtils.GetCurrentTimeInVN(),
                     NumberOfRightAnswers = 0,
                     Mark = 0,
                     UserId = user.Id
@@ -301,14 +301,14 @@
                 IEnumerable<Transcript> transcripts = await _uow.TranscriptRepository
                                             .Get(filter: t => t.SubjectId == test.SubjectId
                                                         && t.UserId == user.Id
-                                                        && t.TranscriptTypeId == 3
+                                                        && t.TranscriptTypeId == TranscriptTypes.ThiThu
                                                         && t.Status == Consts.STATUS_ACTIVE);
                 if (transcripts.Any())
                 {
                     foreach (Transcript transcript in transcripts)
                     {
                         transcript.Status = Consts.STATUS_INACTIVE;
-                        transcript.DateRecord = DateTime.UtcNow;
+                        transcript.DateRecord = JWTUtils.GetCurrentTimeInVN();
                     }
                     _uow.TranscriptRepository.UpdateRange(transcripts);
                 }
@@ -318,8 +318,8 @@
                     Mark = 0,
                     SubjectId = (int) test.SubjectId,
                     UserId = user.Id,
-                    TranscriptTypeId = 3,
-                    DateRecord = DateTime.UtcNow,
+                    TranscriptTypeId = TranscriptTypes.ThiThu,
+                    DateRecord = JWTUtils.GetCurrentTimeInVN(),
                     IsUpdate = true,
                     Status = Consts.STATUS_ACTIVE
                 };

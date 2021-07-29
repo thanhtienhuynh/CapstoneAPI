@@ -100,7 +100,7 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                 }
 
 
-                IEnumerable<EntryMark> entryMarks = await _uow.EntryMarkRepository.Get(filter: e => e.SubAdmissionCriterion.AdmissionMethodId == 1
+                IEnumerable<EntryMark> entryMarks = await _uow.EntryMarkRepository.Get(filter: e => e.SubAdmissionCriterion.AdmissionMethodId == AdmissionMethodTypes.THPTQG
                                                                 && e.SubAdmissionCriterion.AdmissionCriterion.MajorDetailId == majorDetail.Id
                                                                 && e.MajorSubjectGroup.MajorId == followingDetailParam.MajorId
                                                                 && e.MajorSubjectGroup.SubjectGroupId == followingDetailParam.SubjectGroupId
@@ -158,7 +158,7 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                             TranscriptTypeId = followingDetailParam.SubjectGroupParam.TranscriptTypeId,
                             IsUpdate = true,
                             TotalMark = followingDetailParam.TotalMark,
-                            UpdatedDate = DateTime.UtcNow,
+                            UpdatedDate = JWTUtils.GetCurrentTimeInVN(),
                             Position = _uow.RankRepository.CalculateRank(followingDetailParam.SubjectGroupParam.TranscriptTypeId, followingDetailParam.TotalMark, ranks)
                         }
                     };
@@ -694,7 +694,7 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                && previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria.Where(s => s.Status == Consts.STATUS_ACTIVE).Any())
             {
                 IEnumerable<SubAdmissionCriterion> previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                .Where(a => a.AdmissionMethodId == 1 && a.Status == Consts.STATUS_ACTIVE);
+                .Where(a => a.AdmissionMethodId == AdmissionMethodTypes.THPTQG && a.Status == Consts.STATUS_ACTIVE);
 
                 //Check ptts cho giới tính riêng
 

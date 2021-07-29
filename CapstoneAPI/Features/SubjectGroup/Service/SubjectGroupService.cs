@@ -34,7 +34,7 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
             Response<IEnumerable<SubjectGroupDataSet>> response = new Response<IEnumerable<SubjectGroupDataSet>>();
             try
             {
-                if (subjectGroupParam.TranscriptTypeId == 3)
+                if (subjectGroupParam.TranscriptTypeId == TranscriptTypes.ThiThu)
                 {
                     Models.User user = await _uow.UserRepository.GetUserByToken(token);
 
@@ -48,8 +48,8 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
                         response.Errors.Add("Bạn chưa đăng nhập!");
                         return response;
                     }
-                    if (subjectGroupParam.Marks.First(m => m.SubjectId == 10) != null) {
-                        subjectGroupParam.Marks.First(m => m.SubjectId == 10).Mark = await _uow.TranscriptRepository.GetLiteratureTestMark(user.Id);
+                    if (subjectGroupParam.Marks.First(m => m.SubjectId == Subjects.Literature) != null) {
+                        subjectGroupParam.Marks.First(m => m.SubjectId == Subjects.Literature).Mark = await _uow.TranscriptRepository.GetLiteratureTestMark(user.Id);
                     };
                 }
                 List<SubjectGroupDataSet> subjectGroupDataSets = new List<SubjectGroupDataSet>();
@@ -137,18 +137,20 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
                             }
 
                             if (currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria == null
-                                || !currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria.Where(s => s.AdmissionMethodId == 1 && s.Status == Consts.STATUS_ACTIVE).Any()
+                                || !currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                                        .Where(s => s.AdmissionMethodId == AdmissionMethodTypes.THPTQG && s.Status == Consts.STATUS_ACTIVE).Any()
                                 || previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria == null
-                                || !previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria.Where(s => s.AdmissionMethodId == 1 && s.Status == Consts.STATUS_ACTIVE).Any())
+                                || !previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                                    .Where(s => s.AdmissionMethodId == AdmissionMethodTypes.THPTQG && s.Status == Consts.STATUS_ACTIVE).Any())
                             {
                                 continue;
                             }
 
-                            IEnumerable<SubAdmissionCriterion> currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                                .Where(a => a.AdmissionMethodId == 1 && a.Status == Consts.STATUS_ACTIVE);
+                            var currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                                .Where(a => a.AdmissionMethodId == AdmissionMethodTypes.THPTQG && a.Status == Consts.STATUS_ACTIVE);
                             
-                            IEnumerable<SubAdmissionCriterion> previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                                .Where(a => a.AdmissionMethodId == 1 && a.Status == Consts.STATUS_ACTIVE);
+                            var previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                                .Where(a => a.AdmissionMethodId == AdmissionMethodTypes.THPTQG && a.Status == Consts.STATUS_ACTIVE);
 
                             //Check ptts cho giới tính riêng
                             IEnumerable<SubAdmissionCriterion> subCurrentSubAdmissionCriteriasByGender = currentSubAdmissionCriterias.Where(s => s.Gender == subjectGroupParam.Gender);

@@ -1024,13 +1024,13 @@ namespace CapstoneAPI.Features.Major.Service
                     }
                 }
 
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
-                DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
+                DateTime currentDate = JWTUtils.GetCurrentTimeInVN();
 
-                if (major.MajorArticles != null && major.MajorArticles.Where(m => m.Article.Status == 3
-                && m.Article.PublicFromDate != null && m.Article.PublicToDate != null && DateTime.Compare((DateTime)m.Article.PublicToDate, currentDate) > 0).Any())
+                if (major.MajorArticles != null && major.MajorArticles.Where(m => m.Article.Status == Articles.Published
+                    && m.Article.PublicFromDate != null && m.Article.PublicToDate != null
+                    && DateTime.Compare((DateTime)m.Article.PublicToDate, currentDate) > 0).Any())
                 {
-                    IEnumerable<Models.Article> articles = major.MajorArticles.Where(m => m.Article.Status == 3
+                    IEnumerable<Models.Article> articles = major.MajorArticles.Where(m => m.Article.Status == Articles.Published
                                         && m.Article.PublicFromDate != null && m.Article.PublicToDate != null
                                         && DateTime.Compare((DateTime)m.Article.PublicToDate, currentDate) > 0)
                                         .Select(m => m.Article);

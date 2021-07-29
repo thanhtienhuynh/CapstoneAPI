@@ -84,7 +84,7 @@
                         Fullname = decodedToken.Claims["name"].ToString(),
                         AvatarUrl = decodedToken.Claims["picture"].ToString(),
                         IsActive = true,
-                        RoleId = 2
+                        RoleId = int.Parse(Roles.Student)
                     };
                     _uow.UserRepository.Insert(user);
 
@@ -112,7 +112,7 @@
                 token = new JwtSecurityToken(AppSettings.Settings.Issuer,
                                                     AppSettings.Settings.Audience,
                                                     claims,
-                                                    expires: DateTime.UtcNow.AddSeconds(Consts.TOKEN_EXPIRED_TIME),
+                                                    expires: JWTUtils.GetCurrentTimeInVN().AddSeconds(Consts.TOKEN_EXPIRED_TIME),
                                                     signingCredentials: creds);
                 UserDataSet userResponse = _mapper.Map<UserDataSet>(user);
                 LoginResponse loginResponse = new LoginResponse()

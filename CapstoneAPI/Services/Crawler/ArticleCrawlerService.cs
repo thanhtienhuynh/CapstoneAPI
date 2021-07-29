@@ -137,11 +137,9 @@ namespace CapstoneAPI.Services.Crawler
                         configuration.SelectToken("GDTD.articleDetails.detailTag.attribute").ToString(), "").
                     Contains(configuration.SelectToken("GDTD.articleDetails.detailTag.attibuteValue").ToString())).First();
 
-                double currentTimeZone = 7;
-
                 article.HeaderConfig = headerConfig.InnerHtml.Trim();
                 article.Status = 0;
-                article.CrawlerDate = DateTime.UtcNow.AddHours(currentTimeZone);
+                article.CrawlerDate = JWTUtils.GetCurrentTimeInVN();
                 article.Content = detail.InnerHtml.Trim();
             }
 
@@ -400,7 +398,7 @@ namespace CapstoneAPI.Services.Crawler
                     }
                     article.HeaderConfig = headerConfig;
                     article.Status = 0;
-                    article.CrawlerDate = DateTime.UtcNow.AddHours(7);
+                    article.CrawlerDate = JWTUtils.GetCurrentTimeInVN();
                     article.Content = detail.InnerHtml.Trim();
                     article.PostedDate = postedDate;
                     article.Title = title;
