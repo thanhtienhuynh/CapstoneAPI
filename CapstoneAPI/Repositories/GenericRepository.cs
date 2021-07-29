@@ -105,14 +105,14 @@ namespace CapstoneAPI.Repositories
             dbSet.AddRange(list);
         }
 
-        public int Count(Expression<Func<T, bool>> filter = null)
+        public Task<int> Count(Expression<Func<T, bool>> filter = null)
         {
             IQueryable<T> query = dbSet;
             if (filter != null)
             {
-                return query.Count(filter);
+                return query.CountAsync(filter);
             }
-            return query.Count();
+            return query.CountAsync();
         }
 
         public void UpdateRange(IEnumerable<T> list)

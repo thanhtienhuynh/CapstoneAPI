@@ -7,15 +7,16 @@ namespace CapstoneAPI.Helpers
 {
     public class Consts
     {
+        //Article
+        public static string ARTICLE_FOLDER = "Article";
+        public static int STATUS_PUBLISHED = 3;
         //Status
         public static int STATUS_ACTIVE = 1;
         public static int STATUS_INACTIVE = 0;
         //Test
+        public static string QUESTION_FOLDER = "Question";
         public static int TEST_HT_TYPE_ID = 2;
         public static int TEST_THPTQG_TYPE_ID = 1;
-        //Role
-        public static string ADMIN_ROLE = "Admin";
-        public static string USER_ROLE = "User";
         //Firebase
         public static string FIREBASE_KEY_PATH = "FirebaseKey\\unilinks-41d0e-firebase-adminsdk-th8o0-c0b4d125e8.json";
         //Year
@@ -45,6 +46,12 @@ namespace CapstoneAPI.Helpers
         public static string BUCKET = "unilinks-41d0e.appspot.com";
         public static string AUTH_MAIL = "storage@gmail.com";
         public static string AUTH_PASSWORD = "Matkhau123";
+
+        public const int SECOND = 1;
+        public const int MINUTE = 60 * SECOND;
+        public const int HOUR = 60 * MINUTE;
+        public const int DAY = 24 * HOUR;
+        public const int MONTH = 30 * DAY;
     }
 
     public class LogEvent
@@ -52,5 +59,12 @@ namespace CapstoneAPI.Helpers
         //Subject
         public const int GetAllSubjects = 1000;
         public const int Login = 2000;
+    }
+
+    public static class Roles
+    {
+        public const string Admin = "3";
+        public const string Staff = "1";
+        public const string Student = "2";
     }
 }

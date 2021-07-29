@@ -25,4 +25,14 @@ namespace CapstoneAPI.Filters.University
          * 5: Sort by ASC TuitionType
          */
     }
+
+    public class UniversityFilterForStudent
+    {
+        public string Name { get; set; }
+        public int Order { get; set; }
+        /*
+         * 2: Sort by DESC Name
+         * 3: Sort by ASC Name
+         */
+    }
 }

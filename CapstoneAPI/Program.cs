@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using CapstoneAPI.Controllers;
 using CapstoneAPI.Helpers;
-using CapstoneAPI.Services.SubjectGroup;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,8 +23,9 @@ namespace CapstoneAPI
         public static void Main(string[] args)
         {
             Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Debug()
+            .MinimumLevel.Error()
             .Enrich.FromLogContext()
+            .WriteTo.Console(restrictedToMinimumLevel: LogEventLevel.Information)
             .WriteTo.Logger(
                 l => l.Filter.ByIncludingOnly(Matching.WithProperty("cookie"))
                         .WriteTo.File(@"D:\home\LogFiles\http\RawLogs\cookies.txt",

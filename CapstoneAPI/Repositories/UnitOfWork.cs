@@ -1,7 +1,8 @@
-﻿using CapstoneAPI.Models;
-using CapstoneAPI.Repositories.Rank;
-using CapstoneAPI.Repositories.Season;
-using CapstoneAPI.Repositories.Transcript;
+﻿using CapstoneAPI.Features.Rank.Repository;
+using CapstoneAPI.Features.Season.Repository;
+using CapstoneAPI.Features.Transcript.Repository;
+using CapstoneAPI.Features.User.Repository;
+using CapstoneAPI.Models;
 using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Threading.Tasks;
@@ -23,7 +24,7 @@ namespace CapstoneAPI.Repositories
         private IGenericRepository<Option> _optionRepository;
         private IGenericRepository<TestSubmission> _testSubmissionRepository;
         private IGenericRepository<Question> _questionRepository;
-        private IGenericRepository<User> _userRepository;
+        private IUserRepository _userRepository;
         private IGenericRepository<Role> _roleRepository;
         private IGenericRepository<MajorDetail> _majorDetailRepository;
         private IGenericRepository<Article> _articleRepository;
@@ -41,6 +42,8 @@ namespace CapstoneAPI.Repositories
         private IGenericRepository<Province> _provinceRepository;
         private IGenericRepository<AdmissionMethod> _admissionMethodRepository;
         private IGenericRepository<SpecialSubjectGroup> _specialSubjectGroupRepository;
+        private IGenericRepository<TestType> _testTypeRepository;
+        private IGenericRepository<Notification> _notificationRepository;
         public IGenericRepository<SubjectGroup> SubjectGroupRepository
         {
             get { return _subjectGroupRepository ??= new GenericRepository<SubjectGroup>(_context); }
@@ -93,9 +96,9 @@ namespace CapstoneAPI.Repositories
             get { return _questionRepository ??= new GenericRepository<Question>(_context); }
         }
 
-        public IGenericRepository<User> UserRepository
+        public IUserRepository UserRepository
         {
-            get { return _userRepository ??= new GenericRepository<User>(_context); }
+            get { return _userRepository ??= new UserRepository(_context); }
         }
         public IGenericRepository<Role> RoleRepository
         {
@@ -170,6 +173,15 @@ namespace CapstoneAPI.Repositories
         {
             get { return _specialSubjectGroupRepository ??= new GenericRepository<SpecialSubjectGroup>(_context); }
         }
+
+        public IGenericRepository<TestType> TestTypeRepository
+        {
+            get { return _testTypeRepository ??= new GenericRepository<TestType>(_context); }
+        }
+        public IGenericRepository<Notification> NotificationRepository
+        {
+            get { return _notificationRepository ??= new GenericRepository<Notification>(_context); }
+        }
         public UnitOfWork(CapstoneDBContext context)
         {
             _context = context;
@@ -181,7 +193,7 @@ namespace CapstoneAPI.Repositories
         }
 
         public IDbContextTransaction GetTransaction()
-        {  
+        {
             return _context.Database.BeginTransaction();
         }
 

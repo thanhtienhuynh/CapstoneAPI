@@ -1,22 +1,24 @@
 ﻿using AutoMapper;
-using CapstoneAPI.DataSets.AdmissionMethod;
-using CapstoneAPI.DataSets.Article;
-using CapstoneAPI.DataSets.FollowingDetail;
-using CapstoneAPI.DataSets.Major;
 using CapstoneAPI.DataSets.Option;
-using CapstoneAPI.DataSets.Province;
 using CapstoneAPI.DataSets.Question;
 using CapstoneAPI.DataSets.QuestionSubmission;
-using CapstoneAPI.DataSets.Rank;
-using CapstoneAPI.DataSets.Season;
 using CapstoneAPI.DataSets.SpecialSubjectGroup;
-using CapstoneAPI.DataSets.Subject;
-using CapstoneAPI.DataSets.SubjectGroup;
-using CapstoneAPI.DataSets.Test;
-using CapstoneAPI.DataSets.TestSubmission;
-using CapstoneAPI.DataSets.TrainingProgram;
-using CapstoneAPI.DataSets.University;
-using CapstoneAPI.DataSets.User;
+using CapstoneAPI.Features.AdmissionMethod.DataSet;
+using CapstoneAPI.Features.Article.DataSet;
+using CapstoneAPI.Features.FollowingDetail.DataSet;
+using CapstoneAPI.Features.Major.DataSet;
+using CapstoneAPI.Features.Notification.DataSet;
+using CapstoneAPI.Features.Province.DataSet;
+using CapstoneAPI.Features.Rank.DataSet;
+using CapstoneAPI.Features.Season.DataSet;
+using CapstoneAPI.Features.Subject.DataSet;
+using CapstoneAPI.Features.SubjectGroup.DataSet;
+using CapstoneAPI.Features.Test.DataSet;
+using CapstoneAPI.Features.TestSubmission.DataSet;
+using CapstoneAPI.Features.TestType.DataSet;
+using CapstoneAPI.Features.TrainingProgram.DataSet;
+using CapstoneAPI.Features.University.DataSet;
+using CapstoneAPI.Features.User.DataSet;
 
 namespace CapstoneAPI.DataSets
 {
@@ -62,11 +64,30 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.Article, AdminArticleDetailDataSet>();
             CreateMap<Models.Article, ApprovingArticleDataSet>();
             CreateMap<Models.University, ApprovingArticleUniversityResponse>();
+            CreateMap<NewQuestionParam, Models.Question>();
+            CreateMap<NewTestParam, Models.Test>();
+            CreateMap<NewOptionParam, Models.Option>();
+
             CreateMap<Models.Province, ProvinceDataSet>();
             CreateMap<Models.SpecialSubjectGroup, SpecialSubjectGroupDataSet>();
             CreateMap<Models.AdmissionMethod, AdmissionMethodDataSet>();
             CreateMap<Models.Season, AdminSeasonDataSet>();
-            CreateMap<AdminSeasonDataSet, Models.Season>();
+
+            CreateMap<Models.Major, MajorSubjectWeightDataSet>();
+            CreateMap<CreateMajorSubjectWeightDataSet, Models.Major>();
+
+
+
+
+            CreateMap<Models.Test, TestPagingDataSet>();
+            CreateMap<Models.TestType, TestTypeDataSet>();
+            CreateMap<Models.Major, NumberUniversityInMajorDataSet>();
+            CreateMap<Models.Major, MajorDetailDataSet>();
+
+            CreateMap<Models.Career, CareerDataSet>();
+            CreateMap<Models.Test, TestAdminDataSet>();
+
+            CreateMap<Models.Notification, NotificationDataSet>();
         }
     }
 }

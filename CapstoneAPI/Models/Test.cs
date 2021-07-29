@@ -18,13 +18,14 @@ namespace CapstoneAPI.Models
         public int? Level { get; set; }
         public int NumberOfQuestion { get; set; }
         public int Status { get; set; }
-        public DateTime? Year { get; set; }
+        public int? Year { get; set; }
         public DateTime CreateDate { get; set; }
         public int? SubjectId { get; set; }
         public int UserId { get; set; }
         public int TestTypeId { get; set; }
         public int? UniversityId { get; set; }
         public int? TimeLimit { get; set; }
+        public bool IsSuggestedTest { get; set; }
 
         public virtual Subject Subject { get; set; }
         public virtual TestType TestType { get; set; }

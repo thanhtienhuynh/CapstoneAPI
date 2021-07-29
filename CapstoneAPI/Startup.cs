@@ -3,21 +3,8 @@ using CapstoneAPI.DataSets.Email;
 using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
-using CapstoneAPI.Services.Article;
-using CapstoneAPI.Services.Configuration;
 using CapstoneAPI.Services.Crawler;
 using CapstoneAPI.Services.Email;
-using CapstoneAPI.Services.FollowingDetail;
-using CapstoneAPI.Services.FirebaseService;
-using CapstoneAPI.Services.Major;
-using CapstoneAPI.Services.Rank;
-using CapstoneAPI.Services.Subject;
-using CapstoneAPI.Services.SubjectGroup;
-using CapstoneAPI.Services.Test;
-using CapstoneAPI.Services.TestSubmission;
-using CapstoneAPI.Services.TrainingProgram;
-using CapstoneAPI.Services.University;
-using CapstoneAPI.Services.User;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -37,11 +24,26 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
-using CapstoneAPI.Services.Season;
-using CapstoneAPI.Services.Province;
-using CapstoneAPI.Services.AdmissionMethodService;
-using CapstoneAPI.Services.MajorSubjectGroup;
-using CapstoneAPI.Services.Transcript;
+using CapstoneAPI.Features.User.Service;
+using CapstoneAPI.Features.AdmissionMethod.Service;
+using CapstoneAPI.Features.Article.Service;
+using CapstoneAPI.Features.FollowingDetail.Service;
+using CapstoneAPI.Features.Major.Service;
+using CapstoneAPI.Features.MajorSubjectGroup.Service;
+using CapstoneAPI.Features.Province.Service;
+using CapstoneAPI.Features.Rank.Service;
+using CapstoneAPI.Features.Season.Service;
+using CapstoneAPI.Features.SubjectGroup.Service;
+using CapstoneAPI.Features.Subject.Service;
+using CapstoneAPI.Features.Test.Service;
+using CapstoneAPI.Features.TestSubmission.Service;
+using CapstoneAPI.Features.TestType.Service;
+using CapstoneAPI.Features.TrainingProgram.Service;
+using CapstoneAPI.Features.Transcript.Service;
+using CapstoneAPI.Features.University.Service;
+using CapstoneAPI.Features.Configuration.Service;
+using CapstoneAPI.Features.FCM.Service;
+using CapstoneAPI.Features.Notification.Service;
 
 namespace CapstoneAPI
 {
@@ -103,9 +105,15 @@ namespace CapstoneAPI
 
             // Add our job
             services.AddSingleton<ArticleCrawlerCronJob>();
+            services.AddSingleton<RankingCronJob>();
+            //0 */2 * ? * *
+            services.AddSingleton(new JobSchedule(
+                jobType: typeof(RankingCronJob),
+                cronExpression: "0 */59 * ? * *"));
             services.AddSingleton(new JobSchedule(
                 jobType: typeof(ArticleCrawlerCronJob),
-                cronExpression: "0 */30 * ? * *"));
+                cronExpression: "0 0 */4 ? * *"));
+
             services.AddHostedService<QuartzHostedService>();
             services.AddSwaggerGen(c =>
             {
@@ -166,6 +174,8 @@ namespace CapstoneAPI
             services.AddScoped<IAdmissionMethodService, AdmissitonMethodService>();
             services.AddScoped<IMajorSubjectGroupService, MajorSubjectGroupService>();
             services.AddScoped<ITranscriptService, TranscriptService>();
+            services.AddScoped<ITestTypeService, TestTypeService>();
+            services.AddScoped<INotificationService, NotificationService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
