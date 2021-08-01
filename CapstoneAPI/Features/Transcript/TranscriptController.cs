@@ -5,7 +5,9 @@ using System.Threading.Tasks;
 using CapstoneAPI.Features.SubjectGroup.DataSet;
 using CapstoneAPI.Features.Transcript.DataSet;
 using CapstoneAPI.Features.Transcript.Service;
+using CapstoneAPI.Helpers;
 using CapstoneAPI.Wrappers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CapstoneAPI.Features.Transcript
@@ -23,6 +25,8 @@ namespace CapstoneAPI.Features.Transcript
         {
             public string uidToken { get; set; }
         }
+
+        [Authorize(Roles = Roles.Student)]
         [HttpGet()]
         public async Task<ActionResult<Response<IEnumerable<UserTranscriptTypeDataSet>>>> GetMarkOfUser()
         {
@@ -31,6 +35,7 @@ namespace CapstoneAPI.Features.Transcript
             return Ok(result);
         }
 
+        [Authorize(Roles = Roles.Student)]
         [HttpPost()]
         public async Task<ActionResult<Response<bool>>> SaveMarksOfUser([FromBody] SubjectGroupParam subjectGroupParam)
         {
@@ -39,6 +44,7 @@ namespace CapstoneAPI.Features.Transcript
             return Ok(result);
         }
 
+        [Authorize(Roles = Roles.Student)]
         [HttpPut()]
         public async Task<ActionResult<Response<bool>>> SaveSingleTranscript([FromBody] TranscriptParam transcriptParam)
         {

@@ -216,9 +216,10 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                 return response;
             }
 
-            Models.FollowingDetail followingDetail = await _uow.FollowingDetailRepository.GetFirst(filter: f => f.Id == followingDetailId && f.Status == Consts.STATUS_ACTIVE
-                                                                                                        && f.UserId == user.Id,
-                                                                                                        includeProperties: "Rank");
+            Models.FollowingDetail followingDetail = await _uow.FollowingDetailRepository
+                .GetFirst(filter: f => f.Id == followingDetailId && f.Status == Consts.STATUS_ACTIVE
+                    && f.UserId == user.Id,
+                    includeProperties: "Rank");
             if (followingDetail == null)
             {
                 response.Succeeded = false;
@@ -233,12 +234,95 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
             using var tran = _uow.GetTransaction();
             try
             {
-                if (followingDetail.Rank != null)
-                {
-                    followingDetail.Rank.IsUpdate = true;
-                }
+                followingDetail.Rank.IsUpdate = true;
+                
                 followingDetail.Status = Consts.STATUS_INACTIVE;
                 _uow.FollowingDetailRepository.Update(followingDetail);
+                if ((await _uow.CommitAsync()) <= 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Bỏ quan tâm không thành công, lỗi hệ thống!");
+                    return response;
+                }
+                tran.Commit();
+            }
+            catch (Exception ex)
+            {
+                tran.Rollback();
+                _log.Error(ex.ToString());
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add(ex.Message);
+                return response;
+            }
+
+            response.Succeeded = true;
+            response.Data = true;
+            return response;
+        }
+
+        public async Task<Response<bool>> RemoveFollowingDetailInSubAdmission(int followingDetailId, string token)
+        {
+            Response<bool> response = new Response<bool>();
+            Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+            if (user == null)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Bạn chưa đăng nhập!");
+                return response;
+            }
+
+            if (!user.IsActive)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Tài khoản của bạn đã bị khóa!");
+                return response;
+            }
+
+            Models.FollowingDetail followingDetail = await _uow.FollowingDetailRepository.GetFirst(filter: 
+                f => f.Id == followingDetailId && f.Status == Consts.STATUS_ACTIVE
+                    && f.UserId == user.Id, includeProperties: "Rank,EntryMark");
+            if (followingDetail == null)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Bạn chưa quan tâm trường này!");
+                return response;
+            }
+
+            IEnumerable<Models.FollowingDetail> sameSubAdmissions = await _uow.FollowingDetailRepository.Get(
+                f => f.EntryMark.SubAdmissionCriterionId == followingDetail.EntryMark.SubAdmissionCriterionId
+                    && f.Status == Consts.STATUS_ACTIVE && f.UserId == user.Id,
+                includeProperties: "Rank");
+            using var tran = _uow.GetTransaction();
+            try
+            {
+                foreach (var followDetail in sameSubAdmissions)
+                {
+                    followingDetail.Rank.IsUpdate = true;
+                    followingDetail.Status = Consts.STATUS_INACTIVE;
+                }
+                
+                _uow.FollowingDetailRepository.UpdateRange(sameSubAdmissions);
                 if ((await _uow.CommitAsync()) <= 0)
                 {
                     response.Succeeded = false;
@@ -348,30 +432,56 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                         };
                         TrainingProgramGroupByMajorDataSet trainingProgramGroupByMajorDataSet = _mapper.Map<TrainingProgramGroupByMajorDataSet>(trainingProgramGroup.Key);
                         List<UniversityGroupByTrainingProgramDataSet> universityGroupByTrainingProgramDataSets = new List<UniversityGroupByTrainingProgramDataSet>();
-                        foreach (Models.FollowingDetail followingDetail in trainingProgramGroup)
+                        var sameSubAdmissionFollowingDetails = trainingProgramGroup
+                            .OrderBy(f => f.Rank.Position).GroupBy(f => f.EntryMark.SubAdmissionCriterion);
+                        foreach (var sameSubAdmissionFollowingDetail in sameSubAdmissionFollowingDetails)
                         {
-                            List<int> currentEntryMarkIds = (await _uow.EntryMarkRepository
-                                    .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == followingDetail.EntryMark.SubAdmissionCriterionId))
-                                    .Select(e => e.Id).ToList();
-                            currentSeasonDataSet.EntryMark = followingDetail.EntryMark.Mark;
-                            currentSeasonDataSet.NumberOfStudents = followingDetail.EntryMark.SubAdmissionCriterion.Quantity;
-                            await SetUpPreviousSeasonDataSet(followingDetail, previousSeason, previousSeasonDataSet);
-                            UniversityGroupByTrainingProgramDataSet universityGroupByTrainingProgramDataSet = _mapper.Map<UniversityGroupByTrainingProgramDataSet>(followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.University);
-                            universityGroupByTrainingProgramDataSet.FollowingDetailId = followingDetail.Id;
-                            universityGroupByTrainingProgramDataSet.MajorCode = followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.MajorCode;
-                            universityGroupByTrainingProgramDataSet.PositionOfUser = followingDetail.Rank?.Position;
-                            universityGroupByTrainingProgramDataSet.TotalUserCared = (await _uow.FollowingDetailRepository
-                            .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE)).Count();
-                            universityGroupByTrainingProgramDataSet.SeasonDataSets = new List<SeasonDataSet>()
+                            List<OtherSubjectGroup> others = new List<OtherSubjectGroup>();
+                            UniversityGroupByTrainingProgramDataSet universityGroupByTrainingProgramDataSet
+                                = new UniversityGroupByTrainingProgramDataSet();
+                            for (var i = 0; i < sameSubAdmissionFollowingDetail.Count(); i++)
                             {
-                                 previousSeasonDataSet,
-                                 currentSeasonDataSet
-                            };
-                            universityGroupByTrainingProgramDataSet.SubjectGroupId = followingDetail.EntryMark.MajorSubjectGroup.SubjectGroupId;
-                            universityGroupByTrainingProgramDataSet.SubjectGroupCode = followingDetail.EntryMark.MajorSubjectGroup.SubjectGroup.GroupCode;
-                            universityGroupByTrainingProgramDataSet.RankingMark = followingDetail.Rank?.TotalMark;
+                                Models.FollowingDetail temp = sameSubAdmissionFollowingDetail.AsEnumerable().ToList()[i];
+                                if (i == 0)
+                                {
+                                    List<int> currentEntryMarkIds = (await _uow.EntryMarkRepository
+                                        .Get(filter: e => e.Status == Consts.STATUS_ACTIVE
+                                        && e.SubAdmissionCriterionId == temp.EntryMark.SubAdmissionCriterionId))
+                                        .Select(e => e.Id).ToList();
+                                    currentSeasonDataSet.EntryMark = temp.EntryMark.Mark;
+                                    currentSeasonDataSet.NumberOfStudents = temp.EntryMark.SubAdmissionCriterion.Quantity;
+                                    await SetUpPreviousSeasonDataSet(temp, previousSeason, previousSeasonDataSet);
+                                    universityGroupByTrainingProgramDataSet = _mapper.Map<UniversityGroupByTrainingProgramDataSet>
+                                        (temp.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.University);
+                                    universityGroupByTrainingProgramDataSet.FollowingDetailId = temp.Id;
+                                    universityGroupByTrainingProgramDataSet.MajorCode = temp.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.MajorCode;
+                                    universityGroupByTrainingProgramDataSet.PositionOfUser = temp.Rank.Position;
+                                    universityGroupByTrainingProgramDataSet.TotalUserCared = (await _uow.FollowingDetailRepository
+                                    .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE)).Count();
+                                    universityGroupByTrainingProgramDataSet.SeasonDataSets = new List<SeasonDataSet>()
+                                    {
+                                     previousSeasonDataSet,
+                                     currentSeasonDataSet
+                                    };
+                                    universityGroupByTrainingProgramDataSet.SubjectGroupId = temp.EntryMark.MajorSubjectGroup.SubjectGroupId;
+                                    universityGroupByTrainingProgramDataSet.SubjectGroupCode = temp.EntryMark.MajorSubjectGroup.SubjectGroup.GroupCode;
+                                    universityGroupByTrainingProgramDataSet.RankingMark = temp.Rank.TotalMark;
+                                    
+                                } else
+                                {
+                                    others.Add(new OtherSubjectGroup
+                                    {
+                                        Id = temp.EntryMark.MajorSubjectGroup.SubjectGroupId,
+                                        Name = temp.EntryMark.MajorSubjectGroup.SubjectGroup.GroupCode,
+                                        Mark = temp.Rank.TotalMark,
+                                        RankTypeId = temp.Rank.TranscriptTypeId
+                                    });
+                                }
+                            }
+                            universityGroupByTrainingProgramDataSet.OtherSubjectGroups = others;
                             universityGroupByTrainingProgramDataSets.Add(universityGroupByTrainingProgramDataSet);
                         }
+
                         trainingProgramGroupByMajorDataSet.UniversityGroupByTrainingProgramDataSets = universityGroupByTrainingProgramDataSets;
                         trainingProgramGroupByMajorDataSets.Add(trainingProgramGroupByMajorDataSet);
                     }
@@ -477,43 +587,67 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
 
                         TrainingProgramGroupByUniversityDataSet trainingProgramGroupByUniversityDataSet =
                                                     _mapper.Map<TrainingProgramGroupByUniversityDataSet>(followingDetailInTrainingProgram.Key);
-                        List<MajorGroupByTrainingProgramDataSet> majorGroupByTrainingProgramDataSets = new List<MajorGroupByTrainingProgramDataSet>();
-                        foreach (Models.FollowingDetail followingDetail in followingDetailInTrainingProgram)
+                        List<MajorGroupByTrainingProgramDataSet> majorGroupByTrainingProgramDataSets 
+                            = new List<MajorGroupByTrainingProgramDataSet>();
+                        var sameSubAdmissionFollowingDetails = followingDetailInTrainingProgram
+                           .OrderBy(f => f.Rank.Position).GroupBy(f => f.EntryMark.SubAdmissionCriterion);
+                        List<OtherSubjectGroup> others = new List<OtherSubjectGroup>();
+                        foreach (var sameSubAdmission in sameSubAdmissionFollowingDetails)
                         {
-                            SeasonDataSet currentSeasonDataSet = new SeasonDataSet
+                            var majorGroupByTrainingProgramDataSet = new MajorGroupByTrainingProgramDataSet();
+                            for (var i = 0; i < sameSubAdmission.Count(); i++)
                             {
-                                Id = currentSeason.Id,
-                                Name = currentSeason.Name
-                            };
-                            SeasonDataSet previousSeasonDataSet = new SeasonDataSet
-                            {
-                                Id = previousSeason.Id,
-                                Name = previousSeason.Name
-                            };
-                            List<int> currentEntryMarkIds = (await _uow.EntryMarkRepository
-                                    .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == followingDetail.EntryMark.SubAdmissionCriterionId))
-                                    .Select(e => e.Id).ToList();
-                            currentSeasonDataSet.EntryMark = followingDetail.EntryMark.Mark;
-                            currentSeasonDataSet.NumberOfStudents = followingDetail.EntryMark.SubAdmissionCriterion.Quantity;
-                            await SetUpPreviousSeasonDataSet(followingDetail, previousSeason, previousSeasonDataSet);
-                            MajorGroupByTrainingProgramDataSet majorGroupByTrainingProgramDataSet = new MajorGroupByTrainingProgramDataSet
-                            {
-                                FollowingDetailId = followingDetail.Id,
-                                Id = followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.Major.Id,
-                                Code = followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.Major.Code,
-                                Name = followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.Major.Name,
-                                MajorCode = followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.MajorCode,
-                                PositionOfUser = followingDetail.Rank?.Position,
-                                RankingMark = followingDetail.Rank?.TotalMark,
-                                SeasonDataSets = new List<SeasonDataSet>()
+                                Models.FollowingDetail followingDetail = sameSubAdmission.AsEnumerable().ToList()[i];
+                                if (i == 0)
                                 {
-                                    previousSeasonDataSet,
-                                    currentSeasonDataSet
-                                },
-                                TotalUserCared = (await _uow.FollowingDetailRepository.Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE)).Count(),
-                                SubjectGroupId = followingDetail.EntryMark.MajorSubjectGroup.SubjectGroupId,
-                                SubjectGroupCode = followingDetail.EntryMark.MajorSubjectGroup.SubjectGroup.GroupCode,
-                            };
+                                    SeasonDataSet currentSeasonDataSet = new SeasonDataSet
+                                    {
+                                        Id = currentSeason.Id,
+                                        Name = currentSeason.Name
+                                    };
+                                    SeasonDataSet previousSeasonDataSet = new SeasonDataSet
+                                    {
+                                        Id = previousSeason.Id,
+                                        Name = previousSeason.Name
+                                    };
+                                    List<int> currentEntryMarkIds = (await _uow.EntryMarkRepository
+                                            .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == followingDetail.EntryMark.SubAdmissionCriterionId))
+                                            .Select(e => e.Id).ToList();
+                                    currentSeasonDataSet.EntryMark = followingDetail.EntryMark.Mark;
+                                    currentSeasonDataSet.NumberOfStudents = followingDetail.EntryMark.SubAdmissionCriterion.Quantity;
+                                    await SetUpPreviousSeasonDataSet(followingDetail, previousSeason, previousSeasonDataSet);
+                                    majorGroupByTrainingProgramDataSet = new MajorGroupByTrainingProgramDataSet
+                                    {
+                                        FollowingDetailId = followingDetail.Id,
+                                        Id = followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.Major.Id,
+                                        Code = followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.Major.Code,
+                                        Name = followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.Major.Name,
+                                        MajorCode = followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.MajorCode,
+                                        PositionOfUser = followingDetail.Rank.Position,
+                                        RankingMark = followingDetail.Rank.TotalMark,
+                                        RankTypeId = followingDetail.Rank.TranscriptTypeId,
+                                        SeasonDataSets = new List<SeasonDataSet>()
+                                        {
+                                            previousSeasonDataSet,
+                                            currentSeasonDataSet
+                                        },
+                                        TotalUserCared = (await _uow.FollowingDetailRepository.Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE)).Count(),
+                                        SubjectGroupId = followingDetail.EntryMark.MajorSubjectGroup.SubjectGroupId,
+                                        SubjectGroupCode = followingDetail.EntryMark.MajorSubjectGroup.SubjectGroup.GroupCode,
+                                    };
+                                }
+                                else
+                                {
+                                    others.Add(new OtherSubjectGroup
+                                    {
+                                        Id = followingDetail.EntryMark.MajorSubjectGroup.SubjectGroupId,
+                                        Name = followingDetail.EntryMark.MajorSubjectGroup.SubjectGroup.GroupCode,
+                                        Mark = followingDetail.Rank.TotalMark,
+                                        RankTypeId = followingDetail.Rank.TranscriptTypeId
+                                    });
+                                }
+                            }
+                            majorGroupByTrainingProgramDataSet.OtherSubjectGroups = others;
                             majorGroupByTrainingProgramDataSets.Add(majorGroupByTrainingProgramDataSet);
                         }
                         trainingProgramGroupByUniversityDataSet.MajorGroupByTrainingProgramDataSets = majorGroupByTrainingProgramDataSets;
@@ -617,18 +751,44 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                 await SetUpPreviousSeasonDataSet(followingDetail, previousSeason, previousSeasonDataSet);
 
                 IEnumerable<Models.FollowingDetail> followingDetails = await _uow.FollowingDetailRepository
-                                                                        .Get(filter: u => u.EntryMark.Status == Consts.STATUS_ACTIVE
-                                                                                        && u.Status == Consts.STATUS_ACTIVE
-                                                                                        && u.EntryMark.SubAdmissionCriterionId == followingDetail.EntryMark.SubAdmissionCriterionId,
-                                                                        includeProperties: "User,EntryMark,Rank.TranscriptType,EntryMark.MajorSubjectGroup.SubjectGroup," +
-                                                                                            "EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.TrainingProgram," +
-                                                                                            "EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.University," +
-                                                                                            "EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.Major");
+                    .Get(filter: u => u.EntryMark.Status == Consts.STATUS_ACTIVE
+                                    && u.Status == Consts.STATUS_ACTIVE
+                                    && u.EntryMark.SubAdmissionCriterionId == followingDetail.EntryMark.SubAdmissionCriterionId,
+                    includeProperties: "User,EntryMark,Rank.TranscriptType,EntryMark.MajorSubjectGroup.SubjectGroup," +
+                                        "EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.TrainingProgram," +
+                                        "EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.University," +
+                                        "EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.Major",
+                    orderBy: u => u.OrderBy(u => u.Rank.Position));
+
+                IEnumerable<IGrouping<Models.User, Models.FollowingDetail>> followingDetailsGroupsByUser =
+                    followingDetails.GroupBy(u => u.User);
+                List<OtherSubjectGroup> others = new List<OtherSubjectGroup>();
+                foreach (var gr in followingDetailsGroupsByUser)
+                {
+                    if (gr.Key.Id == user.Id)
+                    {
+                        List<Models.FollowingDetail> temp = gr.AsEnumerable().ToList();
+                        for(var i = 0; i < temp.Count; i++)
+                        {
+                            if ( i > 0)
+                            {
+                                others.Add(new OtherSubjectGroup()
+                                {
+                                    Id = temp[i].EntryMark.MajorSubjectGroup.SubjectGroupId,
+                                    Name = temp[i].EntryMark.MajorSubjectGroup.SubjectGroup.GroupCode,
+                                    Mark = temp[i].Rank.TotalMark,
+                                    RankTypeId = temp[i].Rank.TranscriptTypeId
+                                });
+                            }
+                        }
+                    }
+                }
+                followingDetails = followingDetailsGroupsByUser.Select(g => g.FirstOrDefault());
 
                 IEnumerable<IGrouping<TranscriptType, Models.FollowingDetail>> followingDetailsGroupsByTranscriptType = followingDetails.GroupBy(u => u.Rank.TranscriptType)
                                                                                                                         .OrderByDescending(g => g.Key.Priority);
 
-                List<RankingUserInformationGroupByTranscriptType> rankingUserInformationGroupByTranscriptTypes = new List<RankingUserInformationGroupByTranscriptType>();
+                var rankingUserInformationGroupByTranscriptTypes = new List<RankingUserInformationGroupByTranscriptType>();
 
                 foreach (IGrouping<TranscriptType, Models.FollowingDetail> followingDetailsGroup in followingDetailsGroupsByTranscriptType)
                 {
@@ -647,7 +807,7 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                     rankingUserInformationGroupByTranscriptType.RankingUserInformations = rankingUserInformations.OrderBy(r => r.Position).ThenByDescending(r => r.TotalMark).ToList();
                     rankingUserInformationGroupByTranscriptTypes.Add(rankingUserInformationGroupByTranscriptType);
                 }
-                rankingInformation.PositionOfUser = followingDetail.Rank?.Position;
+                rankingInformation.PositionOfUser = followingDetail.Rank.Position;
                 currentSeasonDataSet.EntryMark = followingDetail.EntryMark.Mark;
                 currentSeasonDataSet.NumberOfStudents = followingDetail.EntryMark.SubAdmissionCriterion.Quantity;
                 rankingInformation.SeasonDataSets = new List<SeasonDataSet>
@@ -657,8 +817,10 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                 };
                 rankingInformation.SubjectGroupId = followingDetail.EntryMark.MajorSubjectGroup.SubjectGroupId;
                 rankingInformation.SubjectGroupCode = followingDetail.EntryMark.MajorSubjectGroup.SubjectGroup.GroupCode;
-                rankingInformation.RankingMark = followingDetail.Rank?.TotalMark;
+                rankingInformation.RankingMark = followingDetail.Rank.TotalMark;
                 rankingInformation.TotalUserCared = rankingUserInformationGroupByTranscriptTypes.Count();
+                rankingInformation.OtherSubjectGroups = others;
+                rankingInformation.RankTypeId = followingDetail.Rank.TranscriptTypeId;
                 userFollowingDetail.RankingInformation = rankingInformation;
                 userFollowingDetail.RankingUserInformationsGroupByTranscriptType = rankingUserInformationGroupByTranscriptTypes;
                 userFollowingDetail.UniversityDataSet = _mapper.Map<DetailUniversityDataSet>(followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.University);

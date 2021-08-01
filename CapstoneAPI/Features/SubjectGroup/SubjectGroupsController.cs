@@ -11,6 +11,8 @@ using Serilog;
 using Serilog.Context;
 using CapstoneAPI.Features.SubjectGroup.Service;
 using CapstoneAPI.Features.SubjectGroup.DataSet;
+using CapstoneAPI.Helpers;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CapstoneAPI.Features.SubjectGroup
 {
@@ -61,24 +63,31 @@ namespace CapstoneAPI.Features.SubjectGroup
             return Ok(await _service.GetUserSuggestTopSubjectGroup(token));
         }
 
+        [Authorize(Roles = Roles.Staff)]
         [HttpGet()]
         public async Task<ActionResult<Response<IEnumerable<AdminSubjectGroupDataSet>>>> GetSubjectGroupsByAdmin()
         {
             Response<IEnumerable<AdminSubjectGroupDataSet>> response = await _service.GetListSubjectGroups();
             return Ok(response);
         }
+
+        [Authorize(Roles = Roles.Staff)]
         [HttpPost]
         public async Task<ActionResult<Response<CreateSubjectGroupDataset>>> CreateASubjectGroup([FromBody]CreateSubjectGroupParam createSubjectGroupParam)
         {
             Response<CreateSubjectGroupDataset> response = await _service.CreateNewSubjectGroup(createSubjectGroupParam);
             return Ok(response);
         }
+
+        [Authorize(Roles = Roles.Staff)]
         [HttpPut]
         public async Task<ActionResult<Response<CreateSubjectGroupDataset>>> UpdateASubjectGroup([FromBody]UpdateSubjectGroupParam updateSubjectGroupParam)
         {
             Response<CreateSubjectGroupDataset> response = await _service.UpdateSubjectGroup(updateSubjectGroupParam);
             return Ok(response);
         }
+
+        [Authorize(Roles = Roles.Staff)]
         [HttpGet("{id}")]
         public async Task<ActionResult<Response<SubjectGroupResponseDataSet>>> GetSubjectGroupWeight(int id)
         {

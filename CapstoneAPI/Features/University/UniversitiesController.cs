@@ -8,6 +8,8 @@ using CapstoneAPI.Filters.University;
 using CapstoneAPI.Filters.MajorDetail;
 using CapstoneAPI.Features.University.DataSet;
 using CapstoneAPI.Features.University.Service;
+using CapstoneAPI.Helpers;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CapstoneAPI.Features.University
 {
@@ -29,6 +31,7 @@ namespace CapstoneAPI.Features.University
             return Ok(await _service.GetUniversityBySubjectGroupAndMajor(universityParam, token));
         }
 
+        [Authorize(Roles = Roles.Student)]
         [HttpPost("suggestion")]
         public async Task<ActionResult<Response<MockTestBasedUniversity>>> CalculattUniversityByMockTestMarks([FromBody] MockTestsUniversityParam universityParam)
         {
@@ -36,6 +39,7 @@ namespace CapstoneAPI.Features.University
             return Ok(await _service.CalculaterUniversityByMockTestMarks(universityParam, token));
         }
 
+        [Authorize(Roles = Roles.Staff)]
         [HttpGet("admin-all")]
         public async Task<ActionResult<PagedResponse<List<AdminUniversityDataSet>>>> GetAllUniversities([FromQuery] PaginationFilter filter,
             [FromQuery] UniversityFilter universityFilter)
@@ -49,6 +53,8 @@ namespace CapstoneAPI.Features.University
                 return NoContent();
             return Ok(universities);
         }
+
+        [Authorize(Roles = Roles.Staff)]
         [HttpGet("admin-non-paging")]
         public async Task<ActionResult<Response<IEnumerable<AdminUniversityDataSet>>>> GetAllUniversitiesWithOutPaging()
         {
@@ -59,6 +65,7 @@ namespace CapstoneAPI.Features.University
                 return NoContent();
             return Ok(universities);
         }
+
         [HttpGet("detail/{id}")]
         public async Task<ActionResult<Response<DetailUniversityDataSet>>> GetDetailOfUniversityById(int id)
         {
@@ -78,6 +85,7 @@ namespace CapstoneAPI.Features.University
             return Ok(result);
         }
 
+        [Authorize(Roles = Roles.Staff)]
         [HttpGet("major-detail-non-paging")]
         public async Task<ActionResult<Response<UniMajorDataSet>>> GetMajorDetailWithOutPaging([FromQuery] MajorDetailParam majorDetailParam)
         {
@@ -86,24 +94,31 @@ namespace CapstoneAPI.Features.University
         }
 
 
+        [Authorize(Roles = Roles.Staff)]
         [HttpPost]
         public async Task<ActionResult<Response<AdminUniversityDataSet>>> CreateAnUniversity([FromForm] CreateUniversityDataset createUniversityDataset)
         {
             Response<AdminUniversityDataSet> result = await _service.CreateNewAnUniversity(createUniversityDataset);
             return Ok(result);
         }
+
+        [Authorize(Roles = Roles.Staff)]
         [HttpPut]
         public async Task<ActionResult<Response<AdminUniversityDataSet>>> UpdateUniversity([FromForm] AdminUniversityDataSet adminUniversityDataSet)
         {
             Response<AdminUniversityDataSet> result = await _service.UpdateUniversity(adminUniversityDataSet);
             return Ok(result);
         }
+
+        [Authorize(Roles = Roles.Staff)]
         [HttpPost("major-addition")]
         public async Task<ActionResult<Response<bool>>> AddMajorToUniversity([FromBody] AddingMajorUniversityParam addingMajorUniversityParam)
         {
             Response<bool> result = await _service.AddMajorToUniversity(addingMajorUniversityParam);
             return Ok(result);
         }
+
+        [Authorize(Roles = Roles.Staff)]
         [HttpPut("major-updation")]
         public async Task<ActionResult<Response<bool>>> UpdateMajorOfUniversity([FromBody] UpdatingMajorUniversityParam updatingMajorUniversityParam)
         {

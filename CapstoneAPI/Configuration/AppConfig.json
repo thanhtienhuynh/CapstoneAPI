@@ -1,6 +1,11 @@
 {
-  "AppConfig": {
-    "TimeUpdateRank": 12,
-    "TimeCrawl": 12
-  }
+  "UpdateRankTime": {
+    "Start": 1,
+    "Type": 1
+  },
+  "CrawlTime": {
+    "Start": 1,
+    "Type": 1
+  },
+  "TestMonths": 3
 }

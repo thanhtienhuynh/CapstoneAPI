@@ -1,6 +1,8 @@
 ﻿using CapstoneAPI.Features.MajorSubjectGroup.DataSet;
 using CapstoneAPI.Features.MajorSubjectGroup.Service;
+using CapstoneAPI.Helpers;
 using CapstoneAPI.Wrappers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -20,13 +22,14 @@ namespace CapstoneAPI.Features.MajorSubjectGroup
             _service = service;
         }
 
-
+        [Authorize(Roles = Roles.Staff)]
         [HttpGet]
-        public async Task<ActionResult<Response<IEnumerable<MajorSubjectGroupDataSet>>>> GetMajorSubjectGroupByGroup([FromQuery]int MajorId)
+        public async Task<ActionResult<Response<IEnumerable<MajorSubjectGroupDataSet>>>> GetMajorSubjectGroupByMajor([FromQuery]int MajorId)
         {
             return Ok(await _service.GetMajorSubjectGourpByMajor(MajorId));
         }
 
+        [Authorize(Roles = Roles.Staff)]
         [HttpPost]
         public async Task<ActionResult<Response<MajorSubjectGroupDataSet>>> AddAMajorSubjectGroup([FromBody] MajorSubjectGroupParam majorSubjectGroupParam)
         {

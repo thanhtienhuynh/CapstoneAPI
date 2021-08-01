@@ -34,6 +34,7 @@ namespace CapstoneAPI.Features.Notification
             return Ok(await _service.GetNotificationsByUser(token, validFilter));
         }
 
+        [Authorize(Roles = Roles.Student)]
         [HttpGet("unread")]
         public async Task<ActionResult<Response<int>>> GetNumOfUnreadNoti()
         {
@@ -41,6 +42,7 @@ namespace CapstoneAPI.Features.Notification
             return Ok(await _service.GetNumberUnread(token));
         }
 
+        [Authorize(Roles = Roles.Student)]
         [HttpPut("{id}")]
         public async Task<ActionResult<Response<bool>>> MarkAsRead([FromRoute] int id)
         {
@@ -48,6 +50,7 @@ namespace CapstoneAPI.Features.Notification
             return Ok(await _service.MarkAsRead(token, id));
         }
 
+        [Authorize(Roles = Roles.Student)]
         [HttpPut()]
         public async Task<ActionResult<Response<bool>>> MarkAsAllRead()
         {

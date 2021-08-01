@@ -198,7 +198,7 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
                             EntryMark previousEntryMark = (await _uow.EntryMarkRepository
                                     .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == subPreviousSubAdmissionCriteria.Id
                                     && e.MajorSubjectGroupId != null && e.MajorSubjectGroup.SubjectGroupId == subjectGroupDataSet.Id
-                                    && e.Mark != null && e.Mark <= subjectGroupDataSet.TotalMark))
+                                    && e.Mark != null && e.Mark > 0 && e.Mark <= subjectGroupDataSet.TotalMark))
                                         .FirstOrDefault();
 
 

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CapstoneAPI.Features.Rank.Service;
+using CapstoneAPI.Helpers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CapstoneAPI.Features.Rank
@@ -17,7 +19,7 @@ namespace CapstoneAPI.Features.Rank
             _service = service;
         }
 
-
+        [Authorize(Roles = Roles.Staff)]
         [HttpPut("updation")]
         public async Task<IActionResult> UpdateRank()
         {

@@ -137,5 +137,11 @@ namespace CapstoneAPI.Helpers
         public const int ThiThu = 3;
     }
 
+    public static class CronExporessionType
+    {
+        public const int EachHours = 1;
+        public const int SpecificHour = 2;
+    }
+
 
 }

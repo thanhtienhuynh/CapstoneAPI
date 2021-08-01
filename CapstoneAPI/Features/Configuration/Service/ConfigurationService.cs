@@ -1,9 +1,13 @@
-﻿using CapstoneAPI.Wrappers;
+﻿using CapstoneAPI.Features.Configuration.DataSet;
+using CapstoneAPI.Helpers;
+using CapstoneAPI.Wrappers;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Serilog;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace CapstoneAPI.Features.Configuration.Service
 {
@@ -69,6 +73,51 @@ namespace CapstoneAPI.Features.Configuration.Service
                     return response;
                 }
             } catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+
+            return null;
+        }
+
+        public async Task<Response<ConfigParam>> SetAppConfiguration(ConfigParam configuration)
+        {
+            Response<ConfigParam> response = new Response<ConfigParam>();
+            if ((configuration.CrawlTime.Start < 0 && configuration.CrawlTime.Start > 23)
+                || (configuration.CrawlTime.Type != CronExporessionType.EachHours && configuration.CrawlTime.Type != CronExporessionType.SpecificHour)
+                || (configuration.UpdateRankTime.Start < 0 && configuration.UpdateRankTime.Start > 23)
+                || (configuration.UpdateRankTime.Type != CronExporessionType.EachHours && configuration.UpdateRankTime.Type != CronExporessionType.SpecificHour)
+                || (configuration.TestMonths <= 0 || configuration.TestMonths > 12)) {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Cấu hình không hợp lệ!");
+                return response;
+            }
+            try
+            {
+                var appConfigLines = await File.ReadAllTextAsync(@"Configuration\AppConfig.json");
+                var appConfig = Newtonsoft.Json.JsonConvert.DeserializeObject(appConfigLines) as JObject;
+                appConfig.SelectToken("UpdateRankTime.Start").Replace(configuration.UpdateRankTime.Start);
+                appConfig.SelectToken("UpdateRankTime.Type").Replace(configuration.UpdateRankTime.Type);
+                appConfig.SelectToken("CrawlTime.Start").Replace(configuration.CrawlTime.Start);
+                appConfig.SelectToken("CrawlTime.Type").Replace(configuration.CrawlTime.Type);
+                appConfig.SelectToken("TestMonths").Replace(configuration.TestMonths);
+                string updatedJsonString = appConfig.ToString();
+                await File.WriteAllTextAsync(@"Configuration\AppConfig.json", updatedJsonString);
+                response.Succeeded = true;
+                response.Data = JsonConvert.DeserializeObject<ConfigParam>(updatedJsonString);
+                return response;
+            }
+            catch (Exception ex)
             {
                 _log.Error(ex.ToString());
                 response.Succeeded = false;

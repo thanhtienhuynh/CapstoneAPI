@@ -1,6 +1,8 @@
 ﻿using CapstoneAPI.Features.TestType.DataSet;
 using CapstoneAPI.Features.TestType.Service;
+using CapstoneAPI.Helpers;
 using CapstoneAPI.Wrappers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -19,6 +21,8 @@ namespace CapstoneAPI.Features.TestType
         {
             _service = service;
         }
+
+        [Authorize(Roles = Roles.Staff)]
         [HttpGet]
         public async Task<ActionResult<Response<IEnumerable<TestTypeDataSet>>>> GetAllTestTypes()
         {

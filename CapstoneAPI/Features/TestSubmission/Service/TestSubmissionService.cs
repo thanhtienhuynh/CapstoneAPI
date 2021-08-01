@@ -199,7 +199,6 @@
                             IsUpdate = true,
                             Status = Consts.STATUS_ACTIVE
                         });
-
                     }
 
 
@@ -387,7 +386,7 @@
                 IEnumerable<TestSubmission> testSubmissionDataSets = (await _uow.TestSubmissionRepository
                     .Get(filter: t => t.UserId == user.Id,
                         includeProperties: "Test",
-                        orderBy: t => t.OrderBy(t => t.SpentTime))).GroupBy(t => t.TestId).Select(g => g.Last());
+                        orderBy: t => t.OrderBy(t => t.SubmissionDate))).GroupBy(t => t.TestId).Select(g => g.Last());
                 if (param.SubjectId != null)
                 {
                     testSubmissionDataSets = testSubmissionDataSets.Where(t => t.Test.SubjectId == param.SubjectId);
@@ -400,25 +399,25 @@
                 {
                     testSubmissionDataSets = testSubmissionDataSets.Where(t => t.Test.IsSuggestedTest == param.IsSuggestedTest);
                 }
-                switch (param.Order ?? 2)
+                switch (param.Order ?? 1)
                 {
                     case 1:
-                        testSubmissionDataSets.OrderByDescending(a => a.SubmissionDate);
+                        testSubmissionDataSets = testSubmissionDataSets.OrderByDescending(a => a.SubmissionDate);
                         break;
                     case 2:
-                        testSubmissionDataSets.OrderBy(a => a.SubmissionDate);
+                        testSubmissionDataSets = testSubmissionDataSets.OrderBy(a => a.SubmissionDate);
                         break;
                     case 3:
-                        testSubmissionDataSets.OrderByDescending(a => a.Test.Year);
+                        testSubmissionDataSets = testSubmissionDataSets.OrderByDescending(a => a.Test.Year);
                         break;
                     case 4:
-                        testSubmissionDataSets.OrderBy(a => a.Test.Year);
+                        testSubmissionDataSets = testSubmissionDataSets.OrderBy(a => a.Test.Year);
                         break;
                     case 5:
-                        testSubmissionDataSets.OrderByDescending(a => a.Test.Name);
+                        testSubmissionDataSets = testSubmissionDataSets.OrderByDescending(a => a.Test.Name);
                         break;
                     case 6:
-                        testSubmissionDataSets.OrderBy(a => a.Test.Name);
+                        testSubmissionDataSets = testSubmissionDataSets.OrderBy(a => a.Test.Name);
                         break;
                 }
                 if (!testSubmissionDataSets.Any())

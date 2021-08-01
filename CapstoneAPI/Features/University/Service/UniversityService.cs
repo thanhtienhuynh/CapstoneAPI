@@ -128,54 +128,81 @@ namespace CapstoneAPI.Features.University.Service
 
                         var currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
                             .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == AdmissionMethodTypes.THPTQG
-                                    && a.Quantity != 0 && (a.Gender == universityParam.Gender || a.Gender == null)
-                             && (a.ProvinceId == universityParam.ProvinceId || a.ProvinceId == null)).ToList();
+                                    && a.Quantity != 0).ToList();
                         var previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
                             .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == AdmissionMethodTypes.THPTQG
-                            && a.Quantity != 0 && (a.Gender == universityParam.Gender || a.Gender == null)
-                             && (a.ProvinceId == universityParam.ProvinceId || a.ProvinceId == null)).ToList();
+                            && a.Quantity != 0).ToList();
 
                         if (!currentSubAdmissionCriterias.Any() || !previousSubAdmissionCriterias.Any())
                         {
                             continue;
                         }
 
-                        EntryMark currentEntryMark = null;
-                        EntryMark previousEntryMark = null;
+                        //Check ptts cho giới tính riêng
+                        var subCurrentSubAdmissionCriteriasByGender =
+                            currentSubAdmissionCriterias.Where(s => s.Gender == universityParam.Gender).ToList();
+                        if (subCurrentSubAdmissionCriteriasByGender.Any())
+                        {
+                            currentSubAdmissionCriterias = subCurrentSubAdmissionCriteriasByGender;
+                        }
+                        else
+                        {
+                            currentSubAdmissionCriterias = currentSubAdmissionCriterias.Where(s => s.Gender == null).ToList();
+                        }
 
-                        foreach (SubAdmissionCriterion currentSubAdmissionCriteria in currentSubAdmissionCriterias)
+                        var subPreviousSubAdmissionCriteriasByGender =
+                            previousSubAdmissionCriterias.Where(s => s.Gender == universityParam.Gender);
+                        if (subPreviousSubAdmissionCriteriasByGender.Any())
                         {
-                            currentEntryMark = (await _uow.EntryMarkRepository
-                                .Get(filter: e => e.Status == Consts.STATUS_ACTIVE
-                                    && e.SubAdmissionCriterionId == currentSubAdmissionCriteria.Id
+                            previousSubAdmissionCriterias = subPreviousSubAdmissionCriteriasByGender.ToList();
+                        }
+                        else
+                        {
+                            previousSubAdmissionCriterias = previousSubAdmissionCriterias.Where(s => s.Gender == null).ToList();
+                        }
+
+                        //Check ptts cho tỉnh riêng, chỉ có duy nhất 1 tiêu chí thỏa mãn
+                        var subCurrentSubAdmissionCriteria = currentSubAdmissionCriterias
+                            .Where(s => s.ProvinceId == universityParam.ProvinceId).FirstOrDefault();
+                        if (subCurrentSubAdmissionCriteria == null)
+                        {
+                            subCurrentSubAdmissionCriteria = currentSubAdmissionCriterias.Where(s => s.ProvinceId == null).FirstOrDefault(); ;
+                        }
+
+                        var subPreviousSubAdmissionCriteria =
+                            previousSubAdmissionCriterias.Where(s => s.ProvinceId == universityParam.ProvinceId).FirstOrDefault();
+                        if (subPreviousSubAdmissionCriteria == null)
+                        {
+                            subPreviousSubAdmissionCriteria = previousSubAdmissionCriterias.Where(s => s.ProvinceId == null).FirstOrDefault();
+                        }
+
+                        if (subPreviousSubAdmissionCriteria == null || subCurrentSubAdmissionCriteria == null)
+                        {
+                            continue;
+                        }
+
+                        EntryMark currentEntryMark = (await _uow.EntryMarkRepository
+                            .Get(filter: e => e.Status == Consts.STATUS_ACTIVE
+                                    && e.SubAdmissionCriterionId == subCurrentSubAdmissionCriteria.Id
                                     && e.MajorSubjectGroupId != null,
-                                    includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup," +
+                                includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup," +
                                                         "SubAdmissionCriterion,FollowingDetails"))
-                                    .Where(e => e.MajorSubjectGroup.SubjectGroupId == universityParam.SubjectGroupId
-                                                && e.MajorSubjectGroup.MajorId == universityParam.MajorId).FirstOrDefault();
-                            if (currentEntryMark != null)
-                            {
-                                break;
-                            }
-                        }
-                        foreach (var previousSubAdmissionCriteria in previousSubAdmissionCriterias)
-                        {
-                            previousEntryMark = (await _uow.EntryMarkRepository
-                                .Get(filter: e => e.Status == Consts.STATUS_ACTIVE
-                                        && e.SubAdmissionCriterionId == previousSubAdmissionCriteria.Id
-                                        && e.MajorSubjectGroupId != null,
-                                    includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup," +
-                                                        "SubAdmissionCriterion"))
-                                    .Where(e => e.MajorSubjectGroup.SubjectGroupId == universityParam.SubjectGroupId
-                                                && e.MajorSubjectGroup.MajorId == universityParam.MajorId).FirstOrDefault();
-                            if (previousEntryMark != null)
-                            {
-                                break;
-                            }
-                        }
+                            .Where(e => e.MajorSubjectGroup.SubjectGroupId == universityParam.SubjectGroupId
+                                    && e.MajorSubjectGroup.MajorId == universityParam.MajorId)
+                            .FirstOrDefault();
+
+                        EntryMark previousEntryMark = (await _uow.EntryMarkRepository
+                            .Get(filter: e => e.Status == Consts.STATUS_ACTIVE
+                                    && e.SubAdmissionCriterionId == subPreviousSubAdmissionCriteria.Id
+                                    && e.MajorSubjectGroupId != null,
+                                includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup," +
+                                                    "SubAdmissionCriterion"))
+                            .Where(e => e.MajorSubjectGroup.SubjectGroupId == universityParam.SubjectGroupId
+                                    && e.MajorSubjectGroup.MajorId == universityParam.MajorId)
+                            .FirstOrDefault();
 
                         if (currentEntryMark == null || previousEntryMark == null || previousEntryMark.Mark == null
-                            || previousEntryMark.Mark > universityParam.TotalMark)
+                            || previousEntryMark.Mark <= 0|| previousEntryMark.Mark > universityParam.TotalMark)
                         {
                             continue;
                         }
@@ -423,51 +450,82 @@ namespace CapstoneAPI.Features.University.Service
                         }
 
                         var currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == AdmissionMethodTypes.THPTQG
-                            && (a.Gender == user.Gender || a.Gender == null)
-                             && a.Quantity != 0 && (a.ProvinceId == user.ProvinceId || a.ProvinceId == null))
-                            .ToList();
+                           .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == AdmissionMethodTypes.THPTQG
+                                   && a.Quantity != 0).ToList();
                         var previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
                             .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == AdmissionMethodTypes.THPTQG
-                            && (a.Gender == user.Gender || a.Gender == null)
-                             && a.Quantity != 0 && (a.ProvinceId == user.ProvinceId || a.ProvinceId == null))
-                            .ToList();
+                            && a.Quantity != 0).ToList();
 
                         if (!currentSubAdmissionCriterias.Any() || !previousSubAdmissionCriterias.Any())
                         {
                             continue;
                         }
 
-                        EntryMark currentEntryMark = null;
-                        EntryMark previousEntryMark = null;
-
-                        foreach (SubAdmissionCriterion currentSubAdmissionCriteria in currentSubAdmissionCriterias)
+                        //Check ptts cho giới tính riêng
+                        var subCurrentSubAdmissionCriteriasByGender =
+                            currentSubAdmissionCriterias.Where(s => s.Gender == user.Gender).ToList();
+                        if (subCurrentSubAdmissionCriteriasByGender.Any())
                         {
-                            currentEntryMark = (await _uow.EntryMarkRepository
-                                .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == currentSubAdmissionCriteria.Id && e.MajorSubjectGroupId != null,
-                                    includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup,SubAdmissionCriterion,FollowingDetails"))
-                                    .Where(e => e.MajorSubjectGroup.SubjectGroupId == universityParam.SubjectGroupId
-                                                && e.MajorSubjectGroup.MajorId == universityParam.MajorId).FirstOrDefault();
-                            if (currentEntryMark != null)
-                            {
-                                break;
-                            }
+                            currentSubAdmissionCriterias = subCurrentSubAdmissionCriteriasByGender;
+                        }
+                        else
+                        {
+                            currentSubAdmissionCriterias = currentSubAdmissionCriterias.Where(s => s.Gender == null).ToList();
                         }
 
-                        foreach (SubAdmissionCriterion previousSubAdmissionCriteria in previousSubAdmissionCriterias)
+                        var subPreviousSubAdmissionCriteriasByGender =
+                            previousSubAdmissionCriterias.Where(s => s.Gender == user.Gender);
+                        if (subPreviousSubAdmissionCriteriasByGender.Any())
                         {
-                            previousEntryMark = (await _uow.EntryMarkRepository
-                                .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == previousSubAdmissionCriteria.Id && e.MajorSubjectGroupId != null,
-                                    includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup,SubAdmissionCriterion"))
-                                    .Where(e => e.MajorSubjectGroup.SubjectGroupId == universityParam.SubjectGroupId
-                                                && e.MajorSubjectGroup.MajorId == universityParam.MajorId).FirstOrDefault();
-                            if (previousEntryMark != null)
-                            {
-                                break;
-                            }
+                            previousSubAdmissionCriterias = subPreviousSubAdmissionCriteriasByGender.ToList();
+                        }
+                        else
+                        {
+                            previousSubAdmissionCriterias = previousSubAdmissionCriterias.Where(s => s.Gender == null).ToList();
                         }
 
-                        if (currentEntryMark == null || previousEntryMark == null || previousEntryMark.Mark == null || previousEntryMark.Mark > totalMark)
+                        //Check ptts cho tỉnh riêng, chỉ có duy nhất 1 tiêu chí thỏa mãn
+                        var subCurrentSubAdmissionCriteria = currentSubAdmissionCriterias
+                            .Where(s => s.ProvinceId == user.ProvinceId).FirstOrDefault();
+                        if (subCurrentSubAdmissionCriteria == null)
+                        {
+                            subCurrentSubAdmissionCriteria = currentSubAdmissionCriterias.Where(s => s.ProvinceId == null).FirstOrDefault(); ;
+                        }
+
+                        var subPreviousSubAdmissionCriteria =
+                            previousSubAdmissionCriterias.Where(s => s.ProvinceId == user.ProvinceId).FirstOrDefault();
+                        if (subPreviousSubAdmissionCriteria == null)
+                        {
+                            subPreviousSubAdmissionCriteria = previousSubAdmissionCriterias.Where(s => s.ProvinceId == null).FirstOrDefault();
+                        }
+
+                        if (subPreviousSubAdmissionCriteria == null || subCurrentSubAdmissionCriteria == null)
+                        {
+                            continue;
+                        }
+
+                        EntryMark currentEntryMark = (await _uow.EntryMarkRepository
+                            .Get(filter: e => e.Status == Consts.STATUS_ACTIVE
+                                    && e.SubAdmissionCriterionId == subCurrentSubAdmissionCriteria.Id
+                                    && e.MajorSubjectGroupId != null,
+                                includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup," +
+                                                        "SubAdmissionCriterion,FollowingDetails"))
+                            .Where(e => e.MajorSubjectGroup.SubjectGroupId == universityParam.SubjectGroupId
+                                    && e.MajorSubjectGroup.MajorId == universityParam.MajorId)
+                            .FirstOrDefault();
+
+                        EntryMark previousEntryMark = (await _uow.EntryMarkRepository
+                            .Get(filter: e => e.Status == Consts.STATUS_ACTIVE
+                                    && e.SubAdmissionCriterionId == subPreviousSubAdmissionCriteria.Id
+                                    && e.MajorSubjectGroupId != null,
+                                includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup," +
+                                                    "SubAdmissionCriterion"))
+                            .Where(e => e.MajorSubjectGroup.SubjectGroupId == universityParam.SubjectGroupId
+                                    && e.MajorSubjectGroup.MajorId == universityParam.MajorId)
+                            .FirstOrDefault();
+
+                        if (currentEntryMark == null || previousEntryMark == null || previousEntryMark.Mark == null
+                            || previousEntryMark.Mark <= 0 || previousEntryMark.Mark > totalMark)
                         {
                             continue;
                         }
@@ -1892,10 +1950,9 @@ namespace CapstoneAPI.Features.University.Service
                                                             //Sua chỉ tiêu phụ, xoa entrymark, xoa follow, update ranking
                                                             followingDetail.Status = Consts.STATUS_INACTIVE;
                                                             _uow.FollowingDetailRepository.Update(followingDetail);
-                                                            if (followingDetail.Rank != null)
-                                                            {
-                                                                followingDetail.Rank.IsUpdate = true;
-                                                            }
+
+                                                            followingDetail.Rank.IsUpdate = true;
+                                                            
                                                             if (shouldNoti)
                                                             {
                                                                 var uniName = (await _uow.UniversityRepository.GetById(MajorDetailExisted.UniversityId)).Name;

@@ -1,5 +1,7 @@
 ﻿using CapstoneAPI.Features.FCM.DataSet;
 using CapstoneAPI.Features.FCM.Service;
+using CapstoneAPI.Helpers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
@@ -15,6 +17,7 @@ namespace CapstoneAPI.Features.FCM
             _service = service;
         }
 
+        [Authorize(Roles = Roles.Staff)]
         [HttpPost("send-to-topic")]
         public async Task<ActionResult<FCMResponse>> SendToTopic([FromQuery] TopicParam param)
         {
@@ -25,6 +28,7 @@ namespace CapstoneAPI.Features.FCM
             return Ok(res);
         }
 
+        [Authorize(Roles = Roles.Staff)]
         [HttpPost("send-notification")]
         public async Task<ActionResult<FCMResponse>> SendNotification([FromQuery] NotificationParam param)
         {
