@@ -225,8 +225,13 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
                     }
                 }
 
-                suggestedSubjectGroups = suggestedSubjectGroups
-                    .OrderByDescending(o => o.TotalMark).Take(Consts.NUMBER_OF_SUGGESTED_GROUP).ToList();
+                suggestedSubjectGroups = suggestedSubjectGroups.OrderByDescending(o => o.TotalMark).ToList();
+
+                if (suggestedSubjectGroups.Count() > Consts.NUMBER_OF_SUGGESTED_GROUP)
+                {
+                    var groupMark = suggestedSubjectGroups.ToList()[Consts.NUMBER_OF_SUGGESTED_GROUP].TotalMark;
+                    suggestedSubjectGroups = suggestedSubjectGroups.Where(s => s.TotalMark >= groupMark).ToList();
+                }
 
                 foreach (SubjectGroupDataSet suggestGroup in suggestedSubjectGroups)
                 {
