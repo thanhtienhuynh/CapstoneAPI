@@ -186,6 +186,7 @@
                         response.Errors = new List<string>();
                     }
                     response.Errors.Add("Tài khoản này không tồn tại");
+                    return response;
                 }
 
                 if (param.IsActive != null)
@@ -206,6 +207,7 @@
                         response.Errors = new List<string>();
                     }
                     response.Errors.Add("Lỗi hệ thống!");
+                    return response;
                 }
                 response.Data = true;
                 response.Succeeded = true;

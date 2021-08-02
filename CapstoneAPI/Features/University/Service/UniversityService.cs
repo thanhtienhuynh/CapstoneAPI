@@ -1080,6 +1080,7 @@ namespace CapstoneAPI.Features.University.Service
                 }
 
                 Models.University university = _mapper.Map<Models.University>(createUniversityDataset);
+                university.UpdatedDate = JWTUtils.GetCurrentTimeInVN();
                 _uow.UniversityRepository.Insert(university);
                 int result = await _uow.CommitAsync();
                 if (result > 0)
@@ -1206,6 +1207,7 @@ namespace CapstoneAPI.Features.University.Service
                 updatedUni.TuitionTo = adminUniversityDataSet.TuitionTo;
                 updatedUni.Rating = adminUniversityDataSet.Rating;
                 updatedUni.Status = adminUniversityDataSet.Status;
+                updatedUni.UpdatedDate = JWTUtils.GetCurrentTimeInVN();
                 _uow.UniversityRepository.Update(updatedUni);
                 if (adminUniversityDataSet.Status == Consts.STATUS_INACTIVE)
                 {
