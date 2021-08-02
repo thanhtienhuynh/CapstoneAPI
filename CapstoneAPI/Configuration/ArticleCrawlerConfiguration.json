@@ -44,6 +44,10 @@
       "name": "article",
       "attribute": "class",
       "attributeValue": "article-topstory",
+      "imgTag": {
+        "name": "img",
+        "attribute": "src"
+      },
       "titleTag": {
         "name": "h3",
         "attribute": "class",
@@ -74,6 +78,10 @@
       "attribute": "class",
       "attributeValue": "inner-list-news-five",
       "selection": "article",
+      "imgTag": {
+        "name": "img",
+        "attribute": "src"
+      },
       "titleTag": {
         "name": "h3",
         "attribute": "class",
@@ -91,6 +99,11 @@
       "articleTag": {
         "name": "article",
         "attribute": "data-offset"
+      },
+      "imgTag": {
+        "name": "img",
+        "attribute": "src",
+        "attribute2": "data-src"
       },
       "titleTag": {
         "name": "h3",
