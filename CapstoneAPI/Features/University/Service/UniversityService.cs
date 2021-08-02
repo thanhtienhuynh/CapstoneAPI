@@ -1125,7 +1125,7 @@ namespace CapstoneAPI.Features.University.Service
                     response.Errors.Add("Các thông tin cần thiết không hợp lệ!");
                     return response;
                 }
-                Models.University existUni = await _uow.UniversityRepository.GetFirst(filter: u => u.Code.Equals(adminUniversityDataSet.Code.Trim()));
+                Models.University existUni = await _uow.UniversityRepository.GetFirst(filter: u => u.Code.Equals(adminUniversityDataSet.Code.Trim()) && u.Status == Consts.STATUS_ACTIVE);
                 if (existUni != null && existUni.Id != adminUniversityDataSet.Id)
                 {
                     response.Succeeded = false;

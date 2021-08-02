@@ -155,6 +155,8 @@ namespace CapstoneAPI.Models
             {
                 entity.ToTable("Major");
 
+                entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
                 entity.Property(e => e.Code)
                     .HasMaxLength(50)
                     .IsUnicode(false);

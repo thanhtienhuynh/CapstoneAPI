@@ -111,6 +111,7 @@ namespace CapstoneAPI.Features.Major.Service
                 }
                 Models.Major newMajor = _mapper.Map<Models.Major>(createMajorDataSet);
                 newMajor.Status = Consts.STATUS_ACTIVE;
+                newMajor.UpdatedDate = JWTUtils.GetCurrentTimeInVN();
                 _uow.MajorRepository.Insert(newMajor);
                 int result = await _uow.CommitAsync();
                 if (result <= 0)
@@ -196,6 +197,7 @@ namespace CapstoneAPI.Features.Major.Service
                 objToUpdate.HumanQuality = updateMajor.HumanQuality;
                 objToUpdate.SalaryDescription = updateMajor.SalaryDescription;
                 objToUpdate.Status = updateMajor.Status;
+                objToUpdate.UpdatedDate = JWTUtils.GetCurrentTimeInVN();
                 _uow.MajorRepository.Update(objToUpdate);
                 int result = await _uow.CommitAsync();
                 if (result <= 0)
@@ -331,7 +333,7 @@ namespace CapstoneAPI.Features.Major.Service
 
                 List<MajorSubjectWeightDataSet> majors = (await _uow.MajorRepository
                     .Get(filter: filter, first: validFilter.PageSize,
-                    offset: (validFilter.PageNumber - 1) * validFilter.PageSize, orderBy: o => o.OrderBy(m => m.Name)))
+                    offset: (validFilter.PageNumber - 1) * validFilter.PageSize, orderBy: o => o.OrderByDescending(m => m.UpdatedDate)))
                     .Select(m => _mapper.Map<MajorSubjectWeightDataSet>(m)).ToList();
 
                 var totalRecords = await _uow.MajorRepository.Count(filter: filter);
@@ -459,6 +461,7 @@ namespace CapstoneAPI.Features.Major.Service
                 }
                 Models.Major newMajor = _mapper.Map<Models.Major>(createMajor);
                 newMajor.Status = Consts.STATUS_ACTIVE;
+                newMajor.UpdatedDate = JWTUtils.GetCurrentTimeInVN();
                 _uow.MajorRepository.Insert(newMajor);
 
                 if (createMajor.SubjectGroups != null && createMajor.SubjectGroups.Count() > 0)
@@ -763,6 +766,7 @@ namespace CapstoneAPI.Features.Major.Service
                 objToUpdate.Curriculum = updateMajor.Curriculum;
                 objToUpdate.HumanQuality = updateMajor.HumanQuality;
                 objToUpdate.SalaryDescription = updateMajor.SalaryDescription;
+                objToUpdate.UpdatedDate = JWTUtils.GetCurrentTimeInVN();
                 objToUpdate.Status = updateMajor.Status;
                 _uow.MajorRepository.Update(objToUpdate);
 
