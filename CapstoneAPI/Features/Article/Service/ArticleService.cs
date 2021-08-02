@@ -349,10 +349,6 @@ namespace CapstoneAPI.Features.Article.Service
                             Models.University university = await _uow.UniversityRepository.GetById(item);
                             if (university == null)
                             {
-                                //if (response.Errors == null)
-                                //    response.Errors = new List<string>();
-                                //response.Errors.Add("Danh sách trường liên quan không hợp lệ!");
-                                //return response;
                                 continue;
                             }
                             Models.UniversityArticle universityArticle = new Models.UniversityArticle()
@@ -370,10 +366,6 @@ namespace CapstoneAPI.Features.Article.Service
                             Models.Major major = await _uow.MajorRepository.GetById(item);
                             if (major == null)
                             {
-                                //if (response.Errors == null)
-                                //    response.Errors = new List<string>();
-                                //response.Errors.Add("Danh sách trường liên quan không hợp lệ!");
-                                //return response;
                                 continue;
                             }
                             Models.MajorArticle majorArticle = new Models.MajorArticle()
@@ -995,7 +987,7 @@ namespace CapstoneAPI.Features.Article.Service
                     ShortDescription = createArticleParam.ShortDescription,
                     Censor = user.Id,
                     CrawlerDate = JWTUtils.GetCurrentTimeInVN(),
-                    Status = Consts.STATUS_ACTIVE,
+                    Status = Articles.New,
                 };
                 IFormFile postImage = createArticleParam.PostImage;
                 if (postImage != null)
@@ -1183,7 +1175,6 @@ namespace CapstoneAPI.Features.Article.Service
                     return response;
                 }
 
-
                 Models.Article article = await _uow.ArticleRepository.GetById(updateArticleParam.Id);
                 if (article == null)
                 {
@@ -1195,7 +1186,17 @@ namespace CapstoneAPI.Features.Article.Service
                     response.Errors.Add("Bài viết không tồn tại!");
                     return response;
                 }
-                if (article.Status != Articles.New && article.Status != Articles.Approved && article.Status != Articles.Considered)
+                if (article.RootUrl != null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Bạn không thể chỉnh sửa nội dung bài viết này!");
+                    return response;
+                }
+                if (article.Status != Articles.New && article.Status != Articles.Considered)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
