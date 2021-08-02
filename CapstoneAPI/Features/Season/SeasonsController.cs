@@ -23,7 +23,7 @@ namespace CapstoneAPI.Features.Season
         }
 
         [HttpGet]
-        public async Task<ActionResult<Response<IEnumerable<AdminSeasonDataSet>>>> GetSeasons()
+        public async Task<ActionResult<Response<List<AdminSeasonDataSet>>>> GetSeasons()
         {
             return Ok(await _service.GetAllSeasons());
         }
