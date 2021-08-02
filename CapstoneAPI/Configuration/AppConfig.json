@@ -7,5 +7,9 @@
     "Start": 1,
     "Type": 1
   },
+  "ExpireArticleTime": {
+    "Start": 1,
+    "Type": 1
+  },
   "TestMonths": 3
 }

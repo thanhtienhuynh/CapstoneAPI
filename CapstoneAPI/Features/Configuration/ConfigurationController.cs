@@ -39,5 +39,12 @@ namespace CapstoneAPI.Features.Configuration
         {
             return Ok(await _service.SetAppConfiguration(configParam));
         }
+
+        //[Authorize(Roles = Roles.Staff)]
+        [HttpGet("app")]
+        public async Task<ActionResult<Response<ConfigParam>>> GetAppConfig()
+        {
+            return Ok(await _service.GetAppConfiguration());
+        }
     }
 }

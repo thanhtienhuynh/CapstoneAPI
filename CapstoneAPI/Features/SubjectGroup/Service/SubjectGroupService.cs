@@ -233,6 +233,15 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
                     suggestedSubjectGroups = suggestedSubjectGroups.Where(s => s.TotalMark >= groupMark).ToList();
                 }
 
+                var groupByMarks = suggestedSubjectGroups.GroupBy(s => s.TotalMark).OrderByDescending(g => g.Key);
+                for (var i = 0; i < groupByMarks.Count(); i++)
+                {
+                    foreach (var group in groupByMarks.ToList()[i])
+                    {
+                        group.Top = i + 1;
+                    }
+                }
+
                 foreach (SubjectGroupDataSet suggestGroup in suggestedSubjectGroups)
                 {
                     suggestGroup.SubjectDataSets = (await _uow.SubjecGroupDetailRepository

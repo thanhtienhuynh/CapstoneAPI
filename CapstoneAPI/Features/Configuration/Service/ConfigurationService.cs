@@ -89,11 +89,13 @@ namespace CapstoneAPI.Features.Configuration.Service
         public async Task<Response<ConfigParam>> SetAppConfiguration(ConfigParam configuration)
         {
             Response<ConfigParam> response = new Response<ConfigParam>();
-            if ((configuration.CrawlTime.Start < 0 && configuration.CrawlTime.Start > 23)
+            if ((configuration.CrawlTime.Start < 0 || configuration.CrawlTime.Start > 23)
                 || (configuration.CrawlTime.Type != CronExporessionType.EachHours && configuration.CrawlTime.Type != CronExporessionType.SpecificHour)
-                || (configuration.UpdateRankTime.Start < 0 && configuration.UpdateRankTime.Start > 23)
+                || (configuration.UpdateRankTime.Start < 0 || configuration.UpdateRankTime.Start > 23)
                 || (configuration.UpdateRankTime.Type != CronExporessionType.EachHours && configuration.UpdateRankTime.Type != CronExporessionType.SpecificHour)
-                || (configuration.TestMonths <= 0 || configuration.TestMonths > 12)) {
+                || (configuration.TestMonths <= 0 || configuration.TestMonths > 12)
+                || (configuration.ExpireArticleTime.Start < 0 || configuration.ExpireArticleTime.Start > 23)
+                || (configuration.ExpireArticleTime.Type != CronExporessionType.EachHours && configuration.ExpireArticleTime.Type != CronExporessionType.SpecificHour)) {
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -110,11 +112,38 @@ namespace CapstoneAPI.Features.Configuration.Service
                 appConfig.SelectToken("UpdateRankTime.Type").Replace(configuration.UpdateRankTime.Type);
                 appConfig.SelectToken("CrawlTime.Start").Replace(configuration.CrawlTime.Start);
                 appConfig.SelectToken("CrawlTime.Type").Replace(configuration.CrawlTime.Type);
+                appConfig.SelectToken("ExpireArticleTime.Start").Replace(configuration.ExpireArticleTime.Start);
+                appConfig.SelectToken("ExpireArticleTime.Type").Replace(configuration.ExpireArticleTime.Type);
                 appConfig.SelectToken("TestMonths").Replace(configuration.TestMonths);
                 string updatedJsonString = appConfig.ToString();
                 await File.WriteAllTextAsync(@"Configuration\AppConfig.json", updatedJsonString);
                 response.Succeeded = true;
                 response.Data = JsonConvert.DeserializeObject<ConfigParam>(updatedJsonString);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+
+            return null;
+        }
+
+        public async Task<Response<ConfigParam>> GetAppConfiguration()
+        {
+            Response<ConfigParam> response = new Response<ConfigParam>();
+            try
+            {
+                var appConfigLines = await File.ReadAllTextAsync(@"Configuration\AppConfig.json");
+                var appConfig = Newtonsoft.Json.JsonConvert.DeserializeObject(appConfigLines) as JObject;
+                response.Succeeded = true;
+                response.Data = JsonConvert.DeserializeObject<ConfigParam>(appConfig.ToString());
                 return response;
             }
             catch (Exception ex)

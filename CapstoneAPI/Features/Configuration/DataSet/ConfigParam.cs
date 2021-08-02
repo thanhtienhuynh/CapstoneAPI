@@ -9,6 +9,7 @@ namespace CapstoneAPI.Features.Configuration.DataSet
     {
         public CrawlExpression CrawlTime { get; set; }
         public CrawlExpression UpdateRankTime { get; set; }
+        public CrawlExpression ExpireArticleTime { get; set; }
         public int TestMonths { get; set; }
     }
 
