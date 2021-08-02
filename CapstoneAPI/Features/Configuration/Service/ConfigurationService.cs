@@ -91,11 +91,14 @@ namespace CapstoneAPI.Features.Configuration.Service
             Response<ConfigParam> response = new Response<ConfigParam>();
             if ((configuration.CrawlTime.Start < 0 || configuration.CrawlTime.Start > 23)
                 || (configuration.CrawlTime.Type != CronExporessionType.EachHours && configuration.CrawlTime.Type != CronExporessionType.SpecificHour)
+                || (configuration.CrawlTime.MinStart < 0 || configuration.CrawlTime.MinStart > 59)
                 || (configuration.UpdateRankTime.Start < 0 || configuration.UpdateRankTime.Start > 23)
                 || (configuration.UpdateRankTime.Type != CronExporessionType.EachHours && configuration.UpdateRankTime.Type != CronExporessionType.SpecificHour)
+                || (configuration.UpdateRankTime.MinStart < 0 || configuration.UpdateRankTime.MinStart > 59)
                 || (configuration.TestMonths <= 0 || configuration.TestMonths > 12)
                 || (configuration.ExpireArticleTime.Start < 0 || configuration.ExpireArticleTime.Start > 23)
-                || (configuration.ExpireArticleTime.Type != CronExporessionType.EachHours && configuration.ExpireArticleTime.Type != CronExporessionType.SpecificHour)) {
+                || (configuration.ExpireArticleTime.Type != CronExporessionType.EachHours && configuration.ExpireArticleTime.Type != CronExporessionType.SpecificHour)
+                || (configuration.ExpireArticleTime.MinStart < 0 || configuration.ExpireArticleTime.MinStart > 59)) {
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {

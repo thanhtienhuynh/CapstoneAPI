@@ -16,6 +16,7 @@ namespace CapstoneAPI.Features.Configuration.DataSet
     public class CrawlExpression
     {
         public int Start { get; set; }
+        public int MinStart { get; set; }
         public int Type { get; set; }
         //1: Bn giờ 1 lần
         //2: Bắt đầu lúc

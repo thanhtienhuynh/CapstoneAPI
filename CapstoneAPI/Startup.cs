@@ -116,11 +116,13 @@ namespace CapstoneAPI
                 jobType: typeof(RankingCronJob),
                 cronExpression: GetCronJobExpression(
                     int.Parse(appConfig.SelectToken("UpdateRankTime.Type").ToString()),
+                    int.Parse(appConfig.SelectToken("UpdateRankTime.MinStart").ToString()),
                     int.Parse(appConfig.SelectToken("UpdateRankTime.Start").ToString()))));
             services.AddSingleton(new JobSchedule(
                 jobType: typeof(ArticleCrawlerCronJob),
                 cronExpression: GetCronJobExpression(
                     int.Parse(appConfig.SelectToken("CrawlTime.Type").ToString()),
+                    int.Parse(appConfig.SelectToken("CrawlTime.MinStart").ToString()),
                     int.Parse(appConfig.SelectToken("CrawlTime.Start").ToString()))));
 
             services.AddHostedService<QuartzHostedService>();
@@ -162,14 +164,14 @@ namespace CapstoneAPI
             services.AddTransient<IEmailService, EmailService>();
         }
 
-        private string GetCronJobExpression(int type, int startTime)
+        private string GetCronJobExpression(int type, int minTime ,int startTime)
         {
             switch(type)
             {
                 case CronExporessionType.EachHours:
-                    return string.Format("0 0 0/{0} 1/1 * ? *", startTime.ToString());
+                    return string.Format("0 {0} 0/{1} 1/1 * ? *", minTime.ToString(), startTime.ToString());
                 case CronExporessionType.SpecificHour:
-                    return string.Format("0 0 {0} 1/1 * ? *", startTime.ToString());
+                    return string.Format("0 {0} {1} 1/1 * ? *", minTime.ToString(), startTime.ToString());
             }
             return "0 0 12 1/1 * ? *";
         }
