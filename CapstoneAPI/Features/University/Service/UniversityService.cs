@@ -1112,6 +1112,7 @@ namespace CapstoneAPI.Features.University.Service
         public async Task<Response<AdminUniversityDataSet>> UpdateUniversity(AdminUniversityDataSet adminUniversityDataSet)
         {
             Response<AdminUniversityDataSet> response = new Response<AdminUniversityDataSet>();
+            using var tran = _uow.GetTransaction();
             try
             {
                 if (adminUniversityDataSet.Name.Equals("") || adminUniversityDataSet.Code.Equals("") || (adminUniversityDataSet.Status != Consts.STATUS_ACTIVE && adminUniversityDataSet.Status != Consts.STATUS_INACTIVE))
@@ -1205,8 +1206,52 @@ namespace CapstoneAPI.Features.University.Service
                 updatedUni.TuitionTo = adminUniversityDataSet.TuitionTo;
                 updatedUni.Rating = adminUniversityDataSet.Rating;
                 updatedUni.Status = adminUniversityDataSet.Status;
-
                 _uow.UniversityRepository.Update(updatedUni);
+                if (adminUniversityDataSet.Status == Consts.STATUS_INACTIVE)
+                {
+                    var majorDetails = await _uow.MajorDetailRepository.Get(
+                        filter: u => u.UniversityId == updatedUni.Id && u.Status == Consts.STATUS_ACTIVE);
+                    if (majorDetails.Any())
+                    {
+                        foreach (var majorDetail in majorDetails)
+                        {
+                            majorDetail.Status = Consts.STATUS_INACTIVE;
+                            var admission = await _uow.AdmissionCriterionRepository.GetById(majorDetail.Id);
+                            if (admission == null)
+                            {
+                                continue;
+                            }
+                            var subAdmissions = await _uow.SubAdmissionCriterionRepository.Get(
+                                filter: s => s.Id == admission.MajorDetailId && s.Status == Consts.STATUS_ACTIVE);
+                            if (!subAdmissions.Any())
+                                continue;
+                            foreach (var subAdmission in subAdmissions)
+                            {
+                                subAdmission.Status = Consts.STATUS_INACTIVE;
+                                var entryMarks = await _uow.EntryMarkRepository.Get(
+                                    filter: e => e.SubAdmissionCriterionId == subAdmission.Id && e.Status == Consts.STATUS_ACTIVE);
+                                if (!entryMarks.Any())
+                                    continue;
+                                foreach (var entryMark in entryMarks)
+                                {
+                                    entryMark.Status = Consts.STATUS_INACTIVE;
+                                    var followingDetails = await _uow.FollowingDetailRepository.Get(
+                                        filter: f => f.EntryMarkId == entryMark.Id && f.Status == Consts.STATUS_ACTIVE);
+                                    if (!followingDetails.Any())
+                                        continue;
+                                    foreach (var followingDetail in followingDetails)
+                                    {
+                                        followingDetail.Status = Consts.STATUS_INACTIVE;
+                                    }
+                                    _uow.FollowingDetailRepository.UpdateRange(followingDetails);
+                                }
+                                _uow.EntryMarkRepository.UpdateRange(entryMarks);
+                            }
+                            _uow.SubAdmissionCriterionRepository.UpdateRange(subAdmissions);
+                        }
+                        _uow.MajorDetailRepository.UpdateRange(majorDetails);
+                    }
+                }
                 int result = await _uow.CommitAsync();
                 if (result > 0)
                 {
@@ -1222,9 +1267,11 @@ namespace CapstoneAPI.Features.University.Service
                     }
                     response.Errors.Add("Lỗi hệ thống!");
                 }
+                tran.Commit();
             } catch (Exception ex)
             {
                 _log.Error(ex.ToString());
+                tran.Rollback();
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
