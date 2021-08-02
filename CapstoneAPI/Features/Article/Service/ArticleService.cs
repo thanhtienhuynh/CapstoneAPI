@@ -111,7 +111,7 @@ namespace CapstoneAPI.Features.Article.Service
                 && (articleFilter.Status < 0 || a.Status == articleFilter.Status);
 
                 Func<IQueryable<Models.Article>, IOrderedQueryable<Models.Article>> order = null;
-                switch (articleFilter.Order)
+                switch (articleFilter.Order ?? 0)
                 {
                     case 0:
                         order = order => order.OrderByDescending(a => a.CrawlerDate);
@@ -782,7 +782,7 @@ namespace CapstoneAPI.Features.Article.Service
                 && (articleFilter.Status < 0 || a.Status == articleFilter.Status);
 
                 Func<IQueryable<Models.Article>, IOrderedQueryable<Models.Article>> order = null;
-                switch (articleFilter.Order)
+                switch (articleFilter.Order ?? 0)
                 {
                     case 0:
                         order = order => order.OrderByDescending(a => a.CrawlerDate);
@@ -994,6 +994,7 @@ namespace CapstoneAPI.Features.Article.Service
                     Content = await FirebaseHelper.UploadBase64ImgToFirebase(createArticleParam.Content),
                     ShortDescription = createArticleParam.ShortDescription,
                     Censor = user.Id,
+                    CrawlerDate = JWTUtils.GetCurrentTimeInVN(),
                     Status = Consts.STATUS_ACTIVE,
                 };
                 IFormFile postImage = createArticleParam.PostImage;

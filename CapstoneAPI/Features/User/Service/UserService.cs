@@ -174,7 +174,17 @@
         public async Task<Response<bool>> UpdateUser(UpdateUserParam param)
         {
             Response<bool> response = new Response<bool>();
-
+            if (param.Role != null &&  param.Role != int.Parse(Roles.Admin)
+                && param.Role != int.Parse(Roles.Staff) && param.Role != int.Parse(Roles.Student))
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Cập nhật vai trò không hợp lệ!");
+                return response;
+            }
             try
             {
                 Models.User user = await _uow.UserRepository.GetById(param.Id);
@@ -196,7 +206,7 @@
 
                 if (param.Role != null)
                 {
-                    user.IsActive = (bool)param.IsActive;
+                    user.RoleId = (int) param.Role;
                 }
 
                 if (await _uow.CommitAsync() <= 0)
