@@ -119,7 +119,6 @@ namespace CapstoneAPI.Features.Configuration.Service
                 await File.WriteAllTextAsync(@"Configuration\AppConfig.json", updatedJsonString);
                 response.Succeeded = true;
                 response.Data = JsonConvert.DeserializeObject<ConfigParam>(updatedJsonString);
-                return response;
             }
             catch (Exception ex)
             {
@@ -132,7 +131,7 @@ namespace CapstoneAPI.Features.Configuration.Service
                 response.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
 
-            return null;
+            return response;
         }
 
         public async Task<Response<ConfigParam>> GetAppConfiguration()
@@ -144,7 +143,6 @@ namespace CapstoneAPI.Features.Configuration.Service
                 var appConfig = Newtonsoft.Json.JsonConvert.DeserializeObject(appConfigLines) as JObject;
                 response.Succeeded = true;
                 response.Data = JsonConvert.DeserializeObject<ConfigParam>(appConfig.ToString());
-                return response;
             }
             catch (Exception ex)
             {
@@ -157,7 +155,7 @@ namespace CapstoneAPI.Features.Configuration.Service
                 response.Errors.Add("Lỗi hệ thống: " + ex.Message);
             }
 
-            return null;
+            return response;
         }
     }
 }
