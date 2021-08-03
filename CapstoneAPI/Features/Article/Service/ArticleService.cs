@@ -31,7 +31,6 @@ namespace CapstoneAPI.Features.Article.Service
         private IMapper _mapper;
         private readonly IUnitOfWork _uow;
         private readonly IFCMService _firebaseService;
-        private readonly JObject configuration;
         private readonly ILogger _log = Log.ForContext<ArticleService>();
 
         public ArticleService(IUnitOfWork uow, IMapper mapper, IFCMService firebaseService)
@@ -39,9 +38,6 @@ namespace CapstoneAPI.Features.Article.Service
             _uow = uow;
             _mapper = mapper;
             _firebaseService = firebaseService;
-            string path = Path.Combine(Path
-                .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
-            configuration = JObject.Parse(File.ReadAllText(path));
         }
 
         public async Task<PagedResponse<List<ArticleCollapseDataSet>>> GetListArticleForGuest(PaginationFilter validFilter, string title)
@@ -50,12 +46,11 @@ namespace CapstoneAPI.Features.Article.Service
 
             try
             {
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
 
-                DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
+                DateTime currentDate = JWTUtils.GetCurrentTimeInVN();
 
                 Expression<Func<Models.Article, bool>> filter = null;
-                filter = a => a.Status == 3 && a.PublicFromDate != null && a.PublicToDate != null
+                filter = a => a.Status == Articles.Published && a.PublicFromDate != null && a.PublicToDate != null
                     && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0
                     && a.PublicFromDate <= currentDate
                     && (string.IsNullOrEmpty(title) || a.Title.Contains(title));
@@ -116,7 +111,7 @@ namespace CapstoneAPI.Features.Article.Service
                 && (articleFilter.Status < 0 || a.Status == articleFilter.Status);
 
                 Func<IQueryable<Models.Article>, IOrderedQueryable<Models.Article>> order = null;
-                switch (articleFilter.Order)
+                switch (articleFilter.Order ?? 0)
                 {
                     case 0:
                         order = order => order.OrderByDescending(a => a.CrawlerDate);
@@ -181,11 +176,11 @@ namespace CapstoneAPI.Features.Article.Service
             Response<ArticleDetailDataSet> result = new Response<ArticleDetailDataSet>();
             try
             {
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
-                DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
+                DateTime currentDate = JWTUtils.GetCurrentTimeInVN();
 
-                Models.Article article = await _uow.ArticleRepository.GetFirst(filter: a => a.Id == id && a.Status == 3
-                && a.PublicFromDate != null && a.PublicToDate != null && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0);
+                Models.Article article = await _uow.ArticleRepository.GetFirst(filter: a => a.Id == id &&
+                    a.Status == Articles.Published && a.PublicFromDate != null && a.PublicToDate != null
+                    && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0);
                 if (article == null)
                 {
                     if (result.Errors == null)
@@ -324,15 +319,15 @@ namespace CapstoneAPI.Features.Article.Service
                          */
                         if (articleToUpdate.Status != approvingArticleDataSet.Status)
                         {
-                            if (!((articleToUpdate.Status == 0 && approvingArticleDataSet.Status == 1)
-                                || (articleToUpdate.Status == 2 && approvingArticleDataSet.Status == 0)
-                                || (articleToUpdate.Status == 0 && approvingArticleDataSet.Status == 2)
-                                || (articleToUpdate.Status == 1 && approvingArticleDataSet.Status == 2)
-                                || (articleToUpdate.Status == 1 && approvingArticleDataSet.Status == 3)
-                                || (articleToUpdate.Status == 3 && approvingArticleDataSet.Status == 5)
-                                || (articleToUpdate.Status == 5 && approvingArticleDataSet.Status == 1)
-                                || (articleToUpdate.Status == 4 && approvingArticleDataSet.Status == 3)
-                                || (articleToUpdate.Status == 3 && approvingArticleDataSet.Status == 4)))
+                            if (!((articleToUpdate.Status == Articles.New && approvingArticleDataSet.Status == Articles.Approved)
+                                || (articleToUpdate.Status == Articles.Rejected && approvingArticleDataSet.Status == Articles.New)
+                                || (articleToUpdate.Status == Articles.New && approvingArticleDataSet.Status == Articles.Rejected)
+                                || (articleToUpdate.Status == Articles.Approved && approvingArticleDataSet.Status == Articles.Rejected)
+                                || (articleToUpdate.Status == Articles.Approved && approvingArticleDataSet.Status == Articles.Published)
+                                || (articleToUpdate.Status == Articles.Published && approvingArticleDataSet.Status == Articles.Considered)
+                                || (articleToUpdate.Status == Articles.Considered && approvingArticleDataSet.Status == Articles.Approved)
+                                || (articleToUpdate.Status == Articles.Expired && approvingArticleDataSet.Status == Articles.Published)
+                                || (articleToUpdate.Status == Articles.Published && approvingArticleDataSet.Status == Articles.Expired)))
                             {
                                 if (response.Errors == null)
                                     response.Errors = new List<string>();
@@ -354,10 +349,6 @@ namespace CapstoneAPI.Features.Article.Service
                             Models.University university = await _uow.UniversityRepository.GetById(item);
                             if (university == null)
                             {
-                                //if (response.Errors == null)
-                                //    response.Errors = new List<string>();
-                                //response.Errors.Add("Danh sách trường liên quan không hợp lệ!");
-                                //return response;
                                 continue;
                             }
                             Models.UniversityArticle universityArticle = new Models.UniversityArticle()
@@ -375,10 +366,6 @@ namespace CapstoneAPI.Features.Article.Service
                             Models.Major major = await _uow.MajorRepository.GetById(item);
                             if (major == null)
                             {
-                                //if (response.Errors == null)
-                                //    response.Errors = new List<string>();
-                                //response.Errors.Add("Danh sách trường liên quan không hợp lệ!");
-                                //return response;
                                 continue;
                             }
                             Models.MajorArticle majorArticle = new Models.MajorArticle()
@@ -452,11 +439,11 @@ namespace CapstoneAPI.Features.Article.Service
                                 {
                                     Models.Notification notification = new Models.Notification()
                                     {
-                                        DateRecord = DateTime.UtcNow,
+                                        DateRecord = JWTUtils.GetCurrentTimeInVN(),
                                         Data = articleToUpdate.Id.ToString(),
                                         Message = articleToUpdate.Title,
                                         IsRead = false,
-                                        Type = 1,
+                                        Type = NotificationTypes.NewArticle,
                                         UserId = userEl.Id
                                     };
                                     notifications.Add(notification);
@@ -541,11 +528,10 @@ namespace CapstoneAPI.Features.Article.Service
 
             try
             {
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
-                DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
+                DateTime currentDate = JWTUtils.GetCurrentTimeInVN();
 
                 IEnumerable<Models.Article> articles = await _uow.ArticleRepository
-                    .Get(filter: a => a.Status == 3
+                    .Get(filter: a => a.Status == Articles.Published
                      && (a.PublicFromDate != null && a.PublicFromDate <= currentDate)
                      && (a.PublicToDate != null && a.PublicToDate >= currentDate)
                      && (a.ImportantLevel != null && a.ImportantLevel > 0),
@@ -585,11 +571,10 @@ namespace CapstoneAPI.Features.Article.Service
 
             try
             {
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
-                DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
+                DateTime currentDate = JWTUtils.GetCurrentTimeInVN();
 
                 topArticles = (await _uow.ArticleRepository
-                .Get(filter: a => a.Status == 3
+                .Get(filter: a => a.Status == Articles.Published
                     && (a.PublicFromDate != null && a.PublicFromDate <= currentDate)
                     && (a.PublicToDate != null && a.PublicToDate >= currentDate)
                     && (a.ImportantLevel != null && a.ImportantLevel > 0),
@@ -603,7 +588,7 @@ namespace CapstoneAPI.Features.Article.Service
                 var date = currentDate.Date;
 
                 todayArticles = (await _uow.ArticleRepository
-                .Get(filter: a => a.Status == 3
+                .Get(filter: a => a.Status == Articles.Published
                     && (a.PublicFromDate != null && a.PublicFromDate >= date && a.PublicFromDate < date.AddDays(1))
                     && (a.PublicToDate != null && a.PublicToDate >= currentDate),
                 orderBy: o => o.OrderByDescending(a => a.PublicFromDate)))
@@ -614,7 +599,7 @@ namespace CapstoneAPI.Features.Article.Service
                 }
 
                 oldArticles = (await _uow.ArticleRepository
-                .Get(filter: a => a.Status == 3
+                .Get(filter: a => a.Status == Articles.Published
                     && (a.PublicFromDate != null && a.PublicFromDate < date)
                     && (a.PublicToDate != null && a.PublicToDate >= currentDate),
                 orderBy: o => o.OrderByDescending(a => a.PublicFromDate)))
@@ -628,17 +613,17 @@ namespace CapstoneAPI.Features.Article.Service
                 {
                     new HomeArticle()
                     {
-                        Type = 1,
+                        Type = HomeArticleTypes.Hot,
                         Articles = topArticles
                     },
                     new HomeArticle()
                     {
-                        Type = 2,
+                        Type = HomeArticleTypes.Today,
                         Articles = todayArticles
                     },
                     new HomeArticle()
                     {
-                        Type = 3,
+                        Type = HomeArticleTypes.Past,
                         Articles = oldArticles
                     }
                 };
@@ -664,10 +649,9 @@ namespace CapstoneAPI.Features.Article.Service
             Response<List<AdminArticleCollapseDataSet>> response = new Response<List<AdminArticleCollapseDataSet>>();
             try
             {
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
-                DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
+                DateTime currentDate = JWTUtils.GetCurrentTimeInVN();
                 IEnumerable<Models.Article> articles = await _uow.ArticleRepository
-                   .Get(filter: a => a.Status == 3
+                   .Get(filter: a => a.Status == Articles.Published
                     && (a.PublicFromDate != null && a.PublicFromDate <= currentDate)
                     && (a.PublicToDate != null && a.PublicToDate >= currentDate));
 
@@ -745,7 +729,7 @@ namespace CapstoneAPI.Features.Article.Service
             try
             {
                 IEnumerable<Models.Article> articles = await _uow.ArticleRepository
-                .Get(filter: a => a.Status == 1,
+                .Get(filter: a => a.Status == Consts.STATUS_ACTIVE,
                     orderBy: o => o.OrderByDescending(a => a.PostedDate));
 
                 if (articles == null)
@@ -790,7 +774,7 @@ namespace CapstoneAPI.Features.Article.Service
                 && (articleFilter.Status < 0 || a.Status == articleFilter.Status);
 
                 Func<IQueryable<Models.Article>, IOrderedQueryable<Models.Article>> order = null;
-                switch (articleFilter.Order)
+                switch (articleFilter.Order ?? 0)
                 {
                     case 0:
                         order = order => order.OrderByDescending(a => a.CrawlerDate);
@@ -879,9 +863,7 @@ namespace CapstoneAPI.Features.Article.Service
                 }
 
                 //GET CURRENT TIME
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
-                DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
-
+                DateTime currentDate = JWTUtils.GetCurrentTimeInVN();
 
                 //GET LIST ARTICLE
                 Dictionary<int, Models.Article> articlesByUser = new Dictionary<int, Models.Article>();
@@ -897,7 +879,7 @@ namespace CapstoneAPI.Features.Article.Service
 
                         IEnumerable<Models.Article> articlesByMajor = (await _uow.MajorArticleRepository.
                             Get(filter: m => m.MajorId == majorId, includeProperties: "Article")).Select(s => s.Article).
-                            Where(a => a.Status == 3 && a.PublicFromDate != null && a.PublicToDate != null
+                            Where(a => a.Status == Articles.Published && a.PublicFromDate != null && a.PublicToDate != null
                     && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0);
 
 
@@ -911,7 +893,7 @@ namespace CapstoneAPI.Features.Article.Service
                         IEnumerable<Models.Article> articlesByUniversity = (await _uow.UniversityArticleRepository.
                             Get(filter: m => m.UniversityId == universityId, includeProperties: "Article"))
                             .Select(s => s.Article).
-                            Where(a => a.Status == 3 && a.PublicFromDate != null && a.PublicToDate != null
+                            Where(a => a.Status == Articles.Published && a.PublicFromDate != null && a.PublicToDate != null
                     && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0);
 
 
@@ -1004,7 +986,8 @@ namespace CapstoneAPI.Features.Article.Service
                     Content = await FirebaseHelper.UploadBase64ImgToFirebase(createArticleParam.Content),
                     ShortDescription = createArticleParam.ShortDescription,
                     Censor = user.Id,
-                    Status = Consts.STATUS_ACTIVE,
+                    CrawlerDate = JWTUtils.GetCurrentTimeInVN(),
+                    Status = Articles.New,
                 };
                 IFormFile postImage = createArticleParam.PostImage;
                 if (postImage != null)
@@ -1192,7 +1175,6 @@ namespace CapstoneAPI.Features.Article.Service
                     return response;
                 }
 
-
                 Models.Article article = await _uow.ArticleRepository.GetById(updateArticleParam.Id);
                 if (article == null)
                 {
@@ -1204,7 +1186,17 @@ namespace CapstoneAPI.Features.Article.Service
                     response.Errors.Add("Bài viết không tồn tại!");
                     return response;
                 }
-                if (article.Status != 0 && article.Status != 1 && article.Status != 5)
+                if (article.RootUrl != null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Bạn không thể chỉnh sửa nội dung bài viết này!");
+                    return response;
+                }
+                if (article.Status != Articles.New && article.Status != Articles.Considered)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -1370,12 +1362,7 @@ namespace CapstoneAPI.Features.Article.Service
             Response<bool> response = new Response<bool>();
             try
             {
-                string path = Path.Combine(Path
-                    .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
-                JObject configuration = JObject.Parse(File.ReadAllText(path));
-
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
-                DateTime currentDate = DateTime.UtcNow.AddHours(double.Parse(currentTimeZone));
+                DateTime currentDate = JWTUtils.GetCurrentTimeInVN();
 
                 IEnumerable<Models.Article> articles = await _uow.ArticleRepository.Get(filter: a => a.Status == Consts.STATUS_PUBLISHED &&
                 a.PublicToDate != null && DateTime.Compare(currentDate, (DateTime)a.PublicToDate) > 0);
@@ -1383,7 +1370,7 @@ namespace CapstoneAPI.Features.Article.Service
                 {
                     foreach (var article in articles)
                     {
-                        article.Status = 4;
+                        article.Status = Articles.Expired;
                     }
                     _uow.ArticleRepository.UpdateRange(articles);
                     if ((await _uow.CommitAsync()) <= 0)

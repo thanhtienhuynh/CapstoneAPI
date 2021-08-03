@@ -84,7 +84,7 @@
                         Fullname = decodedToken.Claims["name"].ToString(),
                         AvatarUrl = decodedToken.Claims["picture"].ToString(),
                         IsActive = true,
-                        RoleId = 2
+                        RoleId = int.Parse(Roles.Student)
                     };
                     _uow.UserRepository.Insert(user);
 
@@ -112,7 +112,7 @@
                 token = new JwtSecurityToken(AppSettings.Settings.Issuer,
                                                     AppSettings.Settings.Audience,
                                                     claims,
-                                                    expires: DateTime.UtcNow.AddSeconds(Consts.TOKEN_EXPIRED_TIME),
+                                                    expires: JWTUtils.GetCurrentTimeInVN().AddSeconds(Consts.TOKEN_EXPIRED_TIME),
                                                     signingCredentials: creds);
                 UserDataSet userResponse = _mapper.Map<UserDataSet>(user);
                 LoginResponse loginResponse = new LoginResponse()
@@ -174,7 +174,17 @@
         public async Task<Response<bool>> UpdateUser(UpdateUserParam param)
         {
             Response<bool> response = new Response<bool>();
-
+            if (param.Role != null &&  param.Role != int.Parse(Roles.Admin)
+                && param.Role != int.Parse(Roles.Staff) && param.Role != int.Parse(Roles.Student))
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Cập nhật vai trò không hợp lệ!");
+                return response;
+            }
             try
             {
                 Models.User user = await _uow.UserRepository.GetById(param.Id);
@@ -186,6 +196,7 @@
                         response.Errors = new List<string>();
                     }
                     response.Errors.Add("Tài khoản này không tồn tại");
+                    return response;
                 }
 
                 if (param.IsActive != null)
@@ -195,7 +206,7 @@
 
                 if (param.Role != null)
                 {
-                    user.IsActive = (bool)param.IsActive;
+                    user.RoleId = (int) param.Role;
                 }
 
                 if (await _uow.CommitAsync() <= 0)
@@ -206,6 +217,7 @@
                         response.Errors = new List<string>();
                     }
                     response.Errors.Add("Lỗi hệ thống!");
+                    return response;
                 }
                 response.Data = true;
                 response.Succeeded = true;

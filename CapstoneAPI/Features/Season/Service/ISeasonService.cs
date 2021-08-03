@@ -10,7 +10,7 @@ namespace CapstoneAPI.Features.Season.Service
 {
     public interface ISeasonService
     {
-        Task<Response<IEnumerable<AdminSeasonDataSet>>> GetAllSeasons();
+        Task<Response<List<AdminSeasonDataSet>>> GetAllSeasons();
         Task<Response<AdminSeasonDataSet>> CreateSeason(CreateSeasonParam createSeasonParam);
         Task<Response<bool>> UpdateSeason(UpdateSeasonParam updateSeasonParam);
     }

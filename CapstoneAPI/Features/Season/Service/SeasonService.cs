@@ -24,15 +24,22 @@ namespace CapstoneAPI.Features.Season.Service
             _mapper = mapper;
         }
 
-        public async Task<Response<IEnumerable<AdminSeasonDataSet>>> GetAllSeasons()
+        public async Task<Response<List<AdminSeasonDataSet>>> GetAllSeasons()
         {
-            Response<IEnumerable<AdminSeasonDataSet>> response = new Response<IEnumerable<AdminSeasonDataSet>>();
+            Response<List<AdminSeasonDataSet>> response = new Response<List<AdminSeasonDataSet>>();
             try
             {
-                IEnumerable<AdminSeasonDataSet> seasons = (await _uow.SeasonRepository.Get(filter: s => s.Status == Consts.STATUS_ACTIVE,
-                                                            orderBy: s => s.OrderByDescending(o => o.FromDate)))
-                                                            .Select(s => _mapper.Map<AdminSeasonDataSet>(s));
-                response.Data = seasons;
+                List<AdminSeasonDataSet> seasons = (await _uow.SeasonRepository.Get(filter: s => s.Status == Consts.STATUS_ACTIVE,
+                                                            orderBy: s => s.OrderBy(o => o.FromDate)))
+                                                            .Select(s => _mapper.Map<AdminSeasonDataSet>(s)).ToList();
+                for (int i = 0; i < seasons.Count(); i++)
+                {
+                    if (i < seasons.Count - 1)
+                    {
+                        seasons[i].ToDate = seasons[i + 1].FromDate.AddDays(-1);
+                    }
+                }
+                response.Data = seasons.OrderByDescending(s => s.FromDate).ToList();
                 response.Succeeded = true;
             }
             catch (Exception ex)
@@ -123,7 +130,7 @@ namespace CapstoneAPI.Features.Season.Service
                                 TrainingProgramId = oldMajorDetail.TrainingProgramId,
                                 SeasonId = season.Id,
                                 Status = Consts.STATUS_ACTIVE,
-                                UpdatedDate = DateTime.UtcNow,
+                                UpdatedDate = JWTUtils.GetCurrentTimeInVN(),
                             };
                             _uow.MajorDetailRepository.Insert(newMajorDetail);
                             if ((await _uow.CommitAsync()) <= 0)

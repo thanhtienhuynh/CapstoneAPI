@@ -53,7 +53,7 @@ namespace CapstoneAPI.Features.Transcript.Repository
         public async Task<double> GetLiteratureTestMark(int userId)
         {
             IEnumerable<Models.Transcript> transcripts = await Get(filter: t => t.Status == Consts.STATUS_ACTIVE
-                                    && t.SubjectId == 10 && t.UserId == userId, includeProperties: "TranscriptType");
+                                    && t.SubjectId == Subjects.Literature && t.UserId == userId, includeProperties: "TranscriptType");
             if (transcripts.Any())
             {
                 Models.Transcript transcript = transcripts.OrderByDescending(t => t.TranscriptType.Priority).FirstOrDefault();

@@ -11,6 +11,7 @@ namespace CapstoneAPI.Features.SubjectGroup.DataSet
         public int Id { get; set; }
         public string Name { get; set; }
         public double TotalMark { get; set; }
+        public int Top { get; set; }
         public List<SpecialSubjectGroupDataSet> SpecialSubjectGroupDataSets { get; set; }
         public List<SubjectDataSet> SubjectDataSets { get; set; }
         public List<MajorDataSet> SuggestedMajors { get; set; }

@@ -1,0 +1,18 @@
+{
+  "UpdateRankTime": {
+    "Start": 1,
+    "MinStart": 0,
+    "Type": 1
+  },
+  "CrawlTime": {
+    "Start": 1,
+    "MinStart": 0,
+    "Type": 1
+  },
+  "ExpireArticleTime": {
+    "Start": 1,
+    "MinStart": 0,
+    "Type": 1
+  },
+  "TestMonths": 3
+}

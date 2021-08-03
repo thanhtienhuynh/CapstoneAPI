@@ -137,11 +137,9 @@ namespace CapstoneAPI.Services.Crawler
                         configuration.SelectToken("GDTD.articleDetails.detailTag.attribute").ToString(), "").
                     Contains(configuration.SelectToken("GDTD.articleDetails.detailTag.attibuteValue").ToString())).First();
 
-                double currentTimeZone = 7;
-
                 article.HeaderConfig = headerConfig.InnerHtml.Trim();
                 article.Status = 0;
-                article.CrawlerDate = DateTime.UtcNow.AddHours(currentTimeZone);
+                article.CrawlerDate = JWTUtils.GetCurrentTimeInVN();
                 article.Content = detail.InnerHtml.Trim();
             }
 
@@ -167,6 +165,14 @@ namespace CapstoneAPI.Services.Crawler
                     .Where(node => node.GetAttributeValue(configuration
                     .SelectToken("VNExpress.topArticleTag.attribute").ToString(), string.Empty)
                         .Contains(configuration.SelectToken("VNExpress.topArticleTag.attributeValue").ToString()))?.First();
+                var topImgTag = articleTop.Descendants(
+                    configuration.SelectToken("VNExpress.topArticleTag.imgTag.name").ToString());
+                string topImgUrl = string.Empty;
+                if (topImgTag.Any())
+                {
+                    topImgUrl = topImgTag?.First().GetAttributeValue(
+                        configuration.SelectToken("VNExpress.topArticleTag.imgTag.attribute").ToString(), "");
+                }
                 string articleTopLink = articleTop.Descendants(
                     configuration.SelectToken("VNExpress.topArticleTag.titleTag.name").ToString())
                         .Where(node => node.GetAttributeValue(
@@ -184,6 +190,7 @@ namespace CapstoneAPI.Services.Crawler
                     {
                         RootUrl = articleTopLink?.Trim(),
                         PublishedPage = pageLink?.Trim(),
+                        PostImageUrl = topImgUrl,
                         ImportantLevel = 0
                     });
                 }
@@ -227,6 +234,15 @@ namespace CapstoneAPI.Services.Crawler
 
                 foreach (var newCommon in newsCommons)
                 {
+                    var imgTag = articleTop.Descendants(
+                    configuration.SelectToken("VNExpress.commonTag.imgTag.name").ToString());
+                    string imgUrl = string.Empty;
+                    if (imgTag.Any())
+                    {
+                        imgUrl = imgTag?.First().GetAttributeValue(
+                            configuration.SelectToken("VNExpress.commonTag.imgTag.attribute").ToString(), "");
+                    }
+
                     bool isNotAdNews = newCommon.Descendants(
                         configuration.SelectToken("VNExpress.commonTag.titleTag.name").ToString())
                         .Where(node => node.GetAttributeValue(
@@ -246,12 +262,19 @@ namespace CapstoneAPI.Services.Crawler
                         bool isExist = listArticleDB.Where(article => article.RootUrl.Equals(link)).Any();
                         if (!isExist && !string.IsNullOrEmpty(link))
                         {
-                            articles.Add(new Article()
+                            Article article = new Article()
                             {
                                 RootUrl = link?.Trim(),
                                 PublishedPage = pageLink?.Trim(),
                                 ImportantLevel = 0
-                            });
+                            };
+
+                            if (!string.IsNullOrEmpty(imgUrl))
+                            {
+                                article.PostImageUrl = imgUrl;
+                            }
+
+                            articles.Add(article);
                         }
                     }
                 }
@@ -272,6 +295,20 @@ namespace CapstoneAPI.Services.Crawler
 
                     foreach (var news in newsDetails)
                     {
+                        var imgTag = news.Descendants(
+                                configuration.SelectToken("VNExpress.normalTag.imgTag.name").ToString());
+                        string imgUrl = string.Empty;
+                        if (imgTag.Any())
+                        {
+                            imgUrl = imgTag?.First().GetAttributeValue(
+                                configuration.SelectToken("VNExpress.normalTag.imgTag.attribute").ToString(), "");
+                            if (imgUrl.Contains("data:image"))
+                            {
+                                imgUrl = imgTag?.First().GetAttributeValue(
+                                configuration.SelectToken("VNExpress.normalTag.imgTag.attribute2").ToString(), "");
+                            }
+                        }
+
                         var titleTag = news.Descendants(configuration.SelectToken("VNExpress.normalTag.titleTag.name").ToString())
                             .Where(node => node.GetAttributeValue(
                                 configuration.SelectToken("VNExpress.normalTag.titleTag.attribute").ToString(), string.Empty)
@@ -294,6 +331,11 @@ namespace CapstoneAPI.Services.Crawler
                                 PublishedPage = pageLink?.Trim(),
                                 ImportantLevel = 0
                             };
+
+                            if (!string.IsNullOrEmpty(imgUrl))
+                            {
+                                article.PostImageUrl = imgUrl;
+                            }
                             articles.Add(article);
                         }
                     }
@@ -393,18 +435,14 @@ namespace CapstoneAPI.Services.Crawler
                         related.First().ParentNode.RemoveChild(related.First());
                     }
 
-                    if (imgs != null && imgs.Count() > 0)
-                    {
-                        article.PostImageUrl = imgs.First().GetAttributeValue(
-                            configuration.SelectToken("VNExpress.postImgUrlTag.attribute").ToString(), "");
-                    }
                     article.HeaderConfig = headerConfig;
                     article.Status = 0;
-                    article.CrawlerDate = DateTime.UtcNow.AddHours(7);
+                    article.CrawlerDate = JWTUtils.GetCurrentTimeInVN();
                     article.Content = detail.InnerHtml.Trim();
                     article.PostedDate = postedDate;
                     article.Title = title;
                     article.ShortDescription = description;
+                    _uow.ArticleRepository.Insert(article);
                 }
                 catch (Exception ex)
                 {
@@ -413,7 +451,6 @@ namespace CapstoneAPI.Services.Crawler
                 }
             }
 
-            _uow.ArticleRepository.InsertRange(articles);
             int result = await _uow.CommitAsync();
 
             return result;

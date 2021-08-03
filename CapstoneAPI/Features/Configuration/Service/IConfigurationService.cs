@@ -1,5 +1,7 @@
-﻿using CapstoneAPI.Wrappers;
+﻿using CapstoneAPI.Features.Configuration.DataSet;
+using CapstoneAPI.Wrappers;
 using System;
+using System.Threading.Tasks;
 
 namespace CapstoneAPI.Features.Configuration.Service
 {
@@ -7,5 +9,7 @@ namespace CapstoneAPI.Features.Configuration.Service
     {
         Response<object> GetPaginationConfiguration();
         Response<object> SetPaginationConfiguration(int? firstPage, int? highestQuantity);
+        Task<Response<ConfigParam>> SetAppConfiguration(ConfigParam configuration);
+        Task<Response<ConfigParam>> GetAppConfiguration();
     }
 }

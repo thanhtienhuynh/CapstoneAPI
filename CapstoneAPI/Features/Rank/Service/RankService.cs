@@ -56,15 +56,18 @@ namespace CapstoneAPI.Features.Rank.Service
                     foreach (Models.FollowingDetail followingDetail in user.FollowingDetails)
                     {
                         if (followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.SeasonId != currentSeason.Id)
+                        {
                             continue;
+                        }
                         Models.Rank newRank = await CalculateNewRank(user.Transcripts.GroupBy(t => t.TranscriptType).ToList(),
                                                                     followingDetail.EntryMark.MajorSubjectGroup.SubjectGroup.SubjectGroupDetails.ToList(),
                                                                     followingDetail.Rank, followingDetail.EntryMark.Mark ?? 0);
-                        if (newRank != null && (newRank.TotalMark != followingDetail.Rank.TotalMark || followingDetail.Rank.TranscriptTypeId != newRank.TranscriptTypeId))
+                        if (newRank != null && (newRank.TotalMark != followingDetail.Rank.TotalMark 
+                            || followingDetail.Rank.TranscriptTypeId != newRank.TranscriptTypeId))
                         {
                             followingDetail.Rank.IsUpdate = true;
                             followingDetail.Rank.TranscriptTypeId = newRank.TranscriptTypeId;
-                            followingDetail.Rank.UpdatedDate = DateTime.UtcNow;
+                            followingDetail.Rank.UpdatedDate = JWTUtils.GetCurrentTimeInVN();
                             followingDetail.Rank.TotalMark = newRank.TotalMark;
                             _uow.RankRepository.Update(followingDetail.Rank);
                         }
@@ -75,7 +78,7 @@ namespace CapstoneAPI.Features.Rank.Service
                         if (transcript.IsUpdate)
                         {
                             transcript.IsUpdate = false;
-                            transcript.DateRecord = DateTime.UtcNow;
+                            transcript.DateRecord = JWTUtils.GetCurrentTimeInVN();
                         }
                         _uow.TranscriptRepository.Update(transcript);
                     }
@@ -85,7 +88,7 @@ namespace CapstoneAPI.Features.Rank.Service
 
                 IEnumerable<int> changedSubAdmissionIds = (await _uow.FollowingDetailRepository
                                                             .Get(includeProperties: "Rank,EntryMark"))
-                                                            .Where(u => u.Rank != null && u.Rank.IsUpdate)
+                                                            .Where(u => u.Rank.IsUpdate)
                                                             .Select(u => u.EntryMark.SubAdmissionCriterionId).Distinct();
                 if (!changedSubAdmissionIds.Any())
                 {
@@ -98,6 +101,11 @@ namespace CapstoneAPI.Features.Rank.Service
                 {
                     IEnumerable<Models.FollowingDetail> sameSubAdmissionFollowingDetails = await _uow.FollowingDetailRepository
                                                                         .Get(filter: u => u.EntryMark.SubAdmissionCriterionId == subAdmissionId && u.Status == Consts.STATUS_ACTIVE, includeProperties: "Rank,User");
+                    var followingDetailsGroupByUser = sameSubAdmissionFollowingDetails
+                        .OrderBy(s => s.Rank.Position).GroupBy(s => s.User);
+
+                    sameSubAdmissionFollowingDetails = followingDetailsGroupByUser.Select(s => s.FirstOrDefault());
+
                     IEnumerable<RankDataSet> rankDataSets = sameSubAdmissionFollowingDetails.Select(u => _mapper.Map<RankDataSet>(u.Rank));
                     foreach (RankDataSet rankDataSet in rankDataSets)
                     {
@@ -114,7 +122,7 @@ namespace CapstoneAPI.Features.Rank.Service
                                 Position = rankDataSet.NewPosition,
                                 TotalMark = rankDataSet.TotalMark,
                                 TranscriptTypeId = rankDataSet.TranscriptTypeId,
-                                UpdatedDate = DateTime.UtcNow,
+                                UpdatedDate = JWTUtils.GetCurrentTimeInVN(),
                                 FollowingDetailId = rankDataSet.FollowingDetailId,
                                 IsReceiveNotification = rankDataSet.IsReceiveNotification
                             };
@@ -186,7 +194,7 @@ namespace CapstoneAPI.Features.Rank.Service
                                                 rankingFollowingDetailDataSet.RankDataSet.NewPosition);
                         Models.Notification notification = new Models.Notification()
                         {
-                            DateRecord = DateTime.UtcNow,
+                            DateRecord = JWTUtils.GetCurrentTimeInVN(),
                             Data = rankingFollowingDetailDataSet.RankDataSet.FollowingDetailId.ToString(),
                             Message = string.Format(rankingFollowingDetailDataSet.RankDataSet.Position >
                                                 rankingFollowingDetailDataSet.RankDataSet.NewPosition ? upNoti : downNoti,
@@ -196,7 +204,7 @@ namespace CapstoneAPI.Features.Rank.Service
                                                 rankingFollowingDetailDataSet.RankDataSet.Position,
                                                 rankingFollowingDetailDataSet.RankDataSet.NewPosition),
                             IsRead = false,
-                            Type = 2,
+                            Type = NotificationTypes.NewRank,
                             UserId = emailedUserGroup.Key.Id
                         };
                         notifications.Add(notification);
@@ -234,7 +242,8 @@ namespace CapstoneAPI.Features.Rank.Service
             return true;
         }
 
-        private async Task<Models.Rank> CalculateNewRank(List<IGrouping<TranscriptType, Models.Transcript>> transcriptGroup, List<SubjectGroupDetail> subjectGroupDetails, Models.Rank currentRank, double entryMark)
+        private async Task<Models.Rank> CalculateNewRank(List<IGrouping<TranscriptType, Models.Transcript>> transcriptGroup,
+            List<SubjectGroupDetail> subjectGroupDetails, Models.Rank currentRank, double entryMark)
         {
             double totalMark = 0;
             if (subjectGroupDetails == null || !subjectGroupDetails.Any())

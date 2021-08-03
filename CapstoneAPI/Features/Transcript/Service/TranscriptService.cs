@@ -102,7 +102,7 @@ namespace CapstoneAPI.Features.Transcript.Service
                         SubjectId = markParam.SubjectId,
                         UserId = user.Id,
                         TranscriptTypeId = subjectGroupParam.TranscriptTypeId,
-                        DateRecord = DateTime.UtcNow,
+                        DateRecord = JWTUtils.GetCurrentTimeInVN(),
                         IsUpdate = true,
                         Status = Consts.STATUS_ACTIVE
                     });
@@ -112,7 +112,7 @@ namespace CapstoneAPI.Features.Transcript.Service
                         foreach (Models.Transcript transcript in transcripts)
                         {
                             transcript.Status = Consts.STATUS_INACTIVE;
-                            transcript.DateRecord = DateTime.UtcNow;
+                            transcript.DateRecord = JWTUtils.GetCurrentTimeInVN();
                         }
                         _uow.TranscriptRepository.UpdateRange(transcripts);
                     }
@@ -139,7 +139,7 @@ namespace CapstoneAPI.Features.Transcript.Service
                         {
                             Data = followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion
                                     .MajorDetail.UniversityId.ToString(),
-                            DateRecord = DateTime.UtcNow,
+                            DateRecord = JWTUtils.GetCurrentTimeInVN(),
                             IsRead = false,
                             Message = string.Format(message, followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.Major,
                                 followingDetail.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail.TrainingProgram,
@@ -230,7 +230,7 @@ namespace CapstoneAPI.Features.Transcript.Service
                     foreach (Models.Transcript transcript in transcripts)
                     {
                         transcript.Status = Consts.STATUS_INACTIVE;
-                        transcript.DateRecord = DateTime.UtcNow;
+                        transcript.DateRecord = JWTUtils.GetCurrentTimeInVN();
                     }
                     _uow.TranscriptRepository.UpdateRange(transcripts);
                 }
@@ -241,7 +241,7 @@ namespace CapstoneAPI.Features.Transcript.Service
                     SubjectId = transcriptParam.SubjectId,
                     UserId = user.Id,
                     TranscriptTypeId = transcriptParam.TranscriptTypeId,
-                    DateRecord = DateTime.UtcNow,
+                    DateRecord = JWTUtils.GetCurrentTimeInVN(),
                     IsUpdate = true,
                     Status = Consts.STATUS_ACTIVE
                 };

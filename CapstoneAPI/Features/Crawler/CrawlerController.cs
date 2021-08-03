@@ -6,6 +6,7 @@ using CapstoneAPI.Helpers;
 using CapstoneAPI.Services.Crawler;
 using CapstoneAPI.Wrappers;
 using HtmlAgilityPack;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +27,7 @@ namespace CapstoneAPI.Features.Crawler
             _logger = logger;
         }
 
+        [Authorize(Roles = Roles.Staff)]
         [HttpPost("article")]
         public async Task<ActionResult<Response<string>>> GetListArticleForGuest()
         {

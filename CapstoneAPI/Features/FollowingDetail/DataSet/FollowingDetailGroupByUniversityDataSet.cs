@@ -37,11 +37,13 @@ namespace CapstoneAPI.Features.FollowingDetail.DataSet
         public string Code { get; set; }
         public string Name { get; set; }
         public List<SeasonDataSet> SeasonDataSets { get; set; }
+        public List<OtherSubjectGroup> OtherSubjectGroups { get; set; }
         public int? PositionOfUser { get; set; }
         public int TotalUserCared { get; set; }
         public int SubjectGroupId { get; set; }
         public string SubjectGroupCode { get; set; }
         public double? RankingMark { get; set; }
+        public int RankTypeId { get; set; }
 
     }
 }

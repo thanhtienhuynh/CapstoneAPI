@@ -18,7 +18,7 @@ namespace CapstoneAPI.Features.Season.Repository
 
         public async Task<Models.Season> GetCurrentSeason()
         {
-            DateTime currentDate = DateTime.UtcNow;
+            DateTime currentDate = JWTUtils.GetCurrentTimeInVN();
 
             Models.Season season = (await Get(filter: s => s.FromDate <= currentDate && s.Status == Consts.STATUS_ACTIVE,
                                         orderBy: s => s.OrderByDescending(s => s.FromDate))).FirstOrDefault();

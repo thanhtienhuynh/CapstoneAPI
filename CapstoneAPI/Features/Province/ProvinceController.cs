@@ -20,7 +20,6 @@ namespace CapstoneAPI.Features.Province
             _service = service;
         }
 
-
         [HttpGet]
         public async Task<ActionResult<Response<IEnumerable<ProvinceDataSet>>>> GetProvinces()
         {

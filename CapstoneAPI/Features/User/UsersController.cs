@@ -3,6 +3,7 @@
     using CapstoneAPI.Features.User.DataSet;
     using CapstoneAPI.Features.User.Service;
     using CapstoneAPI.Filters;
+    using CapstoneAPI.Helpers;
     using CapstoneAPI.Wrappers;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
@@ -19,13 +20,13 @@
             _service = service;
         }
 
-        [AllowAnonymous]
         [HttpPost("auth/google")]
         public async Task<ActionResult<Response<LoginResponse>>> LoginGoogle([FromBody] Token firebaseToken)
         {
             return Ok(await _service.Login(firebaseToken));
         }
 
+        [Authorize(Roles = Roles.Admin)]
         [HttpGet()]
         public async Task<ActionResult<PagedResponse<List<UserDataSet>>>> GetUsers([FromQuery] PaginationFilter paging,
             [FromQuery] AdminUserFilter query)
@@ -40,6 +41,7 @@
             return Ok(await _service.ValidateJwtToken(token));
         }
 
+        [Authorize(Roles = Roles.Admin)]
         [HttpPut()]
         public async Task<ActionResult<Response<bool>>> UpdateUser([FromBody] UpdateUserParam param)
         {

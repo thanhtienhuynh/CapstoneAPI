@@ -4,7 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using CapstoneAPI.Features.TrainingProgram.DataSet;
 using CapstoneAPI.Features.TrainingProgram.Service;
+using CapstoneAPI.Helpers;
 using CapstoneAPI.Wrappers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CapstoneAPI.Features.TrainingProgram
@@ -18,6 +20,8 @@ namespace CapstoneAPI.Features.TrainingProgram
         {
             _service = service;
         }
+
+        [Authorize(Roles = Roles.Staff)]
         [HttpGet]
         public async Task<ActionResult<Response<IEnumerable<AdminTrainingProgramDataSet>>>> GetTrainingPrograms()
         {
@@ -25,12 +29,15 @@ namespace CapstoneAPI.Features.TrainingProgram
             return Ok(trainingPrograms);
         }
 
+        [Authorize(Roles = Roles.Staff)]
         [HttpPost]
         public async Task<ActionResult<Response<AdminTrainingProgramDataSet>>> CreateNewTrainingProgram([FromBody] CreateTrainingProgramParam createTrainingProgramParam)
         {
             Response<AdminTrainingProgramDataSet> result = await _service.CreateATrainingProgram(createTrainingProgramParam);
             return Ok(result);
         }
+
+        [Authorize(Roles = Roles.Staff)]
         [HttpPut]
         public async Task<ActionResult<Response<AdminTrainingProgramDataSet>>> UpdateATrainingProgram([FromBody] AdminTrainingProgramDataSet updateTrainingProgramParam)
         {

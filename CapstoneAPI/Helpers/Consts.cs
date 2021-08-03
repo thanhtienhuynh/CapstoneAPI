@@ -32,9 +32,7 @@ namespace CapstoneAPI.Helpers
         public static int NUMBER_OF_SUGGESTED_MAJOR = 5;
         public static int DEFAULT_WEIGHT_NUMBER = 1;
         public static int DEFAULT_MAX_SCORE = 10;
-        //Transcript
-        public static int TRANSCRIPT_TYPE_HB = 2;
-        public static int TRANSCRIPT_TYPE_THPTQG = 1;
+
         //Rank type
         public static int RANK_TYPE_THPTQG = 1;
         public static int RANK_TYPE_HT = 3;
@@ -67,4 +65,83 @@ namespace CapstoneAPI.Helpers
         public const string Staff = "1";
         public const string Student = "2";
     }
+
+    //check status
+    /*
+     * -1: All
+     * 0: New
+     * 1: Approved
+     * 2: Rejected
+     * 3: Published
+     * 4: Expired
+     * 5: (Considered)
+     */
+    public static class Articles
+    {
+        public const int New = 0;
+        public const int Approved = 1;
+        public const int Rejected = 2;
+        public const int Published = 3;
+        public const int Expired = 4;
+        public const int Considered = 5;
+    }
+
+    //1: New article
+    //2: New rank
+    //3: Update tt uni
+    //6: Thay doi tt suggest => remove follow
+    public static class NotificationTypes
+    {
+        public const int NewArticle = 1;
+        public const int NewRank = 2;
+        public const int UpdateUniversity = 3;
+        public const int UpdateSuggestInfo = 6;
+    }
+
+    public static class HomeArticleTypes
+    {
+        public const int Hot = 1;
+        public const int Today = 2;
+        public const int Past = 3;
+    }
+
+    public static class AdmissionMethodTypes
+    {
+        public const int HocBa = 2;
+        public const int THPTQG = 1;
+    }
+
+    public static class Subjects
+    {
+        public const int Literature = 10;
+    }
+
+    public static class QuestionTypes
+    {
+        public const int SingleChoice = 1;
+        public const int MultipleChoice = 2;
+    }
+    public static class UniversityRatios
+    {
+        public const double Green = 1;
+        public const double Yellow = 1.5;
+        public const int GreenGroup = 1;
+        public const int YellowGroup = 2;
+        public const int RedGroup = 3;
+    }
+
+    public static class TranscriptTypes
+    {
+        public const int HocBa = 2;
+        public const int THPTQG = 1;
+        public const int ThiThu = 3;
+    }
+
+    public static class CronExporessionType
+    {
+        public const int EachHours = 1;
+        public const int SpecificHour = 2;
+    }
+
+
 }
