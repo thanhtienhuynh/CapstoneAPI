@@ -250,6 +250,16 @@
                 response.Errors.Add("Bạn chưa đăng nhập!");
                 return response;
             }
+            if (registerToken == null)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Token unsubscribe không hợp lệ!");
+                return response;
+            }
             var res = await FirebaseMessaging.DefaultInstance
                .UnsubscribeFromTopicAsync(new List<string>{ registerToken.token}, user.Id.ToString());
 
@@ -259,6 +269,11 @@
             } else
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi firebase!");
             }
             return response;
         }
@@ -278,6 +293,16 @@
                 response.Errors.Add("Bạn chưa đăng nhập!");
                 return response;
             }
+            if (registerToken == null)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Token subscribe không hợp lệ!");
+                return response;
+            }
             var res = await FirebaseMessaging.DefaultInstance
                .SubscribeToTopicAsync(new List<string> { registerToken.token }, user.Id.ToString());
 
@@ -288,6 +313,11 @@
             else
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi firebase!");
             }
             return response;
         }
