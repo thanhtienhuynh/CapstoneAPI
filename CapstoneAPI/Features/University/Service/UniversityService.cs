@@ -904,9 +904,14 @@ namespace CapstoneAPI.Features.University.Service
                         majorDetailUniDataSet.TrainingProgramId = detailWithAMajor.TrainingProgram.Id;
                         majorDetailUniDataSet.TrainingProgramName = detailWithAMajor.TrainingProgram.Name;
                         majorDetailUniDataSet.MajorDetailCode = detailWithAMajor.MajorCode;
-                        majorDetailUniDataSet.AdmissionQuantity = detailWithAMajor.AdmissionCriterion.Quantity;
+                        
                         majorDetailUniDataSet.SeasonId = detailWithAMajor.Season.Id;
                         majorDetailUniDataSet.SeasonName = detailWithAMajor.Season.Name;
+                        if (detailWithAMajor.AdmissionCriterion == null)
+                        {
+                            continue;
+                        }
+                        majorDetailUniDataSet.AdmissionQuantity = detailWithAMajor.AdmissionCriterion.Quantity;
                         IEnumerable<Models.SubAdmissionCriterion> subAdmissionCriteria = await _uow.SubAdmissionCriterionRepository.
                                                    Get(filter: s => s.AdmissionCriterionId == detailWithAMajor.AdmissionCriterion.MajorDetailId
                                                    && s.Status == Consts.STATUS_ACTIVE,
