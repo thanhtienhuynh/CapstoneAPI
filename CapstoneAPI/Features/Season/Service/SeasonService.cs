@@ -170,7 +170,7 @@ namespace CapstoneAPI.Features.Season.Service
                             IEnumerable<Models.SubAdmissionCriterion> oldSubAdmissions = await _uow.SubAdmissionCriterionRepository
                                 .Get(filter: s => s.AdmissionCriterionId == oldMajorDetail.Id && s.Status == Consts.STATUS_ACTIVE);
                             //SUBADMISSION
-                            if (oldSubAdmissions.Any())
+                            if (!oldSubAdmissions.Any())
                             {
                                 continue;
                             }
@@ -203,7 +203,7 @@ namespace CapstoneAPI.Features.Season.Service
                                 var oldEntryMarks = await _uow.EntryMarkRepository.Get(
                                     filter: e => e.SubAdmissionCriterionId == oldSubAdmission.Id
                                             && e.Status == Consts.STATUS_ACTIVE);
-                                if (oldEntryMarks.Any())
+                                if (!oldEntryMarks.Any())
                                 {
                                     continue;
                                 }
