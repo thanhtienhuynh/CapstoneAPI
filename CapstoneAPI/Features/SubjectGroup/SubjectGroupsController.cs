@@ -63,7 +63,6 @@ namespace CapstoneAPI.Features.SubjectGroup
             return Ok(await _service.GetUserSuggestTopSubjectGroup(token));
         }
 
-        [Authorize(Roles = Roles.Staff)]
         [HttpGet()]
         public async Task<ActionResult<Response<IEnumerable<AdminSubjectGroupDataSet>>>> GetSubjectGroupsByAdmin()
         {
