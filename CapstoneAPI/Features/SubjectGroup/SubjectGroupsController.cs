@@ -55,6 +55,14 @@ namespace CapstoneAPI.Features.SubjectGroup
             return Ok(await _service.GetCaculatedSubjectGroup(subjectGroupParam, token));
         }
 
+        [Authorize(Roles = Roles.Student)]
+        [HttpGet("top-subject-group/{subjectGroupId}")]
+        public async Task<ActionResult<Response<IEnumerable<SubjectGroupDataSet>>>> SuggestMajorBasedOnSubjectGroup(int subjectGroupId)
+        {
+            string token = Request.Headers["Authorization"];
+            return Ok(await _service.GetCaculatedMajorByMockTestAndSubjectGroup(subjectGroupId, token));
+        }
+
         [HttpGet("top-subject-group")]
         public async Task<ActionResult<Response<IEnumerable<UserSuggestionInformation>>>> GetSuggestTopSubjectGroup()
         {
@@ -63,9 +71,8 @@ namespace CapstoneAPI.Features.SubjectGroup
             return Ok(await _service.GetUserSuggestTopSubjectGroup(token));
         }
 
-        [Authorize(Roles = Roles.Staff)]
         [HttpGet()]
-        public async Task<ActionResult<Response<IEnumerable<AdminSubjectGroupDataSet>>>> GetSubjectGroupsByAdmin()
+        public async Task<ActionResult<Response<IEnumerable<AdminSubjectGroupDataSet>>>> GetSubjectGroups()
         {
             Response<IEnumerable<AdminSubjectGroupDataSet>> response = await _service.GetListSubjectGroups();
             return Ok(response);

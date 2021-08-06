@@ -111,6 +111,7 @@ namespace CapstoneAPI
             // Add our job
             services.AddSingleton<ArticleCrawlerCronJob>();
             services.AddSingleton<RankingCronJob>();
+            services.AddSingleton<ExpireArticleCronJob>();
             //0 */2 * ? * *
             services.AddSingleton(new JobSchedule(
                 jobType: typeof(RankingCronJob),
@@ -124,6 +125,12 @@ namespace CapstoneAPI
                     int.Parse(appConfig.SelectToken("CrawlTime.Type").ToString()),
                     int.Parse(appConfig.SelectToken("CrawlTime.MinStart").ToString()),
                     int.Parse(appConfig.SelectToken("CrawlTime.Start").ToString()))));
+            services.AddSingleton(new JobSchedule(
+                jobType: typeof(ExpireArticleCronJob),
+                cronExpression: GetCronJobExpression(
+                    int.Parse(appConfig.SelectToken("ExpireArticleTime.Type").ToString()),
+                    int.Parse(appConfig.SelectToken("ExpireArticleTime.MinStart").ToString()),
+                    int.Parse(appConfig.SelectToken("ExpireArticleTime.Start").ToString()))));
 
             services.AddHostedService<QuartzHostedService>();
             services.AddSwaggerGen(c =>

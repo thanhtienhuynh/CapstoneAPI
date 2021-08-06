@@ -47,8 +47,13 @@
                     }
                 } else
                 {
+                    Models.Province province = await _uow.ProvinceRepository.GetById(user.ProvinceId);
                     response.Succeeded = true;
                     response.Data = _mapper.Map<UserDataSet>(user);
+                    if (province != null)
+                    {
+                        response.Data.ProvinceName = province.Name;
+                    }
                 }
             }
             catch (Exception ex)
@@ -114,7 +119,12 @@
                                                     claims,
                                                     expires: JWTUtils.GetCurrentTimeInVN().AddSeconds(Consts.TOKEN_EXPIRED_TIME),
                                                     signingCredentials: creds);
+                Models.Province province = await _uow.ProvinceRepository.GetById(user.ProvinceId);
                 UserDataSet userResponse = _mapper.Map<UserDataSet>(user);
+                if (province != null)
+                {
+                    userResponse.ProvinceName = province.Name;
+                }
                 LoginResponse loginResponse = new LoginResponse()
                 {
                     User = userResponse,
@@ -250,6 +260,16 @@
                 response.Errors.Add("Bạn chưa đăng nhập!");
                 return response;
             }
+            if (registerToken == null)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Token unsubscribe không hợp lệ!");
+                return response;
+            }
             var res = await FirebaseMessaging.DefaultInstance
                .UnsubscribeFromTopicAsync(new List<string>{ registerToken.token}, user.Id.ToString());
 
@@ -259,6 +279,11 @@
             } else
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi firebase!");
             }
             return response;
         }
@@ -278,6 +303,16 @@
                 response.Errors.Add("Bạn chưa đăng nhập!");
                 return response;
             }
+            if (registerToken == null)
+            {
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Token subscribe không hợp lệ!");
+                return response;
+            }
             var res = await FirebaseMessaging.DefaultInstance
                .SubscribeToTopicAsync(new List<string> { registerToken.token }, user.Id.ToString());
 
@@ -288,6 +323,11 @@
             else
             {
                 response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi firebase!");
             }
             return response;
         }

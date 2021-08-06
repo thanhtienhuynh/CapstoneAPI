@@ -326,6 +326,7 @@ namespace CapstoneAPI.Features.Article.Service
                                 || (articleToUpdate.Status == Articles.Approved && approvingArticleDataSet.Status == Articles.Published)
                                 || (articleToUpdate.Status == Articles.Published && approvingArticleDataSet.Status == Articles.Considered)
                                 || (articleToUpdate.Status == Articles.Considered && approvingArticleDataSet.Status == Articles.Approved)
+                                || (articleToUpdate.Status == Articles.Considered && approvingArticleDataSet.Status == Articles.Rejected)
                                 || (articleToUpdate.Status == Articles.Expired && approvingArticleDataSet.Status == Articles.Published)
                                 || (articleToUpdate.Status == Articles.Published && approvingArticleDataSet.Status == Articles.Expired)))
                             {

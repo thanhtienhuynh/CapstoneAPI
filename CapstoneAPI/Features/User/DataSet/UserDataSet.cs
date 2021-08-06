@@ -14,6 +14,8 @@ namespace CapstoneAPI.Features.User.DataSet
         public string AvatarUrl { get; set; }
         public bool IsActive { get; set; }
         public int RoleId { get; set; }
+        public string ProvinceName { get; set; }
+        public int? Gender { get; set; }
     }
 
     public class UpdateUserParam
