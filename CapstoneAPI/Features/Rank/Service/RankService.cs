@@ -6,6 +6,7 @@ using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
 using CapstoneAPI.Services.Email;
+using CapstoneAPI.Wrappers;
 using FirebaseAdmin.Messaging;
 using Serilog;
 using System;
@@ -30,14 +31,21 @@ namespace CapstoneAPI.Features.Rank.Service
             _emailService = emailService;
             _firebaseService = firebaseService;
         }
-        public async Task<bool> UpdateRank()
+        public async Task<Response<bool>> UpdateRank()
         {
+            Response<bool> response = new Response<bool>();
             try
             {
                 Models.Season currentSeason = await _uow.SeasonRepository.GetCurrentSeason();
                 if (currentSeason == null)
                 {
-                    return false;
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Mùa chưa được kích hoạt!");
+                    return response;
                 }
                 List<Models.User> updateUsers = (await _uow.UserRepository
                     .Get(filter: u => u.Transcripts.Where(t => t.IsUpdate).Any(), includeProperties: "FollowingDetails.EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail," +
@@ -92,7 +100,9 @@ namespace CapstoneAPI.Features.Rank.Service
                                                             .Select(u => u.EntryMark.SubAdmissionCriterionId).Distinct();
                 if (!changedSubAdmissionIds.Any())
                 {
-                    return false;
+                    response.Succeeded = true;
+                    response.Message = ("Không có thứ hạng thay đổi");
+                    return response;
                 }
 
                 List<RankDataSet> emailedRankDataSets = new List<RankDataSet>();
@@ -150,7 +160,9 @@ namespace CapstoneAPI.Features.Rank.Service
 
                 if (!emailedRankDataSets.Any())
                 {
-                    return false;
+                    response.Succeeded = true;
+                    response.Message = ("Không có thứ hạng thay đổi");
+                    return response;
                 }
 
                 List<RankFollowingDetailDataSet> emailedFollowingDetails = new List<RankFollowingDetailDataSet>();
@@ -235,11 +247,17 @@ namespace CapstoneAPI.Features.Rank.Service
             }
             catch (Exception ex)
             {
-                _log.Error(ex.ToString());
-                return false;
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+                return response;
             }
 
-            return true;
+            response.Succeeded = true;
+            return response;
         }
 
         private async Task<Models.Rank> CalculateNewRank(List<IGrouping<TranscriptType, Models.Transcript>> transcriptGroup,

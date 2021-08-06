@@ -28,10 +28,10 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
             _mapper = mapper;
         }
 
-        public async Task<Response<IEnumerable<SubjectGroupDataSet>>> GetCaculatedSubjectGroup(SubjectGroupParam subjectGroupParam, string token)
+        public async Task<Response<List<SubjectGroupDataSet>>> GetCaculatedSubjectGroup(SubjectGroupParam subjectGroupParam, string token)
         {
             
-            Response<IEnumerable<SubjectGroupDataSet>> response = new Response<IEnumerable<SubjectGroupDataSet>>();
+            Response<List<SubjectGroupDataSet>> response = new Response<List<SubjectGroupDataSet>>();
             try
             {
                 if (subjectGroupParam.TranscriptTypeId == TranscriptTypes.ThiThu)
@@ -48,14 +48,26 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
                         response.Errors.Add("Bạn chưa đăng nhập!");
                         return response;
                     }
-                    if (subjectGroupParam.Marks.First(m => m.SubjectId == Subjects.Literature) != null) {
+                    if (subjectGroupParam.Marks.FirstOrDefault(m => m.SubjectId == Subjects.Literature) != null) {
                         subjectGroupParam.Marks.First(m => m.SubjectId == Subjects.Literature).Mark = await _uow.TranscriptRepository.GetLiteratureTestMark(user.Id);
                     };
                 }
                 List<SubjectGroupDataSet> subjectGroupDataSets = new List<SubjectGroupDataSet>();
                 //Lấy danh sách khối
-                IEnumerable<Models.SubjectGroup> subjectGroups = await _uow.SubjectGroupRepository
-                    .Get(filter: s => s.Status == Consts.STATUS_ACTIVE, includeProperties: "SubjectGroupDetails");
+                IEnumerable<Models.SubjectGroup> subjectGroups = null;
+                var isPriority = false;
+
+                if (subjectGroupParam.SubjectGroupIds != null && subjectGroupParam.SubjectGroupIds.Any())
+                {
+                    subjectGroups = await _uow.SubjectGroupRepository.Get(
+                        filter: s => s.Status == Consts.STATUS_ACTIVE && subjectGroupParam.SubjectGroupIds.Contains(s.Id),
+                        includeProperties: "SubjectGroupDetails");
+                    isPriority = true;
+                } else
+                {
+                    subjectGroups = await _uow.SubjectGroupRepository
+                        .Get(filter: s => s.Status == Consts.STATUS_ACTIVE, includeProperties: "SubjectGroupDetails");
+                }
 
                 if (!subjectGroups.Any())
                 {
@@ -83,7 +95,7 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
                     }
                 }
 
-                if (!subjectGroupDataSets.Any())
+                if (!subjectGroupDataSets.Any() && !isPriority)
                 {
                     response.Succeeded = true;
                     response.Data = subjectGroupDataSets;
@@ -234,11 +246,13 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
                 }
 
                 var groupByMarks = suggestedSubjectGroups.GroupBy(s => s.TotalMark).OrderByDescending(g => g.Key);
+                var smallestTop = 0;
                 for (var i = 0; i < groupByMarks.Count(); i++)
                 {
                     foreach (var group in groupByMarks.ToList()[i])
                     {
                         group.Top = i + 1;
+                        smallestTop = group.Top;
                     }
                 }
 
@@ -254,7 +268,38 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
                     suggestGroup.SuggestedMajors = await GenerateListMajors(subjectGroupParam, suggestGroup.SuggestedMajors, suggestGroup.Id);
                 }
 
-                IEnumerable<SubjectGroupDataSet> results = suggestedSubjectGroups.Where(s => s.SuggestedMajors.Count() > 0);
+                List<SubjectGroupDataSet> results = suggestedSubjectGroups.Where(s => s.SuggestedMajors.Count() > 0).ToList();
+
+                if (isPriority && subjectGroupParam.SubjectGroupIds.Count > results.Count())
+                {
+                    foreach (var groupId in subjectGroupParam.SubjectGroupIds)
+                    {
+                        var existedGroup = results.FirstOrDefault(s => s.Id == groupId);
+                        if (existedGroup == null)
+                        {
+                            var subjectGroup = await _uow.SubjectGroupRepository.GetById(groupId);
+                            if (subjectGroup == null)
+                            {
+                                continue;
+                            }
+                            results.Add(new SubjectGroupDataSet() {
+                                Id = groupId,
+                                Name = subjectGroup.GroupCode,
+                                SpecialSubjectGroupDataSets = (await _uow.SubjecGroupDetailRepository
+                                    .Get(filter: s => s.SpecialSubjectGroupId != null && s.SubjectGroupId == groupId,
+                                        includeProperties: "SpecialSubjectGroup"))
+                                    .Select(s => _mapper.Map<SpecialSubjectGroupDataSet>(s.SpecialSubjectGroup)).ToList(),
+                                SubjectDataSets = (await _uow.SubjecGroupDetailRepository
+                                    .Get(filter: s => s.SubjectId != null && s.SubjectGroupId == groupId,
+                                        includeProperties: "Subject"))
+                                    .Select(s => _mapper.Map<SubjectDataSet>(s.Subject)).ToList(),
+                                Top = smallestTop + 1,
+                                TotalMark = 0,
+                                SuggestedMajors = new List<MajorDataSet>()
+                            });
+                        }
+                    }
+                }
 
                 response.Succeeded = true;
                 response.Data = results;
@@ -272,6 +317,320 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
             return response;
         }
 
+        public async Task<Response<List<SubjectGroupDataSet>>> GetCaculatedMajorByMockTestAndSubjectGroup(int subjectGroupId, string token)
+        {
+
+            Response<List<SubjectGroupDataSet>> response = new Response<List<SubjectGroupDataSet>>();
+            try
+            {
+
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Bạn chưa đăng nhập!");
+                    return response;
+                }
+
+                SubjectGroupParam subjectGroupParam = new SubjectGroupParam();
+                subjectGroupParam.ProvinceId = (int) user.ProvinceId;
+                subjectGroupParam.Gender = (int) user.Gender;
+                subjectGroupParam.TranscriptTypeId = TranscriptTypes.ThiThu;
+                subjectGroupParam.SubjectGroupIds = new List<int>
+                {
+                    subjectGroupId
+                };
+                var transcripts = await _uow.TranscriptRepository.Get(t => t.UserId == user.Id && t.Status == Consts.STATUS_ACTIVE
+                                                    && t.TranscriptTypeId == TranscriptTypes.ThiThu);
+                List<MarkParam> markParams = new List<MarkParam>();
+                foreach (var transcript in transcripts)
+                {
+                    markParams.Add(new MarkParam()
+                    {
+                        SubjectId = transcript.SubjectId,
+                        Mark = transcript.Mark
+                    });
+                }
+                subjectGroupParam.Marks = markParams;
+                if (subjectGroupParam.Marks.FirstOrDefault(m => m.SubjectId == Subjects.Literature) != null)
+                {
+                    subjectGroupParam.Marks.First(m => m.SubjectId == Subjects.Literature).Mark =
+                            await _uow.TranscriptRepository.GetLiteratureTestMark(user.Id);
+                };
+                
+                List<SubjectGroupDataSet> subjectGroupDataSets = new List<SubjectGroupDataSet>();
+                //Lấy danh sách khối
+                IEnumerable<Models.SubjectGroup> subjectGroups = null;
+                var isPriority = false;
+
+                if (subjectGroupParam.SubjectGroupIds != null && subjectGroupParam.SubjectGroupIds.Any())
+                {
+                    subjectGroups = await _uow.SubjectGroupRepository.Get(
+                        filter: s => s.Status == Consts.STATUS_ACTIVE && subjectGroupParam.SubjectGroupIds.Contains(s.Id),
+                        includeProperties: "SubjectGroupDetails");
+                    isPriority = true;
+                }
+                else
+                {
+                    subjectGroups = await _uow.SubjectGroupRepository
+                        .Get(filter: s => s.Status == Consts.STATUS_ACTIVE, includeProperties: "SubjectGroupDetails");
+                }
+
+                if (!subjectGroups.Any())
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Hệ thống ghi nhận không có tổ hợp môn nào!");
+                    return response;
+                }
+
+                //Tính điểm mỗi khối
+                foreach (Models.SubjectGroup subjectGroup in subjectGroups)
+                {
+                    double totalMark = await CalculateSubjectGroupMark(subjectGroupParam.Marks, subjectGroup.SubjectGroupDetails.ToList());
+                    if (totalMark > 0)
+                    {
+                        subjectGroupDataSets.Add(new SubjectGroupDataSet
+                        {
+                            TotalMark = totalMark,
+                            Name = subjectGroup.GroupCode,
+                            Id = subjectGroup.Id
+                        });
+                    }
+                }
+
+                if (!subjectGroupDataSets.Any() && !isPriority)
+                {
+                    response.Succeeded = true;
+                    response.Data = subjectGroupDataSets;
+                    return response;
+                }
+
+                Models.Season currentSeason = await _uow.SeasonRepository.GetCurrentSeason();
+                Models.Season previousSeason = await _uow.SeasonRepository.GetPreviousSeason();
+
+                if (currentSeason == null || previousSeason == null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Mùa tuyển sinh chưa được kích hoạt!");
+                    return response;
+                }
+
+                List<SubjectGroupDataSet> suggestedSubjectGroups = new List<SubjectGroupDataSet>();
+
+                foreach (SubjectGroupDataSet subjectGroupDataSet in subjectGroupDataSets)
+                {
+                    IEnumerable<Models.Major> majors = (await _uow.MajorSubjectGroupRepository
+                        .Get(filter: s => s.SubjectGroupId == subjectGroupDataSet.Id && s.Major.Status == Consts.STATUS_ACTIVE
+                            && s.Status == Consts.STATUS_ACTIVE,
+                            includeProperties: "Major")).Select(s => s.Major);
+                    List<MajorDataSet> majorDataSets = new List<MajorDataSet>();
+                    foreach (Models.Major major in majors)
+                    {
+                        var groupsByMajorDetails = (await _uow.MajorDetailRepository
+                            .Get(filter: m => m.MajorId == major.Id && m.Status == Consts.STATUS_ACTIVE,
+                                includeProperties: "AdmissionCriterion,AdmissionCriterion.SubAdmissionCriteria"))
+                            .GroupBy(m => new { m.UniversityId, m.TrainingProgramId });
+
+                        bool isValid = false;
+                        double highestEntryMark = 0;
+                        foreach (var groupsByMajorDetail in groupsByMajorDetails)
+                        {
+                            MajorDetail currentMajorDetail = groupsByMajorDetail.Where(m => m.SeasonId == currentSeason.Id).FirstOrDefault();
+                            MajorDetail previousMajorDetail = groupsByMajorDetail.Where(m => m.SeasonId == previousSeason.Id).FirstOrDefault();
+                            if (currentMajorDetail == null || previousMajorDetail == null)
+                            {
+                                continue;
+                            }
+
+                            if (currentMajorDetail.AdmissionCriterion == null || previousMajorDetail.AdmissionCriterion == null)
+                            {
+                                continue;
+                            }
+
+                            if (currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria == null
+                                || !currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                                        .Where(s => s.AdmissionMethodId == AdmissionMethodTypes.THPTQG && s.Status == Consts.STATUS_ACTIVE).Any()
+                                || previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria == null
+                                || !previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                                    .Where(s => s.AdmissionMethodId == AdmissionMethodTypes.THPTQG && s.Status == Consts.STATUS_ACTIVE).Any())
+                            {
+                                continue;
+                            }
+
+                            var currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                                .Where(a => a.AdmissionMethodId == AdmissionMethodTypes.THPTQG && a.Status == Consts.STATUS_ACTIVE);
+
+                            var previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                                .Where(a => a.AdmissionMethodId == AdmissionMethodTypes.THPTQG && a.Status == Consts.STATUS_ACTIVE);
+
+                            //Check ptts cho giới tính riêng
+                            IEnumerable<SubAdmissionCriterion> subCurrentSubAdmissionCriteriasByGender = currentSubAdmissionCriterias.Where(s => s.Gender == subjectGroupParam.Gender);
+                            if (subCurrentSubAdmissionCriteriasByGender.Any())
+                            {
+                                currentSubAdmissionCriterias = subCurrentSubAdmissionCriteriasByGender;
+                            }
+                            else
+                            {
+                                currentSubAdmissionCriterias = currentSubAdmissionCriterias.Where(s => s.Gender == null);
+                            }
+
+                            IEnumerable<SubAdmissionCriterion> subPreviousSubAdmissionCriteriasByGender = previousSubAdmissionCriterias.Where(s => s.Gender == subjectGroupParam.Gender);
+                            if (subPreviousSubAdmissionCriteriasByGender.Any())
+                            {
+                                previousSubAdmissionCriterias = subPreviousSubAdmissionCriteriasByGender;
+                            }
+                            else
+                            {
+                                previousSubAdmissionCriterias = previousSubAdmissionCriterias.Where(s => s.Gender == null);
+
+                            }
+
+                            //Check ptts cho tỉnh riêng, chỉ có duy nhất 1 tiêu chí thỏa mãn
+                            SubAdmissionCriterion subCurrentSubAdmissionCriteria = currentSubAdmissionCriterias.Where(s => s.ProvinceId == subjectGroupParam.ProvinceId).FirstOrDefault();
+                            if (subCurrentSubAdmissionCriteria == null)
+                            {
+                                subCurrentSubAdmissionCriteria = currentSubAdmissionCriterias.Where(s => s.ProvinceId == null).FirstOrDefault(); ;
+                            }
+
+                            SubAdmissionCriterion subPreviousSubAdmissionCriteria = previousSubAdmissionCriterias.Where(s => s.ProvinceId == subjectGroupParam.ProvinceId).FirstOrDefault();
+                            if (subPreviousSubAdmissionCriteria == null)
+                            {
+                                subPreviousSubAdmissionCriteria = previousSubAdmissionCriterias.Where(s => s.ProvinceId == null).FirstOrDefault();
+                            }
+
+                            if (subPreviousSubAdmissionCriteria == null || subCurrentSubAdmissionCriteria == null)
+                            {
+                                continue;
+                            }
+
+                            EntryMark currentEntryMark = (await _uow.EntryMarkRepository
+                                    .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == subCurrentSubAdmissionCriteria.Id
+                                        && e.MajorSubjectGroupId != null && e.MajorSubjectGroup.SubjectGroupId == subjectGroupDataSet.Id))
+                                        .FirstOrDefault();
+
+                            EntryMark previousEntryMark = (await _uow.EntryMarkRepository
+                                    .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == subPreviousSubAdmissionCriteria.Id
+                                    && e.MajorSubjectGroupId != null && e.MajorSubjectGroup.SubjectGroupId == subjectGroupDataSet.Id
+                                    && e.Mark != null && e.Mark > 0 && e.Mark <= subjectGroupDataSet.TotalMark))
+                                        .FirstOrDefault();
+
+
+                            if (currentEntryMark == null || previousEntryMark == null)
+                            {
+                                continue;
+                            }
+                            isValid = true;
+                            highestEntryMark = (double)previousEntryMark.Mark > highestEntryMark ? (double)previousEntryMark.Mark : highestEntryMark;
+                        }
+
+                        if (isValid)
+                        {
+                            MajorDataSet majorDataSet = _mapper.Map<MajorDataSet>(major);
+                            majorDataSet.HighestEntryMark = highestEntryMark;
+                            majorDataSets.Add(majorDataSet);
+                        }
+                    }
+
+                    if (majorDataSets.Any())
+                    {
+                        subjectGroupDataSet.SuggestedMajors = majorDataSets;
+                        suggestedSubjectGroups.Add(subjectGroupDataSet);
+                    }
+                }
+
+                suggestedSubjectGroups = suggestedSubjectGroups.OrderByDescending(o => o.TotalMark).ToList();
+
+                if (suggestedSubjectGroups.Count() > Consts.NUMBER_OF_SUGGESTED_GROUP)
+                {
+                    var groupMark = suggestedSubjectGroups.ToList()[Consts.NUMBER_OF_SUGGESTED_GROUP].TotalMark;
+                    suggestedSubjectGroups = suggestedSubjectGroups.Where(s => s.TotalMark >= groupMark).ToList();
+                }
+
+                var groupByMarks = suggestedSubjectGroups.GroupBy(s => s.TotalMark).OrderByDescending(g => g.Key);
+                var smallestTop = 0;
+                for (var i = 0; i < groupByMarks.Count(); i++)
+                {
+                    foreach (var group in groupByMarks.ToList()[i])
+                    {
+                        group.Top = i + 1;
+                        smallestTop = group.Top;
+                    }
+                }
+
+                foreach (SubjectGroupDataSet suggestGroup in suggestedSubjectGroups)
+                {
+                    suggestGroup.SubjectDataSets = (await _uow.SubjecGroupDetailRepository
+                            .Get(filter: s => s.SubjectId != null && s.SubjectGroupId == suggestGroup.Id,
+                                includeProperties: "Subject")).Select(s => _mapper.Map<SubjectDataSet>(s.Subject)).ToList();
+                    suggestGroup.SpecialSubjectGroupDataSets = (await _uow.SubjecGroupDetailRepository
+                            .Get(filter: s => s.SpecialSubjectGroupId != null && s.SubjectGroupId == suggestGroup.Id,
+                                 includeProperties: "SpecialSubjectGroup")).Select(s => _mapper.Map<SpecialSubjectGroupDataSet>(s.SpecialSubjectGroup)).ToList();
+                    //Tính trọng số từng ngành
+                    suggestGroup.SuggestedMajors = await GenerateListMajors(subjectGroupParam, suggestGroup.SuggestedMajors, suggestGroup.Id);
+                }
+
+                List<SubjectGroupDataSet> results = suggestedSubjectGroups.Where(s => s.SuggestedMajors.Count() > 0).ToList();
+
+                if (isPriority && subjectGroupParam.SubjectGroupIds.Count > results.Count())
+                {
+                    foreach (var groupId in subjectGroupParam.SubjectGroupIds)
+                    {
+                        var existedGroup = results.FirstOrDefault(s => s.Id == groupId);
+                        if (existedGroup == null)
+                        {
+                            var subjectGroup = await _uow.SubjectGroupRepository.GetById(groupId);
+                            if (subjectGroup == null)
+                            {
+                                continue;
+                            }
+                            results.Add(new SubjectGroupDataSet()
+                            {
+                                Id = groupId,
+                                Name = subjectGroup.GroupCode,
+                                SpecialSubjectGroupDataSets = (await _uow.SubjecGroupDetailRepository
+                                    .Get(filter: s => s.SpecialSubjectGroupId != null && s.SubjectGroupId == groupId,
+                                        includeProperties: "SpecialSubjectGroup"))
+                                    .Select(s => _mapper.Map<SpecialSubjectGroupDataSet>(s.SpecialSubjectGroup)).ToList(),
+                                SubjectDataSets = (await _uow.SubjecGroupDetailRepository
+                                    .Get(filter: s => s.SubjectId != null && s.SubjectGroupId == groupId,
+                                        includeProperties: "Subject"))
+                                    .Select(s => _mapper.Map<SubjectDataSet>(s.Subject)).ToList(),
+                                Top = smallestTop + 1,
+                                TotalMark = 0,
+                                SuggestedMajors = new List<MajorDataSet>()
+                            });
+                        }
+                    }
+                }
+
+                response.Succeeded = true;
+                response.Data = results;
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+            return response;
+        }
         private async Task<List<MajorDataSet>> GenerateListMajors(SubjectGroupParam subjectGroupParam,
             List<MajorDataSet> suggestedMajors, int subjectGroupId)
         {
