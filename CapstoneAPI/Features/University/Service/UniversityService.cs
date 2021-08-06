@@ -907,54 +907,54 @@ namespace CapstoneAPI.Features.University.Service
                         
                         majorDetailUniDataSet.SeasonId = detailWithAMajor.Season.Id;
                         majorDetailUniDataSet.SeasonName = detailWithAMajor.Season.Name;
-                        if (detailWithAMajor.AdmissionCriterion == null)
+                        if (detailWithAMajor.AdmissionCriterion != null)
                         {
-                            continue;
-                        }
-                        majorDetailUniDataSet.AdmissionQuantity = detailWithAMajor.AdmissionCriterion.Quantity;
-                        IEnumerable<Models.SubAdmissionCriterion> subAdmissionCriteria = await _uow.SubAdmissionCriterionRepository.
-                                                   Get(filter: s => s.AdmissionCriterionId == detailWithAMajor.AdmissionCriterion.MajorDetailId
-                                                   && s.Status == Consts.STATUS_ACTIVE,
-                                                   includeProperties: "Province,AdmissionMethod");
-                        foreach (Models.SubAdmissionCriterion subAdmission in subAdmissionCriteria)
-                        {
-                            MajorDetailSubAdmissionDataSet majorDetailSubAdmissionDataSet = new MajorDetailSubAdmissionDataSet();
-                            majorDetailSubAdmissionDataSet.Id = subAdmission.Id;
-                            majorDetailSubAdmissionDataSet.Quantity = subAdmission.Quantity;
-                            majorDetailSubAdmissionDataSet.ProvinceId = subAdmission.ProvinceId;
-                            if (subAdmission.ProvinceId != null)
+                            majorDetailUniDataSet.AdmissionQuantity = detailWithAMajor.AdmissionCriterion.Quantity;
+                            IEnumerable<Models.SubAdmissionCriterion> subAdmissionCriteria = await _uow.SubAdmissionCriterionRepository.
+                                                       Get(filter: s => s.AdmissionCriterionId == detailWithAMajor.AdmissionCriterion.MajorDetailId
+                                                       && s.Status == Consts.STATUS_ACTIVE,
+                                                       includeProperties: "Province,AdmissionMethod");
+                            foreach (Models.SubAdmissionCriterion subAdmission in subAdmissionCriteria)
                             {
-                                majorDetailSubAdmissionDataSet.ProvinceName = subAdmission.Province.Name;
-                            }
-                            majorDetailSubAdmissionDataSet.GenderId = subAdmission.Gender;
-                            if (subAdmission.AdmissionMethod != null)
-                            {
-                                majorDetailSubAdmissionDataSet.AdmissionMethodId = subAdmission.AdmissionMethod.Id;
-                                majorDetailSubAdmissionDataSet.AdmissionMethodName = subAdmission.AdmissionMethod.Name;
-                            }
-                            IEnumerable<Models.EntryMark> entryMarks = await _uow.EntryMarkRepository.Get(e => e.SubAdmissionCriterionId == subAdmission.Id
-                            && e.Status == Consts.STATUS_ACTIVE,
-                               includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup");
-                            foreach (Models.EntryMark entry in entryMarks)
-                            {
-                                MajorDetailEntryMarkDataset majorDetailEntryMarkDataset = new MajorDetailEntryMarkDataset();
-                                majorDetailEntryMarkDataset.Id = entry.Id;
-                                majorDetailEntryMarkDataset.Mark = entry.Mark;
-                                majorDetailEntryMarkDataset.MajorSubjectGoupId = entry.MajorSubjectGroup.Id;
-                                majorDetailEntryMarkDataset.SubjectGroupId = entry.MajorSubjectGroup.SubjectGroup.Id;
-                                majorDetailEntryMarkDataset.SubjectGroupCode = entry.MajorSubjectGroup.SubjectGroup.GroupCode;
-                                if (majorDetailSubAdmissionDataSet.MajorDetailEntryMarks == null)
+                                MajorDetailSubAdmissionDataSet majorDetailSubAdmissionDataSet = new MajorDetailSubAdmissionDataSet();
+                                majorDetailSubAdmissionDataSet.Id = subAdmission.Id;
+                                majorDetailSubAdmissionDataSet.Quantity = subAdmission.Quantity;
+                                majorDetailSubAdmissionDataSet.ProvinceId = subAdmission.ProvinceId;
+                                if (subAdmission.ProvinceId != null)
                                 {
-                                    majorDetailSubAdmissionDataSet.MajorDetailEntryMarks = new List<MajorDetailEntryMarkDataset>();
+                                    majorDetailSubAdmissionDataSet.ProvinceName = subAdmission.Province.Name;
                                 }
-                                majorDetailSubAdmissionDataSet.MajorDetailEntryMarks.Add(majorDetailEntryMarkDataset);
+                                majorDetailSubAdmissionDataSet.GenderId = subAdmission.Gender;
+                                if (subAdmission.AdmissionMethod != null)
+                                {
+                                    majorDetailSubAdmissionDataSet.AdmissionMethodId = subAdmission.AdmissionMethod.Id;
+                                    majorDetailSubAdmissionDataSet.AdmissionMethodName = subAdmission.AdmissionMethod.Name;
+                                }
+                                IEnumerable<Models.EntryMark> entryMarks = await _uow.EntryMarkRepository.Get(e => e.SubAdmissionCriterionId == subAdmission.Id
+                                && e.Status == Consts.STATUS_ACTIVE,
+                                   includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup");
+                                foreach (Models.EntryMark entry in entryMarks)
+                                {
+                                    MajorDetailEntryMarkDataset majorDetailEntryMarkDataset = new MajorDetailEntryMarkDataset();
+                                    majorDetailEntryMarkDataset.Id = entry.Id;
+                                    majorDetailEntryMarkDataset.Mark = entry.Mark;
+                                    majorDetailEntryMarkDataset.MajorSubjectGoupId = entry.MajorSubjectGroup.Id;
+                                    majorDetailEntryMarkDataset.SubjectGroupId = entry.MajorSubjectGroup.SubjectGroup.Id;
+                                    majorDetailEntryMarkDataset.SubjectGroupCode = entry.MajorSubjectGroup.SubjectGroup.GroupCode;
+                                    if (majorDetailSubAdmissionDataSet.MajorDetailEntryMarks == null)
+                                    {
+                                        majorDetailSubAdmissionDataSet.MajorDetailEntryMarks = new List<MajorDetailEntryMarkDataset>();
+                                    }
+                                    majorDetailSubAdmissionDataSet.MajorDetailEntryMarks.Add(majorDetailEntryMarkDataset);
+                                }
+                                if (majorDetailUniDataSet.MajorDetailSubAdmissions == null)
+                                {
+                                    majorDetailUniDataSet.MajorDetailSubAdmissions = new List<MajorDetailSubAdmissionDataSet>();
+                                }
+                                majorDetailUniDataSet.MajorDetailSubAdmissions.Add(majorDetailSubAdmissionDataSet);
                             }
-                            if (majorDetailUniDataSet.MajorDetailSubAdmissions == null)
-                            {
-                                majorDetailUniDataSet.MajorDetailSubAdmissions = new List<MajorDetailSubAdmissionDataSet>();
-                            }
-                            majorDetailUniDataSet.MajorDetailSubAdmissions.Add(majorDetailSubAdmissionDataSet);
                         }
+                        
                         if (uniMajorDataSet.MajorDetailUnies == null)
                         {
                             uniMajorDataSet.MajorDetailUnies = new List<MajorDetailUniDataSet>();
