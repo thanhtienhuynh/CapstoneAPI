@@ -1372,6 +1372,7 @@ namespace CapstoneAPI.Features.Article.Service
                     foreach (var article in articles)
                     {
                         article.Status = Articles.Expired;
+                        article.ImportantLevel = null;
                     }
                     _uow.ArticleRepository.UpdateRange(articles);
                     if ((await _uow.CommitAsync()) <= 0)

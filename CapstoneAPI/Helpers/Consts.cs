@@ -33,10 +33,6 @@ namespace CapstoneAPI.Helpers
         public static int DEFAULT_WEIGHT_NUMBER = 1;
         public static int DEFAULT_MAX_SCORE = 10;
 
-        //Rank type
-        public static int RANK_TYPE_THPTQG = 1;
-        public static int RANK_TYPE_HT = 3;
-        public static int RANK_TYPE_HB = 2;
         //Fibase for Logo University
         public static List<string> IMAGE_EXTENSIONS = new List<string> { ".JPG", ".JPE", ".BMP", ".GIF", ".PNG", ".JFIF" };
         public static string LOGO_FOLDER = "abc/AvatarUniversity";

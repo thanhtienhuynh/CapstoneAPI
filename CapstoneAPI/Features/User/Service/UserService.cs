@@ -260,7 +260,7 @@
                 response.Errors.Add("Bạn chưa đăng nhập!");
                 return response;
             }
-            if (registerToken == null)
+            if (registerToken == null || registerToken.token == null)
             {
                 response.Succeeded = false;
                 if (response.Errors == null)
@@ -303,7 +303,7 @@
                 response.Errors.Add("Bạn chưa đăng nhập!");
                 return response;
             }
-            if (registerToken == null)
+            if (registerToken == null || registerToken.token == null)
             {
                 response.Succeeded = false;
                 if (response.Errors == null)
