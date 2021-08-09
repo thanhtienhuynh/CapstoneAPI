@@ -229,18 +229,16 @@ namespace CapstoneAPI.Features.University.Service
                         if (trainingProgramDataSet.FollowingDetail == null)
                         {
                             trainingProgramDataSet.NumberOfCaring += 1;
-                            IEnumerable<Models.Rank> ranks = (await _uow.FollowingDetailRepository
+                            
+                        }
+
+                        IEnumerable<Models.Rank> ranks = (await _uow.FollowingDetailRepository
                                                                 .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE,
                                                                     includeProperties: "Rank"))
                                                                 .Select(u => u.Rank).Where(r => r != null);
-                            trainingProgramDataSet.Rank = _uow.RankRepository
-                                .CalculateRank(universityParam.TranscriptTypeId, universityParam.TotalMark, ranks);
-                        } else
-                        {
-                            trainingProgramDataSet.Rank = (await _uow.RankRepository
-                                .GetById(trainingProgramDataSet.FollowingDetail.Id)).Position;
-                        }
-                        
+                        trainingProgramDataSet.Rank = _uow.RankRepository
+                            .CalculateRank(universityParam.TranscriptTypeId, universityParam.TotalMark, ranks, (double) previousEntryMark.Mark);
+
                         double? ration = null;
                         
                         if (currentSeasonDataSet.NumberOfStudents != null)
@@ -556,7 +554,7 @@ namespace CapstoneAPI.Features.University.Service
                                                                 .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE,
                                                                     includeProperties: "Rank"))
                                                                 .Select(u => u.Rank).Where(r => r != null);
-                        trainingProgramDataSet.Rank = _uow.RankRepository.CalculateRank(3, totalMark, ranks);
+                        trainingProgramDataSet.Rank = _uow.RankRepository.CalculateRank(3, totalMark, ranks, (double) previousEntryMark.Mark);
                         double? ration = null;
 
                         if (currentSeasonDataSet.NumberOfStudents != null)

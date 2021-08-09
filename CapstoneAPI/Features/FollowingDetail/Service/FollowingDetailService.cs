@@ -46,6 +46,7 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                 }
 
                 Models.Season currentSeason = await _uow.SeasonRepository.GetCurrentSeason();
+                Models.Season previousSeason = await _uow.SeasonRepository.GetPreviousSeason();
 
                 if (currentSeason == null)
                 {
@@ -57,6 +58,11 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                     response.Errors.Add("Mùa tuyển sinh chưa được kích hoạt!");
                     return response;
                 }
+                SeasonDataSet previousSeasonDataSet = new SeasonDataSet
+                {
+                    Id = previousSeason.Id,
+                    Name = previousSeason.Name
+                };
 
                 Models.User user = await _uow.UserRepository.GetUserByToken(token);
 
@@ -106,7 +112,9 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                                                                 && e.MajorSubjectGroup.SubjectGroupId == followingDetailParam.SubjectGroupId
                                                                 && e.Status == Consts.STATUS_ACTIVE,
                                                                 includeProperties: "SubAdmissionCriterion");
+
                 EntryMark entryMark = null;
+
 
                 if (entryMarks.Where(e => e.SubAdmissionCriterion.Gender == followingDetailParam.SubjectGroupParam.Gender).Any())
                 {
@@ -159,7 +167,7 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                             IsUpdate = true,
                             TotalMark = followingDetailParam.TotalMark,
                             UpdatedDate = JWTUtils.GetCurrentTimeInVN(),
-                            Position = _uow.RankRepository.CalculateRank(followingDetailParam.SubjectGroupParam.TranscriptTypeId, followingDetailParam.TotalMark, ranks)
+                            Position = followingDetailParam.Position
                         }
                     };
                     _uow.FollowingDetailRepository.Insert(followingDetail);
@@ -785,8 +793,9 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                 }
                 followingDetails = followingDetailsGroupsByUser.Select(g => g.FirstOrDefault());
 
-                IEnumerable<IGrouping<TranscriptType, Models.FollowingDetail>> followingDetailsGroupsByTranscriptType = followingDetails.GroupBy(u => u.Rank.TranscriptType)
-                                                                                                                        .OrderByDescending(g => g.Key.Priority);
+                IEnumerable<IGrouping<TranscriptType, Models.FollowingDetail>> followingDetailsGroupsByTranscriptType =
+                        followingDetails.Where(f => f.Rank.TotalMark >= previousSeasonDataSet.EntryMark).GroupBy(u => u.Rank.TranscriptType)
+                        .OrderByDescending(g => g.Key.Priority);
 
                 var rankingUserInformationGroupByTranscriptTypes = new List<RankingUserInformationGroupByTranscriptType>();
 
@@ -807,6 +816,23 @@ namespace CapstoneAPI.Features.FollowingDetail.Service
                     rankingUserInformationGroupByTranscriptType.RankingUserInformations = rankingUserInformations.OrderBy(r => r.Position).ThenByDescending(r => r.TotalMark).ToList();
                     rankingUserInformationGroupByTranscriptTypes.Add(rankingUserInformationGroupByTranscriptType);
                 }
+
+                //Check out of uni
+                var outRankingUserInformationGroupByTranscriptType = new RankingUserInformationGroupByTranscriptType();
+                List<RankingUserInformation> outRankingUserInformations = new List<RankingUserInformation>();
+                foreach (var outFollowing in followingDetails.Where(f => f.Rank.TotalMark < previousSeasonDataSet.EntryMark))
+                {
+                    RankingUserInformation rankingUserInformation = _mapper.Map<RankingUserInformation>(outFollowing.User);
+                    rankingUserInformation.GroupCode = outFollowing.EntryMark.MajorSubjectGroup.SubjectGroup.GroupCode;
+                    rankingUserInformation.Position = outFollowing.Rank.Position;
+                    rankingUserInformation.TotalMark = outFollowing.Rank.TotalMark;
+                    outRankingUserInformations.Add(rankingUserInformation);
+                }
+                outRankingUserInformationGroupByTranscriptType.Name = "Không đủ điều kiện";
+                outRankingUserInformationGroupByTranscriptType.RankingUserInformations = outRankingUserInformations.OrderBy(r => r.Position).ThenByDescending(r => r.TotalMark).ToList();
+                rankingUserInformationGroupByTranscriptTypes.Add(outRankingUserInformationGroupByTranscriptType);
+                //En check out of uni
+
                 rankingInformation.PositionOfUser = followingDetail.Rank.Position;
                 currentSeasonDataSet.EntryMark = followingDetail.EntryMark.Mark;
                 currentSeasonDataSet.NumberOfStudents = followingDetail.EntryMark.SubAdmissionCriterion.Quantity;

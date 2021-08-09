@@ -12,34 +12,45 @@ namespace CapstoneAPI.Features.Rank.Repository
     {
         public RankRepository(CapstoneDBContext context) : base(context) { }
 
-        public int CalculateRank(int transcriptId, double totalMark, IEnumerable<Models.Rank> ranks)
+        public int CalculateRank(int transcriptId, double totalMark, IEnumerable<Models.Rank> ranks, double entryMark)
         {
             int rank = 0;
             if (ranks.Any())
             {
-                if (transcriptId == Consts.RANK_TYPE_HB)
+                if (totalMark >= entryMark)
                 {
-                    int count = ranks.Where(r => r.TotalMark > totalMark
-                                            || r.TranscriptTypeId == Consts.RANK_TYPE_HT
-                                            || r.TranscriptTypeId == Consts.RANK_TYPE_THPTQG)
+                    if (transcriptId == TranscriptTypes.HocBa)
+                    {
+                        int count = ranks.Where(r => r.TotalMark >= entryMark &&
+                            (r.TotalMark > totalMark || r.TranscriptTypeId == TranscriptTypes.ThiThu
+                                                || r.TranscriptTypeId == TranscriptTypes.THPTQG))
+                                                .Count();
+                        rank = count + 1;
+                    }
+                    else if (transcriptId == TranscriptTypes.ThiThu)
+                    {
+                        int count = ranks.Where(r => r.TranscriptTypeId != TranscriptTypes.HocBa
+                                            && r.TotalMark >= entryMark
+                                            && (r.TotalMark > totalMark
+                                                || r.TranscriptTypeId == TranscriptTypes.THPTQG))
+                                            .Count();
+                        rank = count + 1;
+                    }
+                    else if (transcriptId == TranscriptTypes.THPTQG)
+                    {
+                        int count = ranks.Where(r => r.TranscriptTypeId == TranscriptTypes.THPTQG
+                                            && r.TotalMark > totalMark && r.TotalMark >= entryMark)
+                                            .Count();
+                        rank = count + 1;
+                    }
+                }
+                else
+                {
+                    int count = ranks.Where(r => r.TotalMark >= entryMark)
                                             .Count();
                     rank = count + 1;
                 }
-                else if (transcriptId == Consts.RANK_TYPE_HT)
-                {
-                    int count = ranks.Where(r => r.TranscriptTypeId != Consts.RANK_TYPE_HB
-                                        && (r.TotalMark > totalMark
-                                            || r.TranscriptTypeId == Consts.RANK_TYPE_THPTQG))
-                                        .Count();
-                    rank = count + 1;
-                }
-                else if (transcriptId == Consts.RANK_TYPE_THPTQG)
-                {
-                    int count = ranks.Where(r => r.TranscriptTypeId == Consts.RANK_TYPE_THPTQG
-                                        && r.TotalMark > totalMark)
-                                        .Count();
-                    rank = count + 1;
-                }
+                
             }
             else
             {

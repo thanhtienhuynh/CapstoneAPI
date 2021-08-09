@@ -13,6 +13,7 @@ namespace CapstoneAPI.Features.FollowingDetail.DataSet
         public int MajorId { get; set; }
         public int SubjectGroupId { get; set; }
         public double TotalMark { get; set; }
+        public int Position { get; set; }
         public SubjectGroupParam SubjectGroupParam { get; set; }
 
     }
