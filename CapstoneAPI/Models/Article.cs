@@ -15,7 +15,6 @@ namespace CapstoneAPI.Models
 
         public int Id { get; set; }
         public string Title { get; set; }
-        public string HeaderConfig { get; set; }
         public string Content { get; set; }
         public string PublishedPage { get; set; }
         public string RootUrl { get; set; }
