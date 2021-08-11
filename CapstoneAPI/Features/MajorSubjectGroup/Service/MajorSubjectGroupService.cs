@@ -28,7 +28,8 @@ namespace CapstoneAPI.Features.MajorSubjectGroup.Service
             Response<IEnumerable<MajorSubjectGroupDataSet>> response = new Response<IEnumerable<MajorSubjectGroupDataSet>>();
             try
             {
-                IEnumerable<Models.MajorSubjectGroup> majorSubjectGroups = await _uow.MajorSubjectGroupRepository.Get(filter: m => m.MajorId == majorId, includeProperties: "SubjectGroup");
+                IEnumerable<Models.MajorSubjectGroup> majorSubjectGroups = await _uow.MajorSubjectGroupRepository
+                        .Get(filter: m => m.MajorId == majorId && m.Status == Consts.STATUS_ACTIVE, includeProperties: "SubjectGroup");
                 List<MajorSubjectGroupDataSet> result = new List<MajorSubjectGroupDataSet>();
                 if (!majorSubjectGroups.Any())
                 {
@@ -81,7 +82,8 @@ namespace CapstoneAPI.Features.MajorSubjectGroup.Service
                     return response;
                 }
                 Models.MajorSubjectGroup majorSubjectGroup = await _uow.MajorSubjectGroupRepository.GetFirst(filter: m =>
-                        m.MajorId == majorSubjectGroupParam.MajorId && m.SubjectGroupId == majorSubjectGroupParam.SubjectGroupId);
+                                                m.MajorId == majorSubjectGroupParam.MajorId && m.Status == Consts.STATUS_ACTIVE
+                                                && m.SubjectGroupId == majorSubjectGroupParam.SubjectGroupId);
                 if (majorSubjectGroup != null)
                 {
                     response.Succeeded = false;
@@ -89,7 +91,7 @@ namespace CapstoneAPI.Features.MajorSubjectGroup.Service
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Ngành học đã có khối phù hợp!");
+                    response.Errors.Add("Ngành học đã có khối này!");
                     return response;
                 }
                 Models.Major major = await _uow.MajorRepository.GetById(majorSubjectGroupParam.MajorId);
@@ -107,7 +109,8 @@ namespace CapstoneAPI.Features.MajorSubjectGroup.Service
                 Models.MajorSubjectGroup newMajorSubjectGroup = new Models.MajorSubjectGroup
                 {
                     MajorId = majorSubjectGroupParam.MajorId,
-                    SubjectGroupId = majorSubjectGroupParam.SubjectGroupId
+                    SubjectGroupId = majorSubjectGroupParam.SubjectGroupId,
+                    Status = Consts.STATUS_ACTIVE
                 };
                 _uow.MajorSubjectGroupRepository.Insert(newMajorSubjectGroup);
                 if (await _uow.CommitAsync() <= 0)

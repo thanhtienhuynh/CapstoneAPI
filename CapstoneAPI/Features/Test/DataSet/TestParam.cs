@@ -13,5 +13,6 @@ namespace CapstoneAPI.Features.Test.DataSet
     public class SetSuggestedTestParam
     {
         public int TestId { get; set; }
+        public bool IsSuggestTest { get; set; }
     }
 }

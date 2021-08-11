@@ -11,7 +11,7 @@ namespace CapstoneAPI.Features.Test.Service
 {
     public interface ITestService
     {
-        Task<Response<List<SubjectBasedTestDataSet>>> GetFilteredTests(TestParam testParam);
+        Task<Response<List<SubjectBasedTestDataSet>>> GetFilteredTests(string token, TestParam testParam);
         Task<Response<TestDataSet>> GetTestById(int id);
         Task<Response<bool>> AddNewTest(NewTestParam testParam, string token);
         Task<PagedResponse<List<TestPagingDataSet>>> GetTestsByFilter(PaginationFilter validFilter, TestFilter testFilter);

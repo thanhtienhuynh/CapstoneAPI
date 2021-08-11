@@ -43,15 +43,21 @@ using CapstoneAPI.Features.Transcript.Service;
 using CapstoneAPI.Features.University.Service;
 using CapstoneAPI.Features.Configuration.Service;
 using CapstoneAPI.Features.FCM.Service;
+using CapstoneAPI.Features.Notification.Service;
+using Newtonsoft.Json.Linq;
 
 namespace CapstoneAPI
 {
     public class Startup
     {
+        private readonly JObject appConfig;
+
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
-
+            string path = Path.Combine(Path
+                .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\AppConfig.json");
+            appConfig = JObject.Parse(File.ReadAllText(path));
             FirebaseApp.Create(new AppOptions()
             {
                 Credential = GoogleCredential.FromFile(@"FirebaseKey\capstone-7071e-firebase-adminsdk-umiw1-2c95fcab0a.json")
@@ -105,13 +111,26 @@ namespace CapstoneAPI
             // Add our job
             services.AddSingleton<ArticleCrawlerCronJob>();
             services.AddSingleton<RankingCronJob>();
+            services.AddSingleton<ExpireArticleCronJob>();
             //0 */2 * ? * *
             services.AddSingleton(new JobSchedule(
                 jobType: typeof(RankingCronJob),
-                cronExpression: "0 */59 * ? * *"));
+                cronExpression: GetCronJobExpression(
+                    int.Parse(appConfig.SelectToken("UpdateRankTime.Type").ToString()),
+                    int.Parse(appConfig.SelectToken("UpdateRankTime.MinStart").ToString()),
+                    int.Parse(appConfig.SelectToken("UpdateRankTime.Start").ToString()))));
             services.AddSingleton(new JobSchedule(
                 jobType: typeof(ArticleCrawlerCronJob),
-                cronExpression: "0 0 */4 ? * *"));
+                cronExpression: GetCronJobExpression(
+                    int.Parse(appConfig.SelectToken("CrawlTime.Type").ToString()),
+                    int.Parse(appConfig.SelectToken("CrawlTime.MinStart").ToString()),
+                    int.Parse(appConfig.SelectToken("CrawlTime.Start").ToString()))));
+            services.AddSingleton(new JobSchedule(
+                jobType: typeof(ExpireArticleCronJob),
+                cronExpression: GetCronJobExpression(
+                    int.Parse(appConfig.SelectToken("ExpireArticleTime.Type").ToString()),
+                    int.Parse(appConfig.SelectToken("ExpireArticleTime.MinStart").ToString()),
+                    int.Parse(appConfig.SelectToken("ExpireArticleTime.Start").ToString()))));
 
             services.AddHostedService<QuartzHostedService>();
             services.AddSwaggerGen(c =>
@@ -152,6 +171,18 @@ namespace CapstoneAPI
             services.AddTransient<IEmailService, EmailService>();
         }
 
+        private string GetCronJobExpression(int type, int minTime ,int startTime)
+        {
+            switch(type)
+            {
+                case CronExporessionType.EachHours:
+                    return string.Format("0 {0} 0/{1} 1/1 * ? *", minTime.ToString(), startTime.ToString());
+                case CronExporessionType.SpecificHour:
+                    return string.Format("0 {0} {1} 1/1 * ? *", minTime.ToString(), startTime.ToString());
+            }
+            return "0 0 12 1/1 * ? *";
+        }
+
         private void AddServicesScoped(IServiceCollection services)
         {
             services.AddScoped<ISubjectGroupService, SubjectGroupService>();
@@ -174,6 +205,7 @@ namespace CapstoneAPI
             services.AddScoped<IMajorSubjectGroupService, MajorSubjectGroupService>();
             services.AddScoped<ITranscriptService, TranscriptService>();
             services.AddScoped<ITestTypeService, TestTypeService>();
+            services.AddScoped<INotificationService, NotificationService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

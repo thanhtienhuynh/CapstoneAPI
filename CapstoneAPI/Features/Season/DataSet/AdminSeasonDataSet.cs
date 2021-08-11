@@ -11,6 +11,5 @@ namespace CapstoneAPI.Features.Season.DataSet
         public string Name { get; set; }
         public DateTime FromDate { get; set; }
         public DateTime? ToDate { get; set; }
-        public int Status { get; set; }
     }
 }

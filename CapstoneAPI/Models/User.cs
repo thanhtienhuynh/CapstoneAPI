@@ -10,6 +10,7 @@ namespace CapstoneAPI.Models
         public User()
         {
             FollowingDetails = new HashSet<FollowingDetail>();
+            Notifications = new HashSet<Notification>();
             TestSubmissions = new HashSet<TestSubmission>();
             Tests = new HashSet<Test>();
             Transcripts = new HashSet<Transcript>();
@@ -30,6 +31,7 @@ namespace CapstoneAPI.Models
         public virtual Province Province { get; set; }
         public virtual Role Role { get; set; }
         public virtual ICollection<FollowingDetail> FollowingDetails { get; set; }
+        public virtual ICollection<Notification> Notifications { get; set; }
         public virtual ICollection<TestSubmission> TestSubmissions { get; set; }
         public virtual ICollection<Test> Tests { get; set; }
         public virtual ICollection<Transcript> Transcripts { get; set; }

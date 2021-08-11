@@ -1,6 +1,7 @@
 ﻿using CapstoneAPI.Features.Rank.Repository;
 using CapstoneAPI.Features.Season.Repository;
 using CapstoneAPI.Features.Transcript.Repository;
+using CapstoneAPI.Features.User.Repository;
 using CapstoneAPI.Models;
 using Microsoft.EntityFrameworkCore.Storage;
 using System;
@@ -23,7 +24,7 @@ namespace CapstoneAPI.Repositories
         IGenericRepository<Option> OptionRepository { get; }
         IGenericRepository<TestSubmission> TestSubmissionRepository { get; }
         IGenericRepository<Question> QuestionRepository { get; }
-        IGenericRepository<User> UserRepository { get; }
+        IUserRepository UserRepository { get; }
         IGenericRepository<Role> RoleRepository { get; }
         IGenericRepository<MajorDetail> MajorDetailRepository { get; }
         IGenericRepository<Article> ArticleRepository { get; }
@@ -42,6 +43,7 @@ namespace CapstoneAPI.Repositories
         IGenericRepository<MajorArticle> MajorArticleRepository { get; }
         IGenericRepository<TestType> TestTypeRepository { get; }
         IRankRepository RankRepository { get; }
+        IGenericRepository<Notification> NotificationRepository { get; }
         IDbContextTransaction GetTransaction();
         Task<int> CommitAsync();
     }

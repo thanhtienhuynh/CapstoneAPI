@@ -22,6 +22,7 @@ namespace CapstoneAPI.Models
         public string Curriculum { get; set; }
         public string HumanQuality { get; set; }
         public string SalaryDescription { get; set; }
+        public DateTime UpdatedDate { get; set; }
         public int Status { get; set; }
 
         public virtual ICollection<MajorArticle> MajorArticles { get; set; }

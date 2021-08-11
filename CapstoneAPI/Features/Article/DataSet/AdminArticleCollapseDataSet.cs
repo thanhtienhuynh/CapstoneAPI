@@ -20,4 +20,13 @@ namespace CapstoneAPI.Features.Article.DataSet
         public DateTime? CrawlerDate { get; set; }
         public int? ImportantLevel { get; set; }
     }
+
+    public class HomeArticle
+    {
+        public int Type { get; set; }
+        //1 Top
+        //2 Today
+        //3 Old
+        public List<ArticleCollapseDataSet> Articles { get; set; }
+    }
 }

@@ -38,7 +38,7 @@
             {
                 int correctAnswer = 0;
                 Models.Test loadedTest = await _uow.TestRepository.GetById(testSubmissionParam.TestId);
-                if (loadedTest == null)
+                if (loadedTest == null || loadedTest.Status != Consts.STATUS_ACTIVE)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -76,7 +76,7 @@
                     Mark = mark,
                     NumberOfRightAnswers = correctAnswer,
                     SpentTime = testSubmissionParam.SpentTime,
-                    SubmissionDate = DateTime.UtcNow,
+                    SubmissionDate = JWTUtils.GetCurrentTimeInVN(),
                     NumberOfQuestion = loadedTest.NumberOfQuestion,
                     SubjectId = (int)loadedTest.SubjectId,
                     ResultQuestions = resultQuestions
@@ -101,7 +101,9 @@
         {
             Response<bool> response = new Response<bool>();
 
-            if (token == null || token.Trim().Length == 0)
+            User user = await _uow.UserRepository.GetUserByToken(token);
+
+            if (user == null)
             {
                 response.Succeeded = false;
                 if (response.Errors == null)
@@ -112,58 +114,93 @@
                 return response;
             }
 
-            string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-
-            if (userIdString == null || userIdString.Trim().Length <= 0)
-            {
-                response.Succeeded = false;
-                if (response.Errors == null)
-                {
-                    response.Errors = new List<string>();
-                }
-                response.Errors.Add("Tài khoản của bạn không tồn tại!");
-            }
-
-            int userId = Int32.Parse(userIdString);
-
             using var tran = _uow.GetTransaction();
             try
             {
                 foreach (SaveTestSubmissionParam saveTestSubmissionParam in saveTestSubmissionParams)
                 {
-                    TestSubmission testSubmission = new TestSubmission()
+                    Test test = await _uow.TestRepository.GetFirst(filter: t => t.Id == saveTestSubmissionParam.TestId
+                                                                && t.Status == Consts.STATUS_ACTIVE);
+                    if (test == null)
                     {
-                        TestId = saveTestSubmissionParam.TestId,
-                        SpentTime = saveTestSubmissionParam.SpentTime,
-                        SubmissionDate = DateTime.UtcNow,
-                        NumberOfRightAnswers = saveTestSubmissionParam.NumberOfRightAnswers,
-                        Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
-                        UserId = userId
-                    };
-
-                    _uow.TestSubmissionRepository.Insert(testSubmission);
-                    int subjectId = (int)(await _uow.TestRepository.GetById(saveTestSubmissionParam.TestId)).SubjectId;
-
-                    Transcript transcript = await _uow.TranscriptRepository.GetFirst(t => t.TranscriptTypeId == 3 && t.UserId == userId && t.SubjectId == subjectId);
-                    if (transcript != null)
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Bài thi không tồn tại!");
+                        return response;
+                    }
+                    TestSubmission testSubmission = null;
+                    if (saveTestSubmissionParam.TestSubmissionId == null)
                     {
-                        transcript.Mark = Math.Round(saveTestSubmissionParam.Mark, 2);
-                        transcript.DateRecord = DateTime.UtcNow;
-                        transcript.IsUpdate = true;
-                        _uow.TranscriptRepository.Update(transcript);
+                        testSubmission = new TestSubmission()
+                        {
+                            TestId = saveTestSubmissionParam.TestId,
+                            SpentTime = saveTestSubmissionParam.SpentTime,
+                            SubmissionDate = JWTUtils.GetCurrentTimeInVN(),
+                            NumberOfRightAnswers = saveTestSubmissionParam.NumberOfRightAnswers,
+                            Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
+                            UserId = user.Id
+                        };
+                        _uow.TestSubmissionRepository.Insert(testSubmission);
                     }
                     else
                     {
+                        testSubmission = await _uow.TestSubmissionRepository.GetById(saveTestSubmissionParam.TestSubmissionId);
+                        if (testSubmission != null)
+                        {
+                            testSubmission.SpentTime = saveTestSubmissionParam.SpentTime;
+                            testSubmission.SubmissionDate = JWTUtils.GetCurrentTimeInVN();
+                            testSubmission.Mark = Math.Round(saveTestSubmissionParam.Mark, 2);
+                            testSubmission.NumberOfRightAnswers = saveTestSubmissionParam.NumberOfRightAnswers;
+                            _uow.TestSubmissionRepository.Update(testSubmission);
+                        } else
+                        {
+                            testSubmission = new TestSubmission()
+                            {
+                                TestId = saveTestSubmissionParam.TestId,
+                                SpentTime = saveTestSubmissionParam.SpentTime,
+                                SubmissionDate = JWTUtils.GetCurrentTimeInVN(),
+                                NumberOfRightAnswers = saveTestSubmissionParam.NumberOfRightAnswers,
+                                Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
+                                UserId = user.Id
+                            };
+                            _uow.TestSubmissionRepository.Insert(testSubmission);
+                        }
+                    }
+
+                    int subjectId = (int) test.SubjectId;
+                    
+                    if (test.IsSuggestedTest)
+                    {
+                        IEnumerable<Transcript> transcripts = await _uow.TranscriptRepository
+                                .Get(t => t.TranscriptTypeId == TranscriptTypes.ThiThu && t.UserId == user.Id
+                                && t.SubjectId == subjectId && t.Status == Consts.STATUS_ACTIVE);
+
+                        if (transcripts.Any())
+                        {
+                            foreach (Transcript transcript in transcripts)
+                            {
+                                transcript.DateRecord = JWTUtils.GetCurrentTimeInVN();
+                                transcript.IsUpdate = false;
+                                transcript.Status = Consts.STATUS_INACTIVE;
+                            }
+                            _uow.TranscriptRepository.UpdateRange(transcripts);
+                        }
+
                         _uow.TranscriptRepository.Insert(new Transcript()
                         {
-                            UserId = userId,
-                            DateRecord = DateTime.UtcNow,
+                            UserId = user.Id,
+                            DateRecord = JWTUtils.GetCurrentTimeInVN(),
                             Mark = Math.Round(saveTestSubmissionParam.Mark, 2),
-                            TranscriptTypeId = 3,
+                            TranscriptTypeId = TranscriptTypes.ThiThu,
                             SubjectId = subjectId,
-                            IsUpdate = true
+                            IsUpdate = true,
+                            Status = Consts.STATUS_ACTIVE
                         });
                     }
+
 
                     if ((await _uow.CommitAsync()) > 0)
                     {
@@ -218,12 +255,15 @@
             return response;
         }
 
-        public async Task<Response<List<UserTestSubmissionDataSet>>> GetTestSubmissionsByUser(string token, UserTestSubmissionQueryParam param)
+        public async Task<Response<int>> SaveFirstTestSubmission(FirstTestSubmissionParam saveTestSubmissionParam, string token)
         {
-            Response<List<UserTestSubmissionDataSet>> response = new Response<List<UserTestSubmissionDataSet>>();
+            Response<int> response = new Response<int>();
+            using var tran = _uow.GetTransaction();
             try
             {
-                if (token == null || token.Trim().Length == 0)
+                User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -234,24 +274,119 @@
                     return response;
                 }
 
-
-
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-                if (string.IsNullOrEmpty(userIdString) || Int32.TryParse(userIdString, out int userId))
+                Test test = await _uow.TestRepository.GetFirst(filter: t => t.Id == saveTestSubmissionParam.TestId
+                                                                && t.Status == Consts.STATUS_ACTIVE);
+                if (test == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    response.Errors.Add("Bài thi không tồn tại!");
+                    return response;
                 }
 
-                userId = Int32.Parse(userIdString);
+                TestSubmission testSubmission = new TestSubmission()
+                {
+                    TestId = saveTestSubmissionParam.TestId,
+                    SpentTime = 0,
+                    SubmissionDate = JWTUtils.GetCurrentTimeInVN(),
+                    NumberOfRightAnswers = 0,
+                    Mark = 0,
+                    UserId = user.Id
+                };
+
+                IEnumerable<Transcript> transcripts = await _uow.TranscriptRepository
+                                            .Get(filter: t => t.SubjectId == test.SubjectId
+                                                        && t.UserId == user.Id
+                                                        && t.TranscriptTypeId == TranscriptTypes.ThiThu
+                                                        && t.Status == Consts.STATUS_ACTIVE);
+                if (transcripts.Any())
+                {
+                    foreach (Transcript transcript in transcripts)
+                    {
+                        transcript.Status = Consts.STATUS_INACTIVE;
+                        transcript.DateRecord = JWTUtils.GetCurrentTimeInVN();
+                    }
+                    _uow.TranscriptRepository.UpdateRange(transcripts);
+                }
+
+                Transcript newTranscript = new Transcript()
+                {
+                    Mark = 0,
+                    SubjectId = (int) test.SubjectId,
+                    UserId = user.Id,
+                    TranscriptTypeId = TranscriptTypes.ThiThu,
+                    DateRecord = JWTUtils.GetCurrentTimeInVN(),
+                    IsUpdate = true,
+                    Status = Consts.STATUS_ACTIVE
+                };
+
+                _uow.TranscriptRepository.Insert(newTranscript);
+                _uow.TestSubmissionRepository.Insert(testSubmission);
+
+                if ((await _uow.CommitAsync()) <= 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Lưu không thành công, lỗi hệ thống!");
+                }
+                
+                tran.Commit();
+                response.Succeeded = true;
+                response.Data = testSubmission.Id;
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                tran.Rollback();
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add(ex.Message);
+            }
+            return response;
+        }
+
+        public async Task<Response<List<UserTestSubmissionDataSet>>> GetTestSubmissionsByUser(string token, UserTestSubmissionQueryParam param)
+        {
+            Response<List<UserTestSubmissionDataSet>> response = new Response<List<UserTestSubmissionDataSet>>();
+            try
+            {
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Bạn chưa đăng nhập!");
+                    return response;
+                }
+
+                if (!user.IsActive)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
+                    return response;
+                }
+
                 IEnumerable<TestSubmission> testSubmissionDataSets = (await _uow.TestSubmissionRepository
-                    .Get(filter: t => t.UserId == userId,
+                    .Get(filter: t => t.UserId == user.Id,
                         includeProperties: "Test",
-                        orderBy: t => t.OrderBy(t => t.SpentTime))).GroupBy(t => t.TestId).Select(g => g.Last());
+                        orderBy: t => t.OrderBy(t => t.SubmissionDate))).GroupBy(t => t.TestId).Select(g => g.Last());
                 if (param.SubjectId != null)
                 {
                     testSubmissionDataSets = testSubmissionDataSets.Where(t => t.Test.SubjectId == param.SubjectId);
@@ -264,25 +399,25 @@
                 {
                     testSubmissionDataSets = testSubmissionDataSets.Where(t => t.Test.IsSuggestedTest == param.IsSuggestedTest);
                 }
-                switch (param.Order ?? 2)
+                switch (param.Order ?? 1)
                 {
                     case 1:
-                        testSubmissionDataSets.OrderByDescending(a => a.SubmissionDate);
+                        testSubmissionDataSets = testSubmissionDataSets.OrderByDescending(a => a.SubmissionDate);
                         break;
                     case 2:
-                        testSubmissionDataSets.OrderBy(a => a.SubmissionDate);
+                        testSubmissionDataSets = testSubmissionDataSets.OrderBy(a => a.SubmissionDate);
                         break;
                     case 3:
-                        testSubmissionDataSets.OrderByDescending(a => a.Test.Year);
+                        testSubmissionDataSets = testSubmissionDataSets.OrderByDescending(a => a.Test.Year);
                         break;
                     case 4:
-                        testSubmissionDataSets.OrderBy(a => a.Test.Year);
+                        testSubmissionDataSets = testSubmissionDataSets.OrderBy(a => a.Test.Year);
                         break;
                     case 5:
-                        testSubmissionDataSets.OrderByDescending(a => a.Test.Name);
+                        testSubmissionDataSets = testSubmissionDataSets.OrderByDescending(a => a.Test.Name);
                         break;
                     case 6:
-                        testSubmissionDataSets.OrderBy(a => a.Test.Name);
+                        testSubmissionDataSets = testSubmissionDataSets.OrderBy(a => a.Test.Name);
                         break;
                 }
                 if (!testSubmissionDataSets.Any())
@@ -297,7 +432,7 @@
                     userTestSubmissionDataSet.TimeLimit = (int)testSubmission.Test.TimeLimit;
                     userTestSubmissionDataSet.NumberOfQuestion = testSubmission.Test.NumberOfQuestion;
                     userTestSubmissionDataSet.NumberOfCompletion = (await _uow.TestSubmissionRepository
-                        .Get(filter: t => t.UserId == userId && t.TestId == testSubmission.TestId)).Count();
+                        .Get(filter: t => t.UserId == user.Id && t.TestId == testSubmission.TestId)).Count();
                     userTestSubmissionDataSet.TestName = testSubmission.Test.Name;
                     userTestSubmissionDataSet.SubmissionDate = DateTime.Parse(userTestSubmissionDataSet.SubmissionDate.ToString("MM/dd/yyyy h:mm tt"));
                     userTestSubmissionDataSets.Add(userTestSubmissionDataSet);
@@ -328,7 +463,9 @@
 
             try
             {
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -339,21 +476,18 @@
                     return response;
                 }
 
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-
-                if (userIdString == null || userIdString.Trim().Length <= 0)
+                if (!user.IsActive)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
                     return response;
                 }
-                int userId = Int32.Parse(userIdString);
                 TestSubmission testSubmission = await _uow.TestSubmissionRepository
-                   .GetFirst(filter: t => t.Id == testSubmissionId && t.UserId == userId,
+                   .GetFirst(filter: t => t.Id == testSubmissionId && t.UserId == user.Id,
                             includeProperties: "Test");
 
                 if (testSubmission == null)
@@ -394,7 +528,7 @@
                 DetailTestSubmissionDataSet detailTestSubmissionDataSet = _mapper.Map<DetailTestSubmissionDataSet>(testSubmission);
 
                 detailTestSubmissionDataSet.NumberOfCompletion = (await _uow.TestSubmissionRepository
-                            .Get(filter: t => t.UserId == userId && t.TestId == testSubmission.TestId)).Count();
+                            .Get(filter: t => t.UserId == user.Id && t.TestId == testSubmission.TestId)).Count();
                 detailTestSubmissionDataSet.QuestionSubmissions = questionSubmissionDataSets;
                 detailTestSubmissionDataSet.NumberOfQuestion = testSubmission.Test.NumberOfQuestion;
                 detailTestSubmissionDataSet.TimeLimit = (int)testSubmission.Test.TimeLimit;
@@ -417,9 +551,10 @@
             return response;
         }
 
-        public async Task<IEnumerable<QuestionDataSet>> ScoringTest1()
+        public async Task<IEnumerable<QuestionDataSet>> ScoringTest1(int testId)
         {
-            IEnumerable<Question> datas = await _uow.QuestionRepository.Get(filter: q => q.TestId == 4);
+            IEnumerable<Question> datas = await _uow.QuestionRepository.Get(filter: q => q.TestId == testId,
+                    orderBy: q => q.OrderBy(q => q.Ordinal));
             return datas.Select(t => _mapper.Map<QuestionDataSet>(t));
         }
     }

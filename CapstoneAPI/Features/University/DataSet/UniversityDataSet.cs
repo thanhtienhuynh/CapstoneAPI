@@ -20,6 +20,7 @@ namespace CapstoneAPI.Features.University.DataSet
         public int? TuitionFrom { get; set; }
         public int? TuitionTo { get; set; }
         public int? Rating { get; set; }
+        public double HighestEntryMark { get; set; }
         public List<TrainingProgramDataSet> TrainingProgramSets { get; set; }
     }
 
@@ -27,9 +28,11 @@ namespace CapstoneAPI.Features.University.DataSet
     {
         public int Id { get; set; }
         public string Name { get; set; }
-        public int? NumberOfCaring { get; set; }
+        public int NumberOfCaring { get; set; }
         public FollowingDetailDataSet FollowingDetail { get; set; }
         public int Rank { get; set; }
+        public double? Ratio { get; set; }
+        public int DividedClass { get; set; }
         public List<SeasonDataSet> SeasonDataSets { get; set; }
     }
 

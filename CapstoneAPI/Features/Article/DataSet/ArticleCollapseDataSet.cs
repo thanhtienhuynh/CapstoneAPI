@@ -11,8 +11,11 @@ namespace CapstoneAPI.Features.Article.DataSet
         public string Title { get; set; }
         public string PublishedPage { get; set; }
         public DateTime? PostedDate { get; set; }
+        public DateTime PublicFromDate { get; set; }
         public string ShortDescription { get; set; }
         public string PostImageUrl { get; set; }
+        public string TimeAgo { get; set; }
         public int? Status { get; set; }
     }
+
 }

@@ -37,11 +37,24 @@
             _mapper = mapper;
         }
 
-        public async Task<Response<List<SubjectBasedTestDataSet>>> GetFilteredTests(TestParam testParam)
+        public async Task<Response<List<SubjectBasedTestDataSet>>> GetFilteredTests(string token, TestParam testParam)
         {
             Response<List<SubjectBasedTestDataSet>> response = new Response<List<SubjectBasedTestDataSet>>();
             try
             {
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Bạn chưa đăng nhập!");
+                    return response;
+                }
+
                 List<SubjectBasedTestDataSet> testsReponse = new List<SubjectBasedTestDataSet>();
                 List<int> subjectIds = new List<int>();
                 IEnumerable<SubjectGroupDetail> subjectGroupDetails = null;
@@ -76,20 +89,68 @@
                 }
                 if (subjectIds.Any())
                 {
+
                     foreach (int subjectId in subjectIds)
                     {
+                        Transcript transcript = await _uow.TranscriptRepository.GetFirst(
+                        filter: t => t.UserId == user.Id && t.SubjectId == subjectId && t.Status == Consts.STATUS_ACTIVE
+                                && t.TranscriptTypeId == TranscriptTypes.ThiThu);
+                        double? daysRemaining = null;
+                        double? userTranscript = null;
+                        if (transcript != null && transcript.DateRecord != null)
+                        {
+                            userTranscript = transcript.Mark;
+                            if (DateTime.Compare(transcript.DateRecord.Date.AddDays(90), JWTUtils.GetCurrentTimeInVN().Date) > 0)
+                            {
+                                daysRemaining = transcript.DateRecord.Date.AddDays(90).Subtract(JWTUtils.GetCurrentTimeInVN().Date).TotalDays;
+                            }
+                        }
+
                         IEnumerable<Test> clasifiedTests = await _uow.TestRepository
                                                     .Get(filter: test => test.Status == Consts.STATUS_ACTIVE
                                                         && test.IsSuggestedTest
                                                         && test.SubjectId == subjectId);
-                        if (clasifiedTests.Any())
+
+                        if (!clasifiedTests.Any())
+                        {
+                            continue;
+                        }
+
+                        Dictionary<Test, int> testSubmissionCounts = new Dictionary<Test, int>();
+                        int highestCount = 0;
+                        foreach(Test test in clasifiedTests)
+                        {
+                            int count = (await _uow.TestSubmissionRepository.Get(
+                                        filter: t => t.TestId == test.Id && t.UserId == user.Id)).Count();
+                            testSubmissionCounts.Add(test, count);
+                            highestCount = count > highestCount ? count : highestCount;
+                        }
+
+                        Dictionary<Test, int> randomTestCounts = testSubmissionCounts.Where(t => t.Value < highestCount)
+                            .ToDictionary(x => x.Key, x => x.Value);
+                        List<Test> randomTests;
+                        if (randomTestCounts.Any())
+                        {
+                            randomTests = randomTestCounts.Keys.ToList();
+                        } else
+                        {
+                            randomTests = testSubmissionCounts.Keys.ToList();
+                        }
+
+                        Random rnd = new Random();
+                        int r = rnd.Next(randomTests.Count);
+                        Test clasifiedTest = randomTests[r];
+
+                        if (clasifiedTest != null)
                         {
                             testsReponse.Add(new SubjectBasedTestDataSet()
-                            {
-                                SubjectId = subjectId,
-                                Tests = clasifiedTests.Select(t => _mapper.Map<TestDataSet>(t)).ToList(),
-                                UniversityId = null
-                            }
+                                {
+                                    SubjectId = subjectId,
+                                    Test =_mapper.Map<TestDataSet>(clasifiedTest),
+                                    UniversityId = null,
+                                    DaysRemaining = daysRemaining,
+                                    LastTranscript = userTranscript
+                                }
                             );
                         }
                     }
@@ -172,7 +233,9 @@
             using var tran = _uow.GetTransaction();
             try
             {
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -183,20 +246,6 @@
                     return response;
                 }
 
-
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-
-                if (userIdString == null || userIdString.Length <= 0)
-                {
-                    response.Succeeded = false;
-                    if (response.Errors == null)
-                    {
-                        response.Errors = new List<string>();
-                    }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
-                    return response;
-                }
-                int userId = Int32.Parse(userIdString);
                 string path = Path.Combine(Path
                     .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
                 JObject configuration = JObject.Parse(File.ReadAllText(path));
@@ -217,7 +266,7 @@
                                 question.Result += "0";
                             }
                         }
-                        if (question.Type == 1 && question.Result.Count(r => r == '1') != 1)
+                        if (question.Type == QuestionTypes.SingleChoice && question.Result.Count(r => r == '1') != 1)
                         {
                             response.Succeeded = false;
                             if (response.Errors == null)
@@ -237,7 +286,7 @@
                 }
                 Test t = _mapper.Map<Test>(testParam);
                 t.NumberOfQuestion = t.Questions.Count();
-                t.UserId = userId;
+                t.UserId = user.Id;
                 t.Status = Consts.STATUS_ACTIVE;
                 t.IsSuggestedTest = false;
                 foreach (var item in t.Questions)
@@ -317,10 +366,7 @@
                     return response;
                 }
 
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
-                DateTime currentDate = DateTime.UtcNow.AddHours(double.Parse(currentTimeZone));
-                t.CreateDate = currentDate;
-
+                t.CreateDate = JWTUtils.GetCurrentTimeInVN();
 
                 _uow.TestRepository.Insert(t);
 
@@ -413,7 +459,7 @@
                         testPagingDataSet.SubjectName = test.Subject.Name;
                         testPagingDataSets.Add(testPagingDataSet);
                     }
-                    var totalRecords = _uow.TestRepository.Count(filter);
+                    var totalRecords = await _uow.TestRepository.Count(filter);
                     result = PaginationHelper.CreatePagedReponse(testPagingDataSets, validFilter, totalRecords);
                 }
             }
@@ -464,7 +510,9 @@
             var tran = _uow.GetTransaction();
             try
             {
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -474,26 +522,11 @@
                     response.Errors.Add("Bạn chưa đăng nhập!");
                     return response;
                 }
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
 
-                if (userIdString == null || userIdString.Length <= 0)
-                {
-                    response.Succeeded = false;
-                    if (response.Errors == null)
-                    {
-                        response.Errors = new List<string>();
-                    }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
-                    return response;
-                }
-                int userId = Int32.Parse(userIdString);
-
-                string path = Path.Combine(Path
-                    .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
-                JObject configuration = JObject.Parse(File.ReadAllText(path));
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
-                DateTime currentDate = DateTime.UtcNow.AddHours(double.Parse(currentTimeZone));
-                Models.Test test = await _uow.TestRepository.GetFirst(filter: t => t.Id == testParam.Id, includeProperties: "Questions");
+                DateTime currentDate = JWTUtils.GetCurrentTimeInVN();
+                Models.Test test = await _uow.TestRepository.GetFirst(
+                    filter: t => t.Id == testParam.Id && t.Status == Consts.STATUS_ACTIVE, 
+                    includeProperties: "Questions");
                 if (test == null)
                 {
                     response.Succeeded = false;
@@ -596,7 +629,7 @@
                         CreateDate = currentDate,
                         SubjectId = testParam.SubjectId,
                         TestTypeId = testParam.TestTypeId,
-                        UserId = userId,
+                        UserId = user.Id,
                         UniversityId = testParam.UniversityId,
                         Year = testParam.Year,
                         TimeLimit = testParam.TimeLimit,
@@ -650,7 +683,7 @@
                         test.CreateDate = currentDate;
                         test.SubjectId = testParam.SubjectId;
                         test.TestTypeId = testParam.TestTypeId;
-                        test.UserId = userId;
+                        test.UserId = user.Id;
                         test.UniversityId = testParam.UniversityId;
                         test.Year = testParam.Year;
                         test.TimeLimit = testParam.TimeLimit;
@@ -686,7 +719,7 @@
                                     newQuestion.NumberOfOption++;
                                 }
                             }
-                            if (newQuestion.Type == 1 && newQuestion.Result.Count(r => r == '1') != 1)
+                            if (newQuestion.Type == QuestionTypes.SingleChoice && newQuestion.Result.Count(r => r == '1') != 1)
                             {
                                 response.Succeeded = false;
                                 if (response.Errors == null)
@@ -764,7 +797,9 @@
             var tran = _uow.GetTransaction();
             try
             {
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -774,21 +809,9 @@
                     response.Errors.Add("Bạn chưa đăng nhập!");
                     return response;
                 }
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
 
-                if (userIdString == null || userIdString.Length <= 0)
-                {
-                    response.Succeeded = false;
-                    if (response.Errors == null)
-                    {
-                        response.Errors = new List<string>();
-                    }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
-                    return response;
-                }
-                int userId = Int32.Parse(userIdString);
                 Models.Test test = await _uow.TestRepository.GetById(setSuggestedTestParam.TestId);
-                if (test == null)
+                if (test == null && test.Status != Consts.STATUS_ACTIVE)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -798,25 +821,23 @@
                     response.Errors.Add("Bài kiểm tra không tồn tại!");
                     return response;
                 }
-                IEnumerable<Models.Test> tests = await _uow.TestRepository.Get(filter: t => t.SubjectId == test.SubjectId && t.IsSuggestedTest == true);
-                foreach (var item in tests)
-                {
-                    item.IsSuggestedTest = false;
-                }
-                _uow.TestRepository.UpdateRange(tests);
-                test.IsSuggestedTest = true;
-                _uow.TestRepository.Update(test);
-                IEnumerable<Models.Transcript> transcripts = await _uow.TranscriptRepository.Get(filter: u => u.SubjectId == test.SubjectId 
-                                                            && u.Status == Consts.STATUS_ACTIVE && u.TranscriptTypeId == 3
-                                                            , includeProperties: "User");
-                foreach (var transcript in transcripts)
-                {
-                    transcript.IsUpdate = true;
-                    transcript.Status = Consts.STATUS_INACTIVE;
-                }
-                _uow.TranscriptRepository.UpdateRange(transcripts);
+                IEnumerable<Models.Test> tests = await _uow.TestRepository.Get(
+                    filter: t => t.SubjectId == test.SubjectId && t.IsSuggestedTest
+                    && t.Status == Consts.STATUS_ACTIVE && t.Id != setSuggestedTestParam.TestId);
 
-                IEnumerable<Models.User> users = transcripts.Select(s => s.User);
+                if (!setSuggestedTestParam.IsSuggestTest && !tests.Any())
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Hệ thống phải có tối thiểu 1 bài thi thử!");
+                    return response;
+                }
+                test.IsSuggestedTest = setSuggestedTestParam.IsSuggestTest;
+                _uow.TestRepository.Update(test);
+                
                 if (await _uow.CommitAsync() <= 0)
                 {
                     response.Succeeded = false;
@@ -904,7 +925,7 @@
                         testPagingDataSet.SubjectName = test.Subject.Name;
                         testPagingDataSets.Add(testPagingDataSet);
                     }
-                    var totalRecords = _uow.TestRepository.Count(filter);
+                    var totalRecords = await _uow.TestRepository.Count(filter);
                     result = PaginationHelper.CreatePagedReponse(testPagingDataSets, validFilter, totalRecords);
                 }
             }

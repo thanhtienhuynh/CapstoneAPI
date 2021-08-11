@@ -28,6 +28,7 @@ namespace CapstoneAPI.Models
         public virtual DbSet<MajorCareer> MajorCareers { get; set; }
         public virtual DbSet<MajorDetail> MajorDetails { get; set; }
         public virtual DbSet<MajorSubjectGroup> MajorSubjectGroups { get; set; }
+        public virtual DbSet<Notification> Notifications { get; set; }
         public virtual DbSet<Option> Options { get; set; }
         public virtual DbSet<Province> Provinces { get; set; }
         public virtual DbSet<Question> Questions { get; set; }
@@ -36,6 +37,7 @@ namespace CapstoneAPI.Models
         public virtual DbSet<Region> Regions { get; set; }
         public virtual DbSet<Role> Roles { get; set; }
         public virtual DbSet<Season> Seasons { get; set; }
+        public virtual DbSet<SeasonView> SeasonViews { get; set; }
         public virtual DbSet<SpecialSubjectGroup> SpecialSubjectGroups { get; set; }
         public virtual DbSet<SubAdmissionCriterion> SubAdmissionCriteria { get; set; }
         public virtual DbSet<Subject> Subjects { get; set; }
@@ -153,6 +155,8 @@ namespace CapstoneAPI.Models
             {
                 entity.ToTable("Major");
 
+                entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+
                 entity.Property(e => e.Code)
                     .HasMaxLength(50)
                     .IsUnicode(false);
@@ -267,6 +271,25 @@ namespace CapstoneAPI.Models
                     .HasForeignKey(d => d.SubjectGroupId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_MajorSubjectGroup_SubjectGroup");
+            });
+
+            modelBuilder.Entity<Notification>(entity =>
+            {
+                entity.ToTable("Notification");
+
+                entity.Property(e => e.Data).IsRequired();
+
+                entity.Property(e => e.DateRecord).HasColumnType("datetime");
+
+                entity.Property(e => e.Message).IsRequired();
+
+                entity.Property(e => e.UserId).HasColumnName("User_Id");
+
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.Notifications)
+                    .HasForeignKey(d => d.UserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_Notification_User");
             });
 
             modelBuilder.Entity<Option>(entity =>
@@ -397,13 +420,28 @@ namespace CapstoneAPI.Models
             {
                 entity.ToTable("Season");
 
-                entity.Property(e => e.FromDate).HasColumnType("datetime");
+                entity.Property(e => e.FromDate).HasColumnType("date");
+
+                entity.Property(e => e.Name)
+                    .IsRequired()
+                    .HasMaxLength(100);
+            });
+
+            modelBuilder.Entity<SeasonView>(entity =>
+            {
+                entity.HasNoKey();
+
+                entity.ToView("SeasonView");
+
+                entity.Property(e => e.FromDate).HasColumnType("date");
+
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
 
                 entity.Property(e => e.Name)
                     .IsRequired()
                     .HasMaxLength(100);
 
-                entity.Property(e => e.ToDate).HasColumnType("datetime");
+                entity.Property(e => e.ToDate).HasColumnType("date");
             });
 
             modelBuilder.Entity<SpecialSubjectGroup>(entity =>

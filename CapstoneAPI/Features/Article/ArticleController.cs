@@ -2,6 +2,7 @@
 using CapstoneAPI.Features.Article.Service;
 using CapstoneAPI.Filters;
 using CapstoneAPI.Filters.Article;
+using CapstoneAPI.Helpers;
 using CapstoneAPI.Wrappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,11 +22,12 @@ namespace CapstoneAPI.Features.Article
         }
 
         [HttpGet("all")]
-        public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListArticleForGuest([FromQuery] PaginationFilter filter)
+        public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListArticleForGuest([FromQuery] PaginationFilter filter,
+                                                                                            [FromQuery] string title)
         {
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
 
-            PagedResponse<List<ArticleCollapseDataSet>> articles = await _service.GetListArticleForGuest(validFilter);
+            PagedResponse<List<ArticleCollapseDataSet>> articles = await _service.GetListArticleForGuest(validFilter, title);
 
             if (articles == null)
                 return NoContent();
@@ -40,6 +42,7 @@ namespace CapstoneAPI.Features.Article
             return Ok(article);
         }
 
+        [Authorize(Roles = Roles.Staff)]
         [HttpGet("admin-all")]
         public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListArticleForAdmin([FromQuery] PaginationFilter filter, 
             [FromQuery] AdminArticleFilter articleFilter)
@@ -54,6 +57,8 @@ namespace CapstoneAPI.Features.Article
                 return NoContent();
             return Ok(articles);
         }
+
+        [Authorize(Roles = Roles.Staff)]
         [HttpGet("admin-all-not-paging")]
         public async Task<ActionResult<Response<List<ArticleCollapseDataSet>>>> GetListArticleNotPagination([FromQuery] AdminArticleFilter articleFilter)
         {
@@ -66,6 +71,8 @@ namespace CapstoneAPI.Features.Article
                 return NoContent();
             return Ok(articles);
         }
+
+        [Authorize(Roles = Roles.Staff)]
         [HttpGet("approved-article-ids")]
         public async Task<ActionResult<Response<List<int>>>> GetApprovedArticleIds()
         {
@@ -78,6 +85,8 @@ namespace CapstoneAPI.Features.Article
                 return NoContent();
             return Ok(articles);
         }
+
+        [Authorize(Roles = Roles.Staff)]
         [HttpGet("admin-top")]
         public async Task<ActionResult<Response<List<ArticleCollapseDataSet>>>> GetTopArticlesForAdmin()
         {
@@ -90,6 +99,14 @@ namespace CapstoneAPI.Features.Article
                 return NoContent();
             return Ok(articles);
         }
+
+        [HttpGet("home")]
+        public async Task<ActionResult<Response<List<HomeArticle>>>> GetHomeArticles()
+        {
+            return Ok(await _service.GetHomeArticles());
+        }
+
+        [Authorize(Roles = Roles.Staff)]
         [HttpGet("admin-detail/{id}")]
         public async Task<ActionResult<Response<AdminArticleDetailDataSet>>> GetArticleDetailsForAdmin(int id)
         {
@@ -99,6 +116,8 @@ namespace CapstoneAPI.Features.Article
                 return NoContent();
             return Ok(article);
         }
+
+        [Authorize(Roles = Roles.Staff)]
         [HttpGet("admin-unapproved-articles")]
         public async Task<ActionResult<Response<List<int>>>> GetUnApprovedArticleIds()
         {
@@ -107,15 +126,19 @@ namespace CapstoneAPI.Features.Article
                 return NoContent();
             return Ok(article);
         }
+
+        [Authorize(Roles = Roles.Staff)]
         [HttpPut()]
         public async Task<ActionResult<Response<ApprovingArticleDataSet>>> ApprovingArticle([FromBody] ApprovingArticleDataSet approvingArticleDataSet)
         {
             string token = Request.Headers["Authorization"];
-            Response<ApprovingArticleDataSet> result = await _service.ApprovingArticle(approvingArticleDataSet, token);
+            Response<ApprovingArticleDataSet> result = await _service.UpdateStatusArticle(approvingArticleDataSet, token);
             if (result == null)
                 return NoContent();
             return Ok(result);
         }
+
+        [Authorize(Roles = Roles.Staff)]
         [HttpPut("top")]
         public async Task<ActionResult<Response<List<ArticleCollapseDataSet>>>> SetTopArticles([FromBody] List<int> articleIds)
         {
@@ -128,6 +151,7 @@ namespace CapstoneAPI.Features.Article
             return Ok(articles);
         }
 
+        [Authorize(Roles = Roles.Student)]
         [HttpGet("following-article")]
         public async Task<ActionResult<PagedResponse<List<ArticleCollapseDataSet>>>> GetListFollowingArticle([FromQuery] PaginationFilter filter)
         {
@@ -141,12 +165,13 @@ namespace CapstoneAPI.Features.Article
             return Ok(articles);
         }
 
+        [Authorize(Roles = Roles.Staff)]
         [HttpPost]
-        public async Task<ActionResult<Response<ArticleCollapseDataSet>>> CreateANewArticle([FromForm] CreateArticleParam createArticleParam)
+        public async Task<ActionResult<Response<AdminArticleCollapseDataSet>>> CreateANewArticle([FromForm] CreateArticleParam createArticleParam)
         {
             string token = Request.Headers["Authorization"];
 
-            Response<ArticleCollapseDataSet> result = await _service.CreateNewArticle(createArticleParam, token);
+            Response<AdminArticleCollapseDataSet> result = await _service.CreateNewArticle(createArticleParam, token);
             if(result == null)
             {
                 return NoContent();
@@ -154,6 +179,7 @@ namespace CapstoneAPI.Features.Article
             return Ok(result);
         }
 
+        [Authorize(Roles = Roles.Staff)]
         [HttpPut("update-article")]
         public async Task<ActionResult<Response<AdminArticleDetailDataSet>>> UpdateArticle([FromForm] UpdateArticleParam updateArticleParam)
         {
@@ -166,6 +192,8 @@ namespace CapstoneAPI.Features.Article
             }
             return Ok(result);
         }
+
+        [Authorize(Roles = Roles.Staff)]
         [HttpPut("update-exprire-article")]
         public async Task<ActionResult<Response<bool>>> UpdateExpireStatus()
         {

@@ -1,6 +1,8 @@
 ﻿using CapstoneAPI.Features.AdmissionMethod.DataSet;
 using CapstoneAPI.Features.AdmissionMethod.Service;
+using CapstoneAPI.Helpers;
 using CapstoneAPI.Wrappers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -18,6 +20,8 @@ namespace CapstoneAPI.Features.AdmissionMethod
         {
             _service = service;
         }
+
+        [Authorize(Roles = Roles.Staff)]
         [HttpGet]
         public async Task<ActionResult<Response<IEnumerable<AdmissionMethodDataSet>>>> GetAdmissionMethods()
         {

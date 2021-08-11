@@ -7,6 +7,7 @@ using CapstoneAPI.Features.AdmissionMethod.DataSet;
 using CapstoneAPI.Features.Article.DataSet;
 using CapstoneAPI.Features.FollowingDetail.DataSet;
 using CapstoneAPI.Features.Major.DataSet;
+using CapstoneAPI.Features.Notification.DataSet;
 using CapstoneAPI.Features.Province.DataSet;
 using CapstoneAPI.Features.Rank.DataSet;
 using CapstoneAPI.Features.Season.DataSet;
@@ -71,7 +72,6 @@ namespace CapstoneAPI.DataSets
             CreateMap<Models.SpecialSubjectGroup, SpecialSubjectGroupDataSet>();
             CreateMap<Models.AdmissionMethod, AdmissionMethodDataSet>();
             CreateMap<Models.Season, AdminSeasonDataSet>();
-            CreateMap<AdminSeasonDataSet, Models.Season>();
 
             CreateMap<Models.Major, MajorSubjectWeightDataSet>();
             CreateMap<CreateMajorSubjectWeightDataSet, Models.Major>();
@@ -86,6 +86,8 @@ namespace CapstoneAPI.DataSets
 
             CreateMap<Models.Career, CareerDataSet>();
             CreateMap<Models.Test, TestAdminDataSet>();
+
+            CreateMap<Models.Notification, NotificationDataSet>();
         }
     }
 }

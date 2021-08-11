@@ -1,4 +1,5 @@
 ﻿using CapstoneAPI.Features.Transcript.DataSet;
+using CapstoneAPI.Helpers;
 using CapstoneAPI.Models;
 using CapstoneAPI.Repositories;
 using System;
@@ -15,8 +16,8 @@ namespace CapstoneAPI.Features.Transcript.Repository
         public async Task<IEnumerable<UserTranscriptTypeDataSet>> GetUserTranscripts(int userId)
         {
             List<UserTranscriptTypeDataSet> result = new List<UserTranscriptTypeDataSet>();
-            IEnumerable<Models.Transcript> transcripts = await Get(filter: t => t.UserId == userId,
-                includeProperties: "TranscriptType,Subject");
+            IEnumerable<Models.Transcript> transcripts = await Get(filter: t => t.UserId == userId
+                                    && t.Status == Consts.STATUS_ACTIVE, includeProperties: "TranscriptType,Subject");
             if (transcripts == null || !transcripts.Any())
             {
                 return result;
@@ -46,7 +47,19 @@ namespace CapstoneAPI.Features.Transcript.Repository
                 userTranscriptDataSet.TranscriptDetails = userTranscriptDetailDataSets;
                 result.Add(userTranscriptDataSet);
             }
-            return result;
+            return result.OrderByDescending(t => t.Priority);
+        }
+
+        public async Task<double> GetLiteratureTestMark(int userId)
+        {
+            IEnumerable<Models.Transcript> transcripts = await Get(filter: t => t.Status == Consts.STATUS_ACTIVE
+                                    && t.SubjectId == Subjects.Literature && t.UserId == userId, includeProperties: "TranscriptType");
+            if (transcripts.Any())
+            {
+                Models.Transcript transcript = transcripts.OrderByDescending(t => t.TranscriptType.Priority).FirstOrDefault();
+                return transcript.Mark;
+            }
+            return 0;
         }
     }
 }

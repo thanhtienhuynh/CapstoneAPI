@@ -9,7 +9,8 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
 {
     public interface ISubjectGroupService
     {
-        Task<Response<IEnumerable<SubjectGroupDataSet>>> GetCaculatedSubjectGroup(SubjectGroupParam subjectGroupParam);
+        Task<Response<List<SubjectGroupDataSet>>> GetCaculatedSubjectGroup(SubjectGroupParam subjectGroupParam, string token);
+        Task<Response<List<SubjectGroupDataSet>>> GetCaculatedMajorByMockTestAndSubjectGroup(int subjectGroupId, string token);
         Task<Response<UserSuggestionInformation>> GetUserSuggestTopSubjectGroup(string token);
         Task<Response<IEnumerable<AdminSubjectGroupDataSet>>> GetListSubjectGroups();
         Task<Response<CreateSubjectGroupDataset>> CreateNewSubjectGroup(CreateSubjectGroupParam createSubjectGroupParam);

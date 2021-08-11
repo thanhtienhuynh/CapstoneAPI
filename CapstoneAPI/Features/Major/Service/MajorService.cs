@@ -111,6 +111,7 @@ namespace CapstoneAPI.Features.Major.Service
                 }
                 Models.Major newMajor = _mapper.Map<Models.Major>(createMajorDataSet);
                 newMajor.Status = Consts.STATUS_ACTIVE;
+                newMajor.UpdatedDate = JWTUtils.GetCurrentTimeInVN();
                 _uow.MajorRepository.Insert(newMajor);
                 int result = await _uow.CommitAsync();
                 if (result <= 0)
@@ -196,6 +197,7 @@ namespace CapstoneAPI.Features.Major.Service
                 objToUpdate.HumanQuality = updateMajor.HumanQuality;
                 objToUpdate.SalaryDescription = updateMajor.SalaryDescription;
                 objToUpdate.Status = updateMajor.Status;
+                objToUpdate.UpdatedDate = JWTUtils.GetCurrentTimeInVN();
                 _uow.MajorRepository.Update(objToUpdate);
                 int result = await _uow.CommitAsync();
                 if (result <= 0)
@@ -331,10 +333,10 @@ namespace CapstoneAPI.Features.Major.Service
 
                 List<MajorSubjectWeightDataSet> majors = (await _uow.MajorRepository
                     .Get(filter: filter, first: validFilter.PageSize,
-                    offset: (validFilter.PageNumber - 1) * validFilter.PageSize, orderBy: o => o.OrderBy(m => m.Name)))
+                    offset: (validFilter.PageNumber - 1) * validFilter.PageSize, orderBy: o => o.OrderByDescending(m => m.UpdatedDate)))
                     .Select(m => _mapper.Map<MajorSubjectWeightDataSet>(m)).ToList();
 
-                var totalRecords = _uow.MajorRepository.Count(filter: filter);
+                var totalRecords = await _uow.MajorRepository.Count(filter: filter);
                 if (majors != null && majors.Count > 0)
                 {
 
@@ -459,6 +461,7 @@ namespace CapstoneAPI.Features.Major.Service
                 }
                 Models.Major newMajor = _mapper.Map<Models.Major>(createMajor);
                 newMajor.Status = Consts.STATUS_ACTIVE;
+                newMajor.UpdatedDate = JWTUtils.GetCurrentTimeInVN();
                 _uow.MajorRepository.Insert(newMajor);
 
                 if (createMajor.SubjectGroups != null && createMajor.SubjectGroups.Count() > 0)
@@ -594,7 +597,9 @@ namespace CapstoneAPI.Features.Major.Service
                 if (updateMajor.SubjectGroup != null)
                 {
                     Models.MajorSubjectGroup marjorSubjectGroup = await _uow.MajorSubjectGroupRepository
-                        .GetFirst(filter: m => m.MajorId == updateMajor.Id && m.SubjectGroupId == updateMajor.SubjectGroup.Id);
+                        .GetFirst(filter: m => m.MajorId == updateMajor.Id 
+                        && m.SubjectGroupId == updateMajor.SubjectGroup.Id
+                        && m.Status == Consts.STATUS_ACTIVE);
 
                     if (marjorSubjectGroup != null)
                     {
@@ -639,7 +644,8 @@ namespace CapstoneAPI.Features.Major.Service
                         Models.MajorSubjectGroup majorSubjectGroup = new Models.MajorSubjectGroup()
                         {
                             MajorId = updateMajor.Id,
-                            SubjectGroupId = updateMajor.SubjectGroup.Id
+                            SubjectGroupId = updateMajor.SubjectGroup.Id,
+                            Status = Consts.STATUS_ACTIVE
                         };
 
                         _uow.MajorSubjectGroupRepository.Insert(majorSubjectGroup);
@@ -760,6 +766,7 @@ namespace CapstoneAPI.Features.Major.Service
                 objToUpdate.Curriculum = updateMajor.Curriculum;
                 objToUpdate.HumanQuality = updateMajor.HumanQuality;
                 objToUpdate.SalaryDescription = updateMajor.SalaryDescription;
+                objToUpdate.UpdatedDate = JWTUtils.GetCurrentTimeInVN();
                 objToUpdate.Status = updateMajor.Status;
                 _uow.MajorRepository.Update(objToUpdate);
 
@@ -1021,13 +1028,13 @@ namespace CapstoneAPI.Features.Major.Service
                     }
                 }
 
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
-                DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
+                DateTime currentDate = JWTUtils.GetCurrentTimeInVN();
 
-                if (major.MajorArticles != null && major.MajorArticles.Where(m => m.Article.Status == 3
-                && m.Article.PublicFromDate != null && m.Article.PublicToDate != null && DateTime.Compare((DateTime)m.Article.PublicToDate, currentDate) > 0).Any())
+                if (major.MajorArticles != null && major.MajorArticles.Where(m => m.Article.Status == Articles.Published
+                    && m.Article.PublicFromDate != null && m.Article.PublicToDate != null
+                    && DateTime.Compare((DateTime)m.Article.PublicToDate, currentDate) > 0).Any())
                 {
-                    IEnumerable<Models.Article> articles = major.MajorArticles.Where(m => m.Article.Status == 3
+                    IEnumerable<Models.Article> articles = major.MajorArticles.Where(m => m.Article.Status == Articles.Published
                                         && m.Article.PublicFromDate != null && m.Article.PublicToDate != null
                                         && DateTime.Compare((DateTime)m.Article.PublicToDate, currentDate) > 0)
                                         .Select(m => m.Article);
@@ -1085,6 +1092,98 @@ namespace CapstoneAPI.Features.Major.Service
             catch (Exception ex)
             {
                 _log.Error(ex.ToString());
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+            return response;
+        }
+
+        public async Task<Response<MajorSubjectWeightDataSet>> GetMajorSubjectWeightDetail(int majorId)
+        {
+            Response<MajorSubjectWeightDataSet> response = new Response<MajorSubjectWeightDataSet>();
+
+            try
+            {
+                Models.Major major = await _uow.MajorRepository
+                    .GetFirst(filter: m => m.Id == majorId && m.Status == Consts.STATUS_ACTIVE);
+                if (major == null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Ngành này không tồn tại!");
+                }
+                MajorSubjectWeightDataSet majorDataSet = _mapper.Map<MajorSubjectWeightDataSet>(major);
+
+
+                List<Models.MajorSubjectGroup> majorSubjectGroups =
+                    (await _uow.MajorSubjectGroupRepository.Get(filter: ms => ms.MajorId == majorDataSet.Id && ms.Status == Consts.STATUS_ACTIVE,
+                    includeProperties: "SubjectGroup,SubjectWeights,SubjectWeights.SubjectGroupDetail," +
+                    "SubjectWeights.SubjectGroupDetail.Subject,SubjectWeights.SubjectGroupDetail.SpecialSubjectGroup")).ToList();
+
+                if (majorSubjectGroups != null && majorSubjectGroups.Count() > 0)
+                {
+                    List<SubjectGroupWeightDataSet> subjectGroupWeightDataSets = new List<SubjectGroupWeightDataSet>();
+
+                    foreach (var majorSubjectGroup in majorSubjectGroups)
+                    {
+                        int subjectGroupWeightDataSetId = majorSubjectGroup.SubjectGroup.Id;
+                        string subjectGroupWeightDataSetGroupCode = majorSubjectGroup.SubjectGroup.GroupCode;
+
+                        if (majorSubjectGroup.SubjectWeights != null && majorSubjectGroup.SubjectWeights.Count > 0)
+                        {
+                            List<SubjectWeightDataSet> subjectWeightDataSets = new List<SubjectWeightDataSet>();
+                            SubjectWeightDataSet subjectWeightDataSet = new SubjectWeightDataSet();
+
+                            foreach (var subjectWeight in majorSubjectGroup.SubjectWeights)
+                            {
+                                int id = 0;
+                                int weight = subjectWeight.Weight;
+                                string name = "";
+                                bool isSpecialSubjectGroup = false;
+
+                                if (subjectWeight.SubjectGroupDetail.Subject != null)
+                                {
+                                    id = subjectWeight.SubjectGroupDetail.Subject.Id;
+                                    name = subjectWeight.SubjectGroupDetail.Subject.Name;
+                                }
+                                else if (subjectWeight.SubjectGroupDetail.SpecialSubjectGroup != null)
+                                {
+                                    id = subjectWeight.SubjectGroupDetail.SpecialSubjectGroup.Id;
+                                    name = subjectWeight.SubjectGroupDetail.SpecialSubjectGroup.Name;
+                                    isSpecialSubjectGroup = true;
+                                }
+
+                                subjectWeightDataSets.Add(new SubjectWeightDataSet()
+                                {
+                                    Id = id,
+                                    Weight = weight,
+                                    Name = name,
+                                    IsSpecialSubjectGroup = isSpecialSubjectGroup
+                                });
+                            }
+                            subjectGroupWeightDataSets.Add(new SubjectGroupWeightDataSet()
+                            {
+                                Id = subjectGroupWeightDataSetId,
+                                GroupCode = subjectGroupWeightDataSetGroupCode,
+                                SubjectWeights = subjectWeightDataSets
+                            });
+                        }
+                    }
+                    majorDataSet.SubjectGroups = subjectGroupWeightDataSets;
+                }
+                response.Succeeded = true;
+                response.Data = majorDataSet;
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.Message);
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {

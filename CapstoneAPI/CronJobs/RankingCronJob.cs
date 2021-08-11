@@ -25,7 +25,7 @@ namespace CapstoneAPI.CronJobs
             {
                 var service = scope.ServiceProvider.GetService<IRankService>();
                 _logger.LogInformation($"{DateTime.Now:dd/MM/yyyy hh:mm:ss} Update rank is working!");
-                bool result = await service.UpdateRank();
+                bool result = (await service.UpdateRank()).Data;
                 if (result)
                     _logger.LogInformation($"{DateTime.Now:dd/MM/yyyy hh:mm:ss}: Update rank success");
                 else

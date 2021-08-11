@@ -21,8 +21,9 @@ namespace CapstoneAPI.Filters.Article
          * 2: Rejected
          * 3: Published
          * 4: Expired
+         * 5: (Considered)
          */
-        public int Order { get; set; }
+        public int? Order { get; set; }
         /*
          * 0: Sort by DESC CrawlerDate
          * 1: Sort by ASC CrawlerDate

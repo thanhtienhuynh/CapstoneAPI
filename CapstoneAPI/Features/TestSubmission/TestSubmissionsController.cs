@@ -12,6 +12,7 @@ using CapstoneAPI.DataSets;
 using CapstoneAPI.Wrappers;
 using CapstoneAPI.Features.TestSubmission.Service;
 using CapstoneAPI.Features.TestSubmission.DataSet;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CapstoneAPI.Features.TestSubmission
 {
@@ -33,6 +34,7 @@ namespace CapstoneAPI.Features.TestSubmission
             return Ok(await _service.ScoringTest(testSubmissionParam));
         }
 
+        [Authorize(Roles = Roles.Student)]
         [HttpPost("saving")]
         public async Task<ActionResult<Response<bool>>> SaveTestSubmission(List<SaveTestSubmissionParam> saveTestSubmissionParams)
         {
@@ -40,6 +42,15 @@ namespace CapstoneAPI.Features.TestSubmission
             return Ok(await _service.SaveTestSubmissions(saveTestSubmissionParams, token));
         }
 
+        [Authorize(Roles = Roles.Student)]
+        [HttpPost("first-saving")]
+        public async Task<ActionResult<Response<int>>> SaveFirstTestSubmission(FirstTestSubmissionParam saveTestSubmissionParam)
+        {
+            string token = Request.Headers["Authorization"];
+            return Ok(await _service.SaveFirstTestSubmission(saveTestSubmissionParam, token));
+        }
+
+        [Authorize(Roles = Roles.Student)]
         [HttpGet()]
         public async Task<ActionResult<Response<List<UserTestSubmissionDataSet>>>> GetTestSubmissionsByUser([FromQuery] UserTestSubmissionQueryParam param)
         {
@@ -47,6 +58,7 @@ namespace CapstoneAPI.Features.TestSubmission
             return Ok(await _service.GetTestSubmissionsByUser(token, param));
         }
 
+        [Authorize(Roles = Roles.Student)]
         [HttpGet("{id}")]
         public async Task<ActionResult<Response<DetailTestSubmissionDataSet>>> GetDetailTestSubmissionByUser(int id)
         {
@@ -54,11 +66,11 @@ namespace CapstoneAPI.Features.TestSubmission
             return Ok(await _service.GetDetailTestSubmissionByUser(id, token));
         }
 
-        //[HttpGet]
-        //public async Task<ActionResult<IEnumerable<QuestionDataSet>>> Get()
-        //{
-        //    IEnumerable<QuestionDataSet> result = await _service.ScoringTest1();
-        //    return Ok(result);
-        //}
+        [HttpGet("result")]
+        public async Task<ActionResult<IEnumerable<QuestionDataSet>>> Get([FromQuery] int id)
+        {
+            IEnumerable<QuestionDataSet> result = await _service.ScoringTest1(id);
+            return Ok(result);
+        }
     }
 }

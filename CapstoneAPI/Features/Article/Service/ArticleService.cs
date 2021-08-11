@@ -31,7 +31,6 @@ namespace CapstoneAPI.Features.Article.Service
         private IMapper _mapper;
         private readonly IUnitOfWork _uow;
         private readonly IFCMService _firebaseService;
-        private readonly JObject configuration;
         private readonly ILogger _log = Log.ForContext<ArticleService>();
 
         public ArticleService(IUnitOfWork uow, IMapper mapper, IFCMService firebaseService)
@@ -39,24 +38,22 @@ namespace CapstoneAPI.Features.Article.Service
             _uow = uow;
             _mapper = mapper;
             _firebaseService = firebaseService;
-            string path = Path.Combine(Path
-                .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
-            configuration = JObject.Parse(File.ReadAllText(path));
         }
 
-        public async Task<PagedResponse<List<ArticleCollapseDataSet>>> GetListArticleForGuest(PaginationFilter validFilter)
+        public async Task<PagedResponse<List<ArticleCollapseDataSet>>> GetListArticleForGuest(PaginationFilter validFilter, string title)
         {
             PagedResponse<List<ArticleCollapseDataSet>> result = new PagedResponse<List<ArticleCollapseDataSet>>();
 
             try
             {
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
 
-                DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
+                DateTime currentDate = JWTUtils.GetCurrentTimeInVN();
 
                 Expression<Func<Models.Article, bool>> filter = null;
-                filter = a => a.Status == 3 && a.PublicFromDate != null && a.PublicToDate != null
-                    && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0;
+                filter = a => a.Status == Articles.Published && a.PublicFromDate != null && a.PublicToDate != null
+                    && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0
+                    && a.PublicFromDate <= currentDate
+                    && (string.IsNullOrEmpty(title) || a.Title.Contains(title));
 
                 IEnumerable<Models.Article> articles = await _uow.ArticleRepository
                     .Get(filter: filter, orderBy: o => o.OrderByDescending(a => a.PostedDate),
@@ -70,7 +67,11 @@ namespace CapstoneAPI.Features.Article.Service
                 else
                 {
                     var articleCollapseDataSet = articles.Select(m => _mapper.Map<ArticleCollapseDataSet>(m)).ToList();
-                    var totalRecords = _uow.ArticleRepository
+                    foreach(var article in articleCollapseDataSet)
+                    {
+                        article.TimeAgo = JWTUtils.CalculateTimeAgo(article.PublicFromDate);
+                    }
+                    var totalRecords = await _uow.ArticleRepository
                         .Count(filter: filter);
                     result = PaginationHelper.CreatePagedReponse(articleCollapseDataSet, validFilter, totalRecords);
                 }
@@ -110,7 +111,7 @@ namespace CapstoneAPI.Features.Article.Service
                 && (articleFilter.Status < 0 || a.Status == articleFilter.Status);
 
                 Func<IQueryable<Models.Article>, IOrderedQueryable<Models.Article>> order = null;
-                switch (articleFilter.Order)
+                switch (articleFilter.Order ?? 0)
                 {
                     case 0:
                         order = order => order.OrderByDescending(a => a.CrawlerDate);
@@ -151,7 +152,7 @@ namespace CapstoneAPI.Features.Article.Service
                 else
                 {
                     var articleCollapseDataSet = articles.Select(m => _mapper.Map<AdminArticleCollapseDataSet>(m)).ToList();
-                    var totalRecords = _uow.ArticleRepository.Count(filter);
+                    var totalRecords = await _uow.ArticleRepository.Count(filter);
                     result = PaginationHelper.CreatePagedReponse(articleCollapseDataSet, validFilter, totalRecords);
                 }
             }
@@ -175,11 +176,11 @@ namespace CapstoneAPI.Features.Article.Service
             Response<ArticleDetailDataSet> result = new Response<ArticleDetailDataSet>();
             try
             {
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
-                DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
+                DateTime currentDate = JWTUtils.GetCurrentTimeInVN();
 
-                Models.Article article = await _uow.ArticleRepository.GetFirst(filter: a => a.Id == id && a.Status == 3
-                && a.PublicFromDate != null && a.PublicToDate != null && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0);
+                Models.Article article = await _uow.ArticleRepository.GetFirst(filter: a => a.Id == id &&
+                    a.Status == Articles.Published && a.PublicFromDate != null && a.PublicToDate != null
+                    && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0);
                 if (article == null)
                 {
                     if (result.Errors == null)
@@ -263,31 +264,35 @@ namespace CapstoneAPI.Features.Article.Service
             return result;
         }
 
-        public async Task<Response<ApprovingArticleDataSet>> ApprovingArticle(ApprovingArticleDataSet approvingArticleDataSet, string token)
+        public async Task<Response<ApprovingArticleDataSet>> UpdateStatusArticle(ApprovingArticleDataSet approvingArticleDataSet, string token)
         {
             Response<ApprovingArticleDataSet> response = new Response<ApprovingArticleDataSet>();
             try
             {
                 int? oldStatus = null;
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
+                    response.Succeeded = false;
                     if (response.Errors == null)
+                    {
                         response.Errors = new List<string>();
+                    }
                     response.Errors.Add("Bạn chưa đăng nhập!");
                     return response;
                 }
 
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-
-                if (userIdString == null || userIdString.Length <= 0)
+                if (!user.IsActive)
                 {
+                    response.Succeeded = false;
                     if (response.Errors == null)
+                    {
                         response.Errors = new List<string>();
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    }
+                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
                     return response;
                 }
-
-                int userId = Int32.Parse(userIdString);
                 if (approvingArticleDataSet != null)
                 {
                     Models.Article articleToUpdate = await _uow.ArticleRepository
@@ -298,20 +303,55 @@ namespace CapstoneAPI.Features.Article.Service
                         if (response.Errors == null)
                             response.Errors = new List<string>();
                         response.Errors.Add("Không thể tìm thấy tin tức để cập nhật!");
+                        return response;
                     }
                     else
                     {
+                        //check status
+                        /*
+                         * -1: All
+                         * 0: New
+                         * 1: Approved
+                         * 2: Rejected
+                         * 3: Published
+                         * 4: Expired
+                         * 5: (Considered)
+                         */
+                        if (articleToUpdate.Status != approvingArticleDataSet.Status)
+                        {
+                            if (!((articleToUpdate.Status == Articles.New && approvingArticleDataSet.Status == Articles.Approved)
+                                || (articleToUpdate.Status == Articles.Rejected && approvingArticleDataSet.Status == Articles.New)
+                                || (articleToUpdate.Status == Articles.New && approvingArticleDataSet.Status == Articles.Rejected)
+                                || (articleToUpdate.Status == Articles.Approved && approvingArticleDataSet.Status == Articles.Rejected)
+                                || (articleToUpdate.Status == Articles.Approved && approvingArticleDataSet.Status == Articles.Published)
+                                || (articleToUpdate.Status == Articles.Published && approvingArticleDataSet.Status == Articles.Considered)
+                                || (articleToUpdate.Status == Articles.Considered && approvingArticleDataSet.Status == Articles.Approved)
+                                || (articleToUpdate.Status == Articles.Considered && approvingArticleDataSet.Status == Articles.Rejected)
+                                || (articleToUpdate.Status == Articles.Expired && approvingArticleDataSet.Status == Articles.Published)
+                                || (articleToUpdate.Status == Articles.Published && approvingArticleDataSet.Status == Articles.Expired)))
+                            {
+                                if (response.Errors == null)
+                                    response.Errors = new List<string>();
+                                response.Errors.Add("Trạng thái bài viết cập nhật không thành công!");
+                                return response;
+                            }
+                        }
                         //FIND USER TO SEND NOTI
                         oldStatus = articleToUpdate.Status;
 
                         articleToUpdate.PublicFromDate = approvingArticleDataSet?.PublicFromDate;
                         articleToUpdate.PublicToDate = approvingArticleDataSet?.PublicToDate;
                         articleToUpdate.Status = approvingArticleDataSet.Status;
-                        articleToUpdate.Censor = userId;
+                        articleToUpdate.Censor = user.Id;
 
                         _uow.UniversityArticleRepository.DeleteComposite(filter: uniArt => uniArt.ArticleId == approvingArticleDataSet.Id);
                         foreach (var item in approvingArticleDataSet.University)
                         {
+                            Models.University university = await _uow.UniversityRepository.GetById(item);
+                            if (university == null)
+                            {
+                                continue;
+                            }
                             Models.UniversityArticle universityArticle = new Models.UniversityArticle()
                             {
                                 UniversityId = item,
@@ -324,6 +364,11 @@ namespace CapstoneAPI.Features.Article.Service
 
                         foreach (var item in approvingArticleDataSet.Major)
                         {
+                            Models.Major major = await _uow.MajorRepository.GetById(item);
+                            if (major == null)
+                            {
+                                continue;
+                            }
                             Models.MajorArticle majorArticle = new Models.MajorArticle()
                             {
                                 MajorId = item,
@@ -390,25 +435,42 @@ namespace CapstoneAPI.Features.Article.Service
                                 //RESULT
                                 IEnumerable<Models.User> users = dictionaryUsers.Values;
                                 var messages = new List<Message>();
-                                foreach (Models.User user in users)
+                                List<Models.Notification> notifications = new List<Models.Notification>();
+                                foreach (Models.User userEl in users)
                                 {
+                                    Models.Notification notification = new Models.Notification()
+                                    {
+                                        DateRecord = JWTUtils.GetCurrentTimeInVN(),
+                                        Data = articleToUpdate.Id.ToString(),
+                                        Message = articleToUpdate.Title,
+                                        IsRead = false,
+                                        Type = NotificationTypes.NewArticle,
+                                        UserId = userEl.Id
+                                    };
+                                    notifications.Add(notification);
                                     messages.Add(new Message()
                                     {
-                                        Notification = new Notification()
+                                        Notification = new FirebaseAdmin.Messaging.Notification()
                                         {
-                                            Title = articleToUpdate.Title,
-                                            Body = articleToUpdate.ShortDescription,
-                                            ImageUrl = articleToUpdate.PostImageUrl
+                                            Title = "Bạn có bài viết mới!",
+                                            Body = notification.Message
                                         },
                                         Data = new Dictionary<string, string>()
                                         {
-                                            {"id" , articleToUpdate.Id.ToString()},
-                                            {"title" , articleToUpdate.Title},
+                                            {"type" , notification.Type.ToString()},
+                                            {"message" , notification.Message},
+                                            {"data" , notification.Data},
                                         },
                                         Topic = user.Id.ToString()
                                     });
+                                    
                                 }
+                                _uow.NotificationRepository.InsertRange(notifications);
+                                await _uow.CommitAsync();
+                                #pragma warning disable
                                 _firebaseService.SendBatchMessage(messages);
+                                #pragma warning restore
+
                             }
                         }
                     }
@@ -467,11 +529,10 @@ namespace CapstoneAPI.Features.Article.Service
 
             try
             {
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
-                DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
+                DateTime currentDate = JWTUtils.GetCurrentTimeInVN();
 
                 IEnumerable<Models.Article> articles = await _uow.ArticleRepository
-                    .Get(filter: a => a.Status == 3
+                    .Get(filter: a => a.Status == Articles.Published
                      && (a.PublicFromDate != null && a.PublicFromDate <= currentDate)
                      && (a.PublicToDate != null && a.PublicToDate >= currentDate)
                      && (a.ImportantLevel != null && a.ImportantLevel > 0),
@@ -502,15 +563,96 @@ namespace CapstoneAPI.Features.Article.Service
             return response;
         }
 
+        public async Task<Response<List<HomeArticle>>> GetHomeArticles()
+        {
+            Response<List<HomeArticle>> response = new Response<List<HomeArticle>>();
+            var topArticles = new List<ArticleCollapseDataSet>();
+            var todayArticles = new List<ArticleCollapseDataSet>();
+            var oldArticles = new List<ArticleCollapseDataSet>();
+
+            try
+            {
+                DateTime currentDate = JWTUtils.GetCurrentTimeInVN();
+
+                topArticles = (await _uow.ArticleRepository
+                .Get(filter: a => a.Status == Articles.Published
+                    && (a.PublicFromDate != null && a.PublicFromDate <= currentDate)
+                    && (a.PublicToDate != null && a.PublicToDate >= currentDate)
+                    && (a.ImportantLevel != null && a.ImportantLevel > 0),
+                orderBy: o => o.OrderByDescending(a => a.ImportantLevel)))
+                .Select(m => _mapper.Map<ArticleCollapseDataSet>(m)).ToList();
+                foreach (var article in topArticles)
+                {
+                    article.TimeAgo = JWTUtils.CalculateTimeAgo(article.PublicFromDate);
+                }
+
+                var date = currentDate.Date;
+
+                todayArticles = (await _uow.ArticleRepository
+                .Get(filter: a => a.Status == Articles.Published
+                    && (a.PublicFromDate != null && a.PublicFromDate >= date && a.PublicFromDate < date.AddDays(1))
+                    && (a.PublicToDate != null && a.PublicToDate >= currentDate),
+                orderBy: o => o.OrderByDescending(a => a.PublicFromDate)))
+                .Select(m => _mapper.Map<ArticleCollapseDataSet>(m)).ToList();
+                foreach (var article in todayArticles)
+                {
+                    article.TimeAgo = JWTUtils.CalculateTimeAgo(article.PublicFromDate);
+                }
+
+                oldArticles = (await _uow.ArticleRepository
+                .Get(filter: a => a.Status == Articles.Published
+                    && (a.PublicFromDate != null && a.PublicFromDate < date)
+                    && (a.PublicToDate != null && a.PublicToDate >= currentDate),
+                orderBy: o => o.OrderByDescending(a => a.PublicFromDate)))
+                .Select(m => _mapper.Map<ArticleCollapseDataSet>(m)).Take(8).ToList();
+                foreach (var article in oldArticles)
+                {
+                    article.TimeAgo = JWTUtils.CalculateTimeAgo(article.PublicFromDate);
+                }
+
+                List<HomeArticle> homeArticles = new List<HomeArticle>()
+                {
+                    new HomeArticle()
+                    {
+                        Type = HomeArticleTypes.Hot,
+                        Articles = topArticles
+                    },
+                    new HomeArticle()
+                    {
+                        Type = HomeArticleTypes.Today,
+                        Articles = todayArticles
+                    },
+                    new HomeArticle()
+                    {
+                        Type = HomeArticleTypes.Past,
+                        Articles = oldArticles
+                    }
+                };
+
+                response = new Response<List<HomeArticle>>(homeArticles.OrderBy(a => a.Type).ToList());
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+
+            return response;
+        }
+
         public async Task<Response<List<AdminArticleCollapseDataSet>>> SetTopArticles(List<int> articleIds, string token)
         {
             Response<List<AdminArticleCollapseDataSet>> response = new Response<List<AdminArticleCollapseDataSet>>();
             try
             {
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
-                DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
+                DateTime currentDate = JWTUtils.GetCurrentTimeInVN();
                 IEnumerable<Models.Article> articles = await _uow.ArticleRepository
-                   .Get(filter: a => a.Status == 3
+                   .Get(filter: a => a.Status == Articles.Published
                     && (a.PublicFromDate != null && a.PublicFromDate <= currentDate)
                     && (a.PublicToDate != null && a.PublicToDate >= currentDate));
 
@@ -588,7 +730,7 @@ namespace CapstoneAPI.Features.Article.Service
             try
             {
                 IEnumerable<Models.Article> articles = await _uow.ArticleRepository
-                .Get(filter: a => a.Status == 1,
+                .Get(filter: a => a.Status == Consts.STATUS_ACTIVE,
                     orderBy: o => o.OrderByDescending(a => a.PostedDate));
 
                 if (articles == null)
@@ -633,7 +775,7 @@ namespace CapstoneAPI.Features.Article.Service
                 && (articleFilter.Status < 0 || a.Status == articleFilter.Status);
 
                 Func<IQueryable<Models.Article>, IOrderedQueryable<Models.Article>> order = null;
-                switch (articleFilter.Order)
+                switch (articleFilter.Order ?? 0)
                 {
                     case 0:
                         order = order => order.OrderByDescending(a => a.CrawlerDate);
@@ -697,8 +839,9 @@ namespace CapstoneAPI.Features.Article.Service
 
             try
             {
-                //GET USER ID
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -709,30 +852,24 @@ namespace CapstoneAPI.Features.Article.Service
                     return response;
                 }
 
-
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-
-                if (userIdString == null || userIdString.Length <= 0)
+                if (!user.IsActive)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
                     return response;
                 }
-                int userId = Int32.Parse(userIdString);
 
                 //GET CURRENT TIME
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
-                DateTime currentDate = DateTime.UtcNow.AddHours(int.Parse(currentTimeZone));
-
+                DateTime currentDate = JWTUtils.GetCurrentTimeInVN();
 
                 //GET LIST ARTICLE
                 Dictionary<int, Models.Article> articlesByUser = new Dictionary<int, Models.Article>();
                 IEnumerable<Models.FollowingDetail> followingDetailPerUser = await _uow.FollowingDetailRepository
-                .Get(filter: f => f.IsReceiveNotification == true && f.UserId == userId && f.Status == Consts.STATUS_ACTIVE,
+                .Get(filter: f => f.IsReceiveNotification == true && f.UserId == user.Id && f.Status == Consts.STATUS_ACTIVE,
                 includeProperties: "EntryMark,EntryMark.MajorSubjectGroup,EntryMark.SubAdmissionCriterion.AdmissionCriterion.MajorDetail");
                 if (followingDetailPerUser.Count() > 0)
                 {
@@ -743,7 +880,7 @@ namespace CapstoneAPI.Features.Article.Service
 
                         IEnumerable<Models.Article> articlesByMajor = (await _uow.MajorArticleRepository.
                             Get(filter: m => m.MajorId == majorId, includeProperties: "Article")).Select(s => s.Article).
-                            Where(a => a.Status == 3 && a.PublicFromDate != null && a.PublicToDate != null
+                            Where(a => a.Status == Articles.Published && a.PublicFromDate != null && a.PublicToDate != null
                     && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0);
 
 
@@ -757,7 +894,7 @@ namespace CapstoneAPI.Features.Article.Service
                         IEnumerable<Models.Article> articlesByUniversity = (await _uow.UniversityArticleRepository.
                             Get(filter: m => m.UniversityId == universityId, includeProperties: "Article"))
                             .Select(s => s.Article).
-                            Where(a => a.Status == 3 && a.PublicFromDate != null && a.PublicToDate != null
+                            Where(a => a.Status == Articles.Published && a.PublicFromDate != null && a.PublicToDate != null
                     && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0);
 
 
@@ -801,16 +938,17 @@ namespace CapstoneAPI.Features.Article.Service
             return response;
         }
 
-        public async Task<Response<ArticleCollapseDataSet>> CreateNewArticle(CreateArticleParam createArticleParam, string token)
+        public async Task<Response<AdminArticleCollapseDataSet>> CreateNewArticle(CreateArticleParam createArticleParam, string token)
         {
-            Response<ArticleCollapseDataSet> response = new Response<ArticleCollapseDataSet>();
+            Response<AdminArticleCollapseDataSet> response = new Response<AdminArticleCollapseDataSet>();
 
             //Update Block
             using var tran = _uow.GetTransaction();
             try
             {
-                //GET USER ID
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -820,19 +958,17 @@ namespace CapstoneAPI.Features.Article.Service
                     response.Errors.Add("Bạn chưa đăng nhập!");
                     return response;
                 }
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
 
-                if (userIdString == null || userIdString.Length <= 0)
+                if (!user.IsActive)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
                     return response;
                 }
-                int userId = Int32.Parse(userIdString);
                 if (createArticleParam.Content == null || createArticleParam.Content.Trim().Length == 0 ||
                     createArticleParam.Title == null || createArticleParam.Title.Trim().Length == 0 ||
                     createArticleParam.ShortDescription == null || createArticleParam.ShortDescription.Trim().Length == 0)
@@ -850,8 +986,9 @@ namespace CapstoneAPI.Features.Article.Service
                     Title = createArticleParam.Title,
                     Content = await FirebaseHelper.UploadBase64ImgToFirebase(createArticleParam.Content),
                     ShortDescription = createArticleParam.ShortDescription,
-                    Censor = userId,
-                    Status = Consts.STATUS_ACTIVE,
+                    Censor = user.Id,
+                    CrawlerDate = JWTUtils.GetCurrentTimeInVN(),
+                    Status = Articles.New,
                 };
                 IFormFile postImage = createArticleParam.PostImage;
                 if (postImage != null)
@@ -975,7 +1112,7 @@ namespace CapstoneAPI.Features.Article.Service
                         return response;
                     }
                 }
-                response.Data = _mapper.Map<ArticleCollapseDataSet>(article);
+                response.Data = _mapper.Map<AdminArticleCollapseDataSet>(article);
                 response.Succeeded = true;
                 tran.Commit();
             }
@@ -996,14 +1133,15 @@ namespace CapstoneAPI.Features.Article.Service
         public async Task<Response<AdminArticleDetailDataSet>> UpdateArticle(UpdateArticleParam updateArticleParam, string token)
         {
             Response<AdminArticleDetailDataSet> response = new Response<AdminArticleDetailDataSet>();
-            // status 0 hoặc 1 mới được update
+            // status 0 hoặc 1 hoặc 5 mới được update
             // chỉ được update nội dung
             //Update Block
             using var tran = _uow.GetTransaction();
             try
             {
-                //GET USER ID
-                if (token == null || token.Trim().Length == 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -1013,20 +1151,17 @@ namespace CapstoneAPI.Features.Article.Service
                     response.Errors.Add("Bạn chưa đăng nhập!");
                     return response;
                 }
-                string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
 
-                if (userIdString == null || userIdString.Length <= 0)
+                if (!user.IsActive)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
                     {
                         response.Errors = new List<string>();
                     }
-                    response.Errors.Add("Tài khoản của bạn không tồn tại!");
+                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
                     return response;
                 }
-                int userId = Int32.Parse(userIdString);
-
 
                 if (updateArticleParam.Content == null || updateArticleParam.Content.Trim().Length == 0 ||
                     updateArticleParam.Title == null || updateArticleParam.Title.Trim().Length == 0 ||
@@ -1041,7 +1176,6 @@ namespace CapstoneAPI.Features.Article.Service
                     return response;
                 }
 
-
                 Models.Article article = await _uow.ArticleRepository.GetById(updateArticleParam.Id);
                 if (article == null)
                 {
@@ -1053,7 +1187,17 @@ namespace CapstoneAPI.Features.Article.Service
                     response.Errors.Add("Bài viết không tồn tại!");
                     return response;
                 }
-                if (article.Status != 0 && article.Status != 1)
+                if (article.RootUrl != null)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Bạn không thể chỉnh sửa nội dung bài viết này!");
+                    return response;
+                }
+                if (article.Status != Articles.New && article.Status != Articles.Considered)
                 {
                     response.Succeeded = false;
                     if (response.Errors == null)
@@ -1067,6 +1211,7 @@ namespace CapstoneAPI.Features.Article.Service
                 article.Title = updateArticleParam.Title;
                 article.Content = await FirebaseHelper.UploadBase64ImgToFirebase(updateArticleParam.Content);
                 article.ShortDescription = updateArticleParam.ShortDescription;
+                article.Censor = user.Id;
 
                 IFormFile postImage = updateArticleParam.PostImage;
                 if (postImage != null)
@@ -1190,7 +1335,7 @@ namespace CapstoneAPI.Features.Article.Service
                         {
                             response.Errors = new List<string>();
                         }
-                        response.Errors.Add("Thêm bài viết không thành công, lỗi hệ thống!");
+                        response.Errors.Add("Cập nhật bài viết không thành công, lỗi hệ thống!");
                         return response;
                     }
                 }
@@ -1218,12 +1363,7 @@ namespace CapstoneAPI.Features.Article.Service
             Response<bool> response = new Response<bool>();
             try
             {
-                string path = Path.Combine(Path
-                    .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
-                JObject configuration = JObject.Parse(File.ReadAllText(path));
-
-                var currentTimeZone = configuration.SelectToken("CurrentTimeZone").ToString();
-                DateTime currentDate = DateTime.UtcNow.AddHours(double.Parse(currentTimeZone));
+                DateTime currentDate = JWTUtils.GetCurrentTimeInVN();
 
                 IEnumerable<Models.Article> articles = await _uow.ArticleRepository.Get(filter: a => a.Status == Consts.STATUS_PUBLISHED &&
                 a.PublicToDate != null && DateTime.Compare(currentDate, (DateTime)a.PublicToDate) > 0);
@@ -1231,7 +1371,8 @@ namespace CapstoneAPI.Features.Article.Service
                 {
                     foreach (var article in articles)
                     {
-                        article.Status = 4;
+                        article.Status = Articles.Expired;
+                        article.ImportantLevel = null;
                     }
                     _uow.ArticleRepository.UpdateRange(articles);
                     if ((await _uow.CommitAsync()) <= 0)

@@ -20,6 +20,8 @@ using Serilog;
 using CapstoneAPI.Features.University.DataSet;
 using CapstoneAPI.Features.FollowingDetail.DataSet;
 using CapstoneAPI.Features.SubjectGroup.DataSet;
+using FirebaseAdmin.Messaging;
+using CapstoneAPI.Features.FCM.Service;
 
 namespace CapstoneAPI.Features.University.Service
 {
@@ -28,11 +30,13 @@ namespace CapstoneAPI.Features.University.Service
         private IMapper _mapper;
         private readonly IUnitOfWork _uow;
         private readonly ILogger _log = Log.ForContext<UniversityService>();
+        private readonly IFCMService _firebaseService;
 
-        public UniversityService(IUnitOfWork uow, IMapper mapper)
+        public UniversityService(IUnitOfWork uow, IMapper mapper, IFCMService firebaseService)
         {
             _uow = uow;
             _mapper = mapper;
+            _firebaseService = firebaseService;
         }
 
         public async Task<Response<IEnumerable<TrainingProgramBasedUniversityDataSet>>> GetUniversityBySubjectGroupAndMajor(UniversityParam universityParam, string token)
@@ -40,15 +44,7 @@ namespace CapstoneAPI.Features.University.Service
             Response<IEnumerable<TrainingProgramBasedUniversityDataSet>> response = new Response<IEnumerable<TrainingProgramBasedUniversityDataSet>>();
             try
             {
-                int userId = 0;
-                if (token != null && token.Trim().Length > 0)
-                {
-                    string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-                    if (userIdString != null && userIdString.Length > 0)
-                    {
-                        userId = Int32.Parse(userIdString);
-                    }
-                }
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
 
                 List<TrainingProgramBasedUniversityDataSet> trainingProgramBasedUniversityDataSets = new List<TrainingProgramBasedUniversityDataSet>();
 
@@ -89,6 +85,7 @@ namespace CapstoneAPI.Features.University.Service
                     trainingProgramBasedUniversityDataSet = _mapper.Map<TrainingProgramBasedUniversityDataSet>(groupsByUni.Key);
                     var groupByTrainingPrograms = groupsByUni.GroupBy(m => m.TrainingProgram);
                     List<TrainingProgramDataSet> trainingProgramDataSets = new List<TrainingProgramDataSet>();
+                    double highestEntryMark = 0;
                     foreach (var groupByTrainingProgram in groupByTrainingPrograms)
                     {
                         TrainingProgramDataSet trainingProgramDataSet = new TrainingProgramDataSet();
@@ -120,55 +117,92 @@ namespace CapstoneAPI.Features.University.Service
                         }
 
                         if (currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria == null
-                            || !currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria.Where(s => s.Status == Consts.STATUS_ACTIVE).Any()
+                            || !currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                                .Where(s => s.Status == Consts.STATUS_ACTIVE).Any()
                             || previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria == null
-                            || !previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria.Where(s => s.Status == Consts.STATUS_ACTIVE).Any())
+                            || !previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                                .Where(s => s.Status == Consts.STATUS_ACTIVE).Any())
                         {
                             continue;
                         }
 
-                        List<SubAdmissionCriterion> currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == universityParam.Gender || a.Gender == null)
-                             && (a.ProvinceId == universityParam.ProvinceId || a.ProvinceId == null)).ToList();
-                        List<SubAdmissionCriterion> previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == universityParam.Gender || a.Gender == null)
-                             && (a.ProvinceId == universityParam.ProvinceId || a.ProvinceId == null)).ToList();
+                        var currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == AdmissionMethodTypes.THPTQG
+                                    && a.Quantity != 0).ToList();
+                        var previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == AdmissionMethodTypes.THPTQG
+                            && a.Quantity != 0).ToList();
 
                         if (!currentSubAdmissionCriterias.Any() || !previousSubAdmissionCriterias.Any())
                         {
                             continue;
                         }
 
-                        EntryMark currentEntryMark = null;
-                        EntryMark previousEntryMark = null;
-
-                        foreach (SubAdmissionCriterion currentSubAdmissionCriteria in currentSubAdmissionCriterias)
+                        //Check ptts cho giới tính riêng
+                        var subCurrentSubAdmissionCriteriasByGender =
+                            currentSubAdmissionCriterias.Where(s => s.Gender == universityParam.Gender).ToList();
+                        if (subCurrentSubAdmissionCriteriasByGender.Any())
                         {
-                            currentEntryMark = (await _uow.EntryMarkRepository
-                                .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == currentSubAdmissionCriteria.Id && e.MajorSubjectGroupId != null,
-                                    includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup,SubAdmissionCriterion,FollowingDetails"))
-                                    .Where(e => e.MajorSubjectGroup.SubjectGroupId == universityParam.SubjectGroupId
-                                                && e.MajorSubjectGroup.MajorId == universityParam.MajorId).FirstOrDefault();
-                            if (currentEntryMark != null)
-                            {
-                                break;
-                            }
+                            currentSubAdmissionCriterias = subCurrentSubAdmissionCriteriasByGender;
+                        }
+                        else
+                        {
+                            currentSubAdmissionCriterias = currentSubAdmissionCriterias.Where(s => s.Gender == null).ToList();
                         }
 
-                        foreach (SubAdmissionCriterion previousSubAdmissionCriteria in previousSubAdmissionCriterias)
+                        var subPreviousSubAdmissionCriteriasByGender =
+                            previousSubAdmissionCriterias.Where(s => s.Gender == universityParam.Gender);
+                        if (subPreviousSubAdmissionCriteriasByGender.Any())
                         {
-                            previousEntryMark = (await _uow.EntryMarkRepository
-                                .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == previousSubAdmissionCriteria.Id && e.MajorSubjectGroupId != null,
-                                    includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup,SubAdmissionCriterion"))
-                                    .Where(e => e.MajorSubjectGroup.SubjectGroupId == universityParam.SubjectGroupId
-                                                && e.MajorSubjectGroup.MajorId == universityParam.MajorId).FirstOrDefault();
-                            if (previousEntryMark != null)
-                            {
-                                break;
-                            }
+                            previousSubAdmissionCriterias = subPreviousSubAdmissionCriteriasByGender.ToList();
+                        }
+                        else
+                        {
+                            previousSubAdmissionCriterias = previousSubAdmissionCriterias.Where(s => s.Gender == null).ToList();
                         }
 
-                        if (currentEntryMark == null || previousEntryMark == null || previousEntryMark.Mark == null || previousEntryMark.Mark > universityParam.TotalMark)
+                        //Check ptts cho tỉnh riêng, chỉ có duy nhất 1 tiêu chí thỏa mãn
+                        var subCurrentSubAdmissionCriteria = currentSubAdmissionCriterias
+                            .Where(s => s.ProvinceId == universityParam.ProvinceId).FirstOrDefault();
+                        if (subCurrentSubAdmissionCriteria == null)
+                        {
+                            subCurrentSubAdmissionCriteria = currentSubAdmissionCriterias.Where(s => s.ProvinceId == null).FirstOrDefault(); ;
+                        }
+
+                        var subPreviousSubAdmissionCriteria =
+                            previousSubAdmissionCriterias.Where(s => s.ProvinceId == universityParam.ProvinceId).FirstOrDefault();
+                        if (subPreviousSubAdmissionCriteria == null)
+                        {
+                            subPreviousSubAdmissionCriteria = previousSubAdmissionCriterias.Where(s => s.ProvinceId == null).FirstOrDefault();
+                        }
+
+                        if (subPreviousSubAdmissionCriteria == null || subCurrentSubAdmissionCriteria == null)
+                        {
+                            continue;
+                        }
+
+                        EntryMark currentEntryMark = (await _uow.EntryMarkRepository
+                            .Get(filter: e => e.Status == Consts.STATUS_ACTIVE
+                                    && e.SubAdmissionCriterionId == subCurrentSubAdmissionCriteria.Id
+                                    && e.MajorSubjectGroupId != null,
+                                includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup," +
+                                                        "SubAdmissionCriterion,FollowingDetails"))
+                            .Where(e => e.MajorSubjectGroup.SubjectGroupId == universityParam.SubjectGroupId
+                                    && e.MajorSubjectGroup.MajorId == universityParam.MajorId)
+                            .FirstOrDefault();
+
+                        EntryMark previousEntryMark = (await _uow.EntryMarkRepository
+                            .Get(filter: e => e.Status == Consts.STATUS_ACTIVE
+                                    && e.SubAdmissionCriterionId == subPreviousSubAdmissionCriteria.Id
+                                    && e.MajorSubjectGroupId != null,
+                                includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup," +
+                                                    "SubAdmissionCriterion"))
+                            .Where(e => e.MajorSubjectGroup.SubjectGroupId == universityParam.SubjectGroupId
+                                    && e.MajorSubjectGroup.MajorId == universityParam.MajorId)
+                            .FirstOrDefault();
+
+                        if (currentEntryMark == null || previousEntryMark == null || previousEntryMark.Mark == null
+                            || previousEntryMark.Mark <= 0|| previousEntryMark.Mark > universityParam.TotalMark)
                         {
                             continue;
                         }
@@ -177,36 +211,98 @@ namespace CapstoneAPI.Features.University.Service
                         previousSeasonDataSet.NumberOfStudents = previousEntryMark.SubAdmissionCriterion.Quantity;
                         currentSeasonDataSet.NumberOfStudents = currentEntryMark.SubAdmissionCriterion.Quantity;
                         List<int> currentEntryMarkIds = (await _uow.EntryMarkRepository
-                                                        .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == currentEntryMark.SubAdmissionCriterionId))
-                                                        .Select(e => e.Id).ToList();
+                                                .Get(filter: e => e.Status == Consts.STATUS_ACTIVE
+                                                && e.SubAdmissionCriterionId == currentEntryMark.SubAdmissionCriterionId))
+                                                .Select(e => e.Id).ToList();
                         seasonDataSets.Add(previousSeasonDataSet);
                         seasonDataSets.Add(currentSeasonDataSet);
                         trainingProgramDataSet.SeasonDataSets = seasonDataSets;
-                        trainingProgramDataSet.NumberOfCaring = (await _uow.FollowingDetailRepository
-                            .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE)).Count();
-                        if (userId > 0)
+                        if (user != null && user.IsActive)
                         {
-                            trainingProgramDataSet.FollowingDetail = _mapper.Map<FollowingDetailDataSet>(await _uow.FollowingDetailRepository
-                                                                                        .GetFirst(filter: f => f.UserId == userId
-                                                                                        && f.Status == Consts.STATUS_ACTIVE
-                                                                                        && f.EntryMarkId == currentEntryMark.Id));
+                            trainingProgramDataSet.FollowingDetail = _mapper.Map<FollowingDetailDataSet>(
+                                await _uow.FollowingDetailRepository.GetFirst(filter: f => f.UserId == user.Id
+                                    && f.Status == Consts.STATUS_ACTIVE && f.EntryMarkId == currentEntryMark.Id));
                         }
+                        trainingProgramDataSet.NumberOfCaring = (await _uow.FollowingDetailRepository.Get(
+                                filter: f => currentEntryMarkIds.Contains(f.EntryMarkId)
+                                && f.Status == Consts.STATUS_ACTIVE)).Count();
+                        if (trainingProgramDataSet.FollowingDetail == null)
+                        {
+                            trainingProgramDataSet.NumberOfCaring += 1;
+                            
+                        }
+
                         IEnumerable<Models.Rank> ranks = (await _uow.FollowingDetailRepository
                                                                 .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE,
                                                                     includeProperties: "Rank"))
                                                                 .Select(u => u.Rank).Where(r => r != null);
-                        trainingProgramDataSet.Rank = _uow.RankRepository.CalculateRank(universityParam.TranscriptTypeId, universityParam.TotalMark, ranks);
+                        trainingProgramDataSet.Rank = _uow.RankRepository
+                            .CalculateRank(universityParam.TranscriptTypeId, universityParam.TotalMark, ranks, (double) previousEntryMark.Mark);
 
+                        double? ration = null;
+                        
+                        if (currentSeasonDataSet.NumberOfStudents != null)
+                        {
+                            ration = Math.Round(trainingProgramDataSet.Rank / (double)currentSeasonDataSet.NumberOfStudents, 3);
+                        }
+                        trainingProgramDataSet.Ratio = ration;
+                        if (ration == null || ration <= UniversityRatios.Green)
+                        {
+                            trainingProgramDataSet.DividedClass = UniversityRatios.GreenGroup;
+                        } else if (ration <= UniversityRatios.Yellow)
+                        {
+                            trainingProgramDataSet.DividedClass = UniversityRatios.YellowGroup;
+                        } else
+                        {
+                            trainingProgramDataSet.DividedClass = UniversityRatios.RedGroup;
+                        }
                         trainingProgramDataSets.Add(trainingProgramDataSet);
+                        highestEntryMark = (double)previousEntryMark.Mark > highestEntryMark ? (double)previousEntryMark.Mark : highestEntryMark;
+                        //TrainingProgramDataSet new1 = new TrainingProgramDataSet()
+                        //{
+                        //    DividedClass = 2,
+                        //    FollowingDetail = trainingProgramDataSet.FollowingDetail,
+                        //    Name = trainingProgramDataSet.Name,
+                        //    NumberOfCaring = trainingProgramDataSet.NumberOfCaring,
+                        //    Rank = trainingProgramDataSet.Rank,
+                        //    Ratio = trainingProgramDataSet.Ratio,
+                        //    SeasonDataSets = trainingProgramDataSet.SeasonDataSets
+                        //};
+                        //trainingProgramDataSets.Add(new1);
+
+                        //TrainingProgramDataSet new2 = new TrainingProgramDataSet()
+                        //{
+                        //    DividedClass = 3,
+                        //    FollowingDetail = trainingProgramDataSet.FollowingDetail,
+                        //    Name = trainingProgramDataSet.Name,
+                        //    NumberOfCaring = trainingProgramDataSet.NumberOfCaring,
+                        //    Rank = trainingProgramDataSet.Rank,
+                        //    Ratio = trainingProgramDataSet.Ratio,
+                        //    SeasonDataSets = trainingProgramDataSet.SeasonDataSets
+                        //};
+                        //trainingProgramDataSets.Add(new2);
+
+                        //TrainingProgramDataSet new3 = new TrainingProgramDataSet()
+                        //{
+                        //    DividedClass = 3,
+                        //    FollowingDetail = trainingProgramDataSet.FollowingDetail,
+                        //    Name = trainingProgramDataSet.Name,
+                        //    NumberOfCaring = trainingProgramDataSet.NumberOfCaring,
+                        //    Rank = trainingProgramDataSet.Rank,
+                        //    Ratio = trainingProgramDataSet.Ratio,
+                        //    SeasonDataSets = trainingProgramDataSet.SeasonDataSets
+                        //};
+                        //trainingProgramDataSets.Add(new3);
                     }
                     if (trainingProgramDataSets.Any())
                     {
-                        trainingProgramBasedUniversityDataSet.TrainingProgramSets = trainingProgramDataSets;
+                        trainingProgramBasedUniversityDataSet.TrainingProgramSets = trainingProgramDataSets.OrderBy(t => t.DividedClass).ToList();
+                        trainingProgramBasedUniversityDataSet.HighestEntryMark = highestEntryMark;
                         trainingProgramBasedUniversityDataSets.Add(trainingProgramBasedUniversityDataSet);
                     }
                 }
                 response.Succeeded = true;
-                response.Data = trainingProgramBasedUniversityDataSets;
+                response.Data = trainingProgramBasedUniversityDataSets.OrderByDescending(t => t.HighestEntryMark);
             } catch (Exception ex)
             {
                 _log.Error(ex.ToString());
@@ -225,14 +321,28 @@ namespace CapstoneAPI.Features.University.Service
             Response<MockTestBasedUniversity> response = new Response<MockTestBasedUniversity>();
             try
             {
-                int userId = 0;
-                if (token != null && token.Trim().Length > 0)
+                Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                if (user == null)
                 {
-                    string userIdString = JWTUtils.GetUserIdFromJwtToken(token);
-                    if (userIdString != null && userIdString.Length > 0)
+                    response.Succeeded = false;
+                    if (response.Errors == null)
                     {
-                        userId = Int32.Parse(userIdString);
+                        response.Errors = new List<string>();
                     }
+                    response.Errors.Add("Bạn chưa đăng nhập!");
+                    return response;
+                }
+
+                if (!user.IsActive)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
+                    return response;
                 }
 
                 List<TrainingProgramBasedUniversityDataSet> trainingProgramBasedUniversityDataSets = new List<TrainingProgramBasedUniversityDataSet>();
@@ -242,7 +352,28 @@ namespace CapstoneAPI.Features.University.Service
                 Models.Season previousSeason = await _uow.SeasonRepository.GetPreviousSeason();
 
                 List<SubjectGroupDetail> subjectGroupDetails = (await _uow.SubjecGroupDetailRepository.Get(s => s.SubjectGroupId == universityParam.SubjectGroupId)).ToList();
-                double totalMark = await CalculateSubjectGroupMark(universityParam.Marks, subjectGroupDetails);
+                List<MarkParam> marks = new List<MarkParam>();
+
+                IEnumerable<Models.Transcript> transcripts = await _uow.TranscriptRepository
+                        .Get(filter: t => t.UserId == user.Id && t.TranscriptTypeId == TranscriptTypes.ThiThu
+                        && t.Status == Consts.STATUS_ACTIVE);
+                foreach (Models.Transcript transcript in transcripts)
+                {
+                    MarkParam markParam = new MarkParam();
+                    markParam.Mark = transcript.Mark;
+                    markParam.SubjectId = transcript.SubjectId;
+                    marks.Add(markParam);
+                }
+
+                if (subjectGroupDetails.Where(s => s.SubjectId == Subjects.Literature).Any())
+                {
+                    MarkParam markParam = new MarkParam();
+                    markParam.Mark = await _uow.TranscriptRepository.GetLiteratureTestMark(user.Id);
+                    markParam.SubjectId = Subjects.Literature;
+                    marks.Add(markParam);
+                }
+                
+                double totalMark = await CalculateSubjectGroupMark(marks, subjectGroupDetails);
 
                 if (totalMark == 0)
                 {
@@ -271,7 +402,7 @@ namespace CapstoneAPI.Features.University.Service
                     .GroupBy(m => m.University);
 
                 List<MajorDetail> validMajorDetails = new List<MajorDetail>();
-
+                double highestEntryMark = 0;
                 foreach (var groupsByUni in groupsByUnis)
                 {
                     TrainingProgramBasedUniversityDataSet trainingProgramBasedUniversityDataSet = new TrainingProgramBasedUniversityDataSet();
@@ -316,48 +447,83 @@ namespace CapstoneAPI.Features.University.Service
                             continue;
                         }
 
-                        List<SubAdmissionCriterion> currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == universityParam.Gender || a.Gender == null)
-                             && (a.ProvinceId == universityParam.ProvinceId || a.ProvinceId == null)).ToList();
-                        List<SubAdmissionCriterion> previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
-                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == 1 && (a.Gender == universityParam.Gender || a.Gender == null)
-                             && (a.ProvinceId == universityParam.ProvinceId || a.ProvinceId == null)).ToList();
+                        var currentSubAdmissionCriterias = currentMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                           .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == AdmissionMethodTypes.THPTQG
+                                   && a.Quantity != 0).ToList();
+                        var previousSubAdmissionCriterias = previousMajorDetail.AdmissionCriterion.SubAdmissionCriteria
+                            .Where(a => a.Status == Consts.STATUS_ACTIVE && a.AdmissionMethodId == AdmissionMethodTypes.THPTQG
+                            && a.Quantity != 0).ToList();
 
                         if (!currentSubAdmissionCriterias.Any() || !previousSubAdmissionCriterias.Any())
                         {
                             continue;
                         }
 
-                        EntryMark currentEntryMark = null;
-                        EntryMark previousEntryMark = null;
-
-                        foreach (SubAdmissionCriterion currentSubAdmissionCriteria in currentSubAdmissionCriterias)
+                        //Check ptts cho giới tính riêng
+                        var subCurrentSubAdmissionCriteriasByGender =
+                            currentSubAdmissionCriterias.Where(s => s.Gender == user.Gender).ToList();
+                        if (subCurrentSubAdmissionCriteriasByGender.Any())
                         {
-                            currentEntryMark = (await _uow.EntryMarkRepository
-                                .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == currentSubAdmissionCriteria.Id && e.MajorSubjectGroupId != null,
-                                    includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup,SubAdmissionCriterion,FollowingDetails"))
-                                    .Where(e => e.MajorSubjectGroup.SubjectGroupId == universityParam.SubjectGroupId
-                                                && e.MajorSubjectGroup.MajorId == universityParam.MajorId).FirstOrDefault();
-                            if (currentEntryMark != null)
-                            {
-                                break;
-                            }
+                            currentSubAdmissionCriterias = subCurrentSubAdmissionCriteriasByGender;
+                        }
+                        else
+                        {
+                            currentSubAdmissionCriterias = currentSubAdmissionCriterias.Where(s => s.Gender == null).ToList();
                         }
 
-                        foreach (SubAdmissionCriterion previousSubAdmissionCriteria in previousSubAdmissionCriterias)
+                        var subPreviousSubAdmissionCriteriasByGender =
+                            previousSubAdmissionCriterias.Where(s => s.Gender == user.Gender);
+                        if (subPreviousSubAdmissionCriteriasByGender.Any())
                         {
-                            previousEntryMark = (await _uow.EntryMarkRepository
-                                .Get(filter: e => e.Status == Consts.STATUS_ACTIVE && e.SubAdmissionCriterionId == previousSubAdmissionCriteria.Id && e.MajorSubjectGroupId != null,
-                                    includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup,SubAdmissionCriterion"))
-                                    .Where(e => e.MajorSubjectGroup.SubjectGroupId == universityParam.SubjectGroupId
-                                                && e.MajorSubjectGroup.MajorId == universityParam.MajorId).FirstOrDefault();
-                            if (previousEntryMark != null)
-                            {
-                                break;
-                            }
+                            previousSubAdmissionCriterias = subPreviousSubAdmissionCriteriasByGender.ToList();
+                        }
+                        else
+                        {
+                            previousSubAdmissionCriterias = previousSubAdmissionCriterias.Where(s => s.Gender == null).ToList();
                         }
 
-                        if (currentEntryMark == null || previousEntryMark == null || previousEntryMark.Mark == null || previousEntryMark.Mark > totalMark)
+                        //Check ptts cho tỉnh riêng, chỉ có duy nhất 1 tiêu chí thỏa mãn
+                        var subCurrentSubAdmissionCriteria = currentSubAdmissionCriterias
+                            .Where(s => s.ProvinceId == user.ProvinceId).FirstOrDefault();
+                        if (subCurrentSubAdmissionCriteria == null)
+                        {
+                            subCurrentSubAdmissionCriteria = currentSubAdmissionCriterias.Where(s => s.ProvinceId == null).FirstOrDefault(); ;
+                        }
+
+                        var subPreviousSubAdmissionCriteria =
+                            previousSubAdmissionCriterias.Where(s => s.ProvinceId == user.ProvinceId).FirstOrDefault();
+                        if (subPreviousSubAdmissionCriteria == null)
+                        {
+                            subPreviousSubAdmissionCriteria = previousSubAdmissionCriterias.Where(s => s.ProvinceId == null).FirstOrDefault();
+                        }
+
+                        if (subPreviousSubAdmissionCriteria == null || subCurrentSubAdmissionCriteria == null)
+                        {
+                            continue;
+                        }
+
+                        EntryMark currentEntryMark = (await _uow.EntryMarkRepository
+                            .Get(filter: e => e.Status == Consts.STATUS_ACTIVE
+                                    && e.SubAdmissionCriterionId == subCurrentSubAdmissionCriteria.Id
+                                    && e.MajorSubjectGroupId != null,
+                                includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup," +
+                                                        "SubAdmissionCriterion,FollowingDetails"))
+                            .Where(e => e.MajorSubjectGroup.SubjectGroupId == universityParam.SubjectGroupId
+                                    && e.MajorSubjectGroup.MajorId == universityParam.MajorId)
+                            .FirstOrDefault();
+
+                        EntryMark previousEntryMark = (await _uow.EntryMarkRepository
+                            .Get(filter: e => e.Status == Consts.STATUS_ACTIVE
+                                    && e.SubAdmissionCriterionId == subPreviousSubAdmissionCriteria.Id
+                                    && e.MajorSubjectGroupId != null,
+                                includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup," +
+                                                    "SubAdmissionCriterion"))
+                            .Where(e => e.MajorSubjectGroup.SubjectGroupId == universityParam.SubjectGroupId
+                                    && e.MajorSubjectGroup.MajorId == universityParam.MajorId)
+                            .FirstOrDefault();
+
+                        if (currentEntryMark == null || previousEntryMark == null || previousEntryMark.Mark == null
+                            || previousEntryMark.Mark <= 0 || previousEntryMark.Mark > totalMark)
                         {
                             continue;
                         }
@@ -371,25 +537,50 @@ namespace CapstoneAPI.Features.University.Service
                         seasonDataSets.Add(previousSeasonDataSet);
                         seasonDataSets.Add(currentSeasonDataSet);
                         trainingProgramDataSet.SeasonDataSets = seasonDataSets;
-                        trainingProgramDataSet.NumberOfCaring = (await _uow.FollowingDetailRepository
-                            .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE)).Count();
-                        if (userId > 0)
+
+                        trainingProgramDataSet.FollowingDetail = _mapper.Map<FollowingDetailDataSet>(
+                            await _uow.FollowingDetailRepository.GetFirst(filter: f => f.UserId == user.Id
+                                                            && f.Status == Consts.STATUS_ACTIVE
+                                                            && f.EntryMarkId == currentEntryMark.Id));
+                        
+                        trainingProgramDataSet.NumberOfCaring = (await _uow.FollowingDetailRepository.Get(
+                                filter: f => currentEntryMarkIds.Contains(f.EntryMarkId)
+                                && f.Status == Consts.STATUS_ACTIVE)).Count();
+                        if (trainingProgramDataSet.FollowingDetail == null)
                         {
-                            trainingProgramDataSet.FollowingDetail = _mapper.Map<FollowingDetailDataSet>(await _uow.FollowingDetailRepository.GetFirst(filter: f => f.UserId == userId
-                                                                                        && f.Status == Consts.STATUS_ACTIVE
-                                                                                        && f.EntryMarkId == currentEntryMark.Id));
+                            trainingProgramDataSet.NumberOfCaring += 1;
                         }
                         IEnumerable<Models.Rank> ranks = (await _uow.FollowingDetailRepository
                                                                 .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE,
                                                                     includeProperties: "Rank"))
                                                                 .Select(u => u.Rank).Where(r => r != null);
-                        trainingProgramDataSet.Rank = _uow.RankRepository.CalculateRank(universityParam.TranscriptTypeId, totalMark, ranks);
+                        trainingProgramDataSet.Rank = _uow.RankRepository.CalculateRank(3, totalMark, ranks, (double) previousEntryMark.Mark);
+                        double? ration = null;
 
+                        if (currentSeasonDataSet.NumberOfStudents != null)
+                        {
+                            ration = Math.Round(trainingProgramDataSet.Rank / (double)currentSeasonDataSet.NumberOfStudents, 3);
+                        }
+                        trainingProgramDataSet.Ratio = ration;
+                        if (ration == null || ration <= UniversityRatios.Green)
+                        {
+                            trainingProgramDataSet.DividedClass = UniversityRatios.GreenGroup;
+                        }
+                        else if (ration <= UniversityRatios.Yellow)
+                        {
+                            trainingProgramDataSet.DividedClass = UniversityRatios.YellowGroup;
+                        }
+                        else
+                        {
+                            trainingProgramDataSet.DividedClass = UniversityRatios.RedGroup;
+                        }
+                        highestEntryMark = (double)previousEntryMark.Mark > highestEntryMark ? (double)previousEntryMark.Mark : highestEntryMark;
                         trainingProgramDataSets.Add(trainingProgramDataSet);
                     }
                     if (trainingProgramDataSets.Any())
                     {
-                        trainingProgramBasedUniversityDataSet.TrainingProgramSets = trainingProgramDataSets;
+                        trainingProgramBasedUniversityDataSet.TrainingProgramSets = trainingProgramDataSets.OrderBy(t => t.DividedClass).ToList();
+                        trainingProgramBasedUniversityDataSet.HighestEntryMark = highestEntryMark;
                         trainingProgramBasedUniversityDataSets.Add(trainingProgramBasedUniversityDataSet);
                     }
                 }
@@ -397,7 +588,7 @@ namespace CapstoneAPI.Features.University.Service
                 mockTestBasedUniversity.SubjectGroupId = universityParam.SubjectGroupId;
                 mockTestBasedUniversity.MajorId = universityParam.MajorId;
                 mockTestBasedUniversity.TotalMark = totalMark;
-                mockTestBasedUniversity.TrainingProgramBasedUniversityDataSets = trainingProgramBasedUniversityDataSets;
+                mockTestBasedUniversity.TrainingProgramBasedUniversityDataSets = trainingProgramBasedUniversityDataSets.OrderByDescending(t => t.HighestEntryMark).ToList();
                 response.Succeeded = true;
                 response.Data = mockTestBasedUniversity;
             } catch (Exception ex)
@@ -534,7 +725,7 @@ namespace CapstoneAPI.Features.University.Service
 
 
                 var adminUniversityDataSet = universities.Select(m => _mapper.Map<AdminUniversityDataSet>(m)).ToList();
-                var totalRecords = _uow.UniversityRepository.Count(filter);
+                var totalRecords = await _uow.UniversityRepository.Count(filter);
                 result = PaginationHelper.CreatePagedReponse(adminUniversityDataSet, validFilter, totalRecords);
             } catch (Exception ex)
             {
@@ -591,7 +782,7 @@ namespace CapstoneAPI.Features.University.Service
 
 
                 var adminUniversityDataSet = universities.Select(m => _mapper.Map<AdminUniversityDataSet>(m)).ToList();
-                var totalRecords = _uow.UniversityRepository.Count(filter);
+                var totalRecords = await _uow.UniversityRepository.Count(filter);
                 result = PaginationHelper.CreatePagedReponse(adminUniversityDataSet, validFilter, totalRecords);
             } catch (Exception ex)
             {
@@ -694,8 +885,7 @@ namespace CapstoneAPI.Features.University.Service
                 }
 
                 IEnumerable<Models.MajorDetail> majorDetails = await _uow.MajorDetailRepository
-                .Get(filter: filter, orderBy: order, includeProperties: "Major,Season,AdmissionCriterion,TrainingProgram," +
-                "Major.MajorSubjectGroups");
+                .Get(filter: filter, orderBy: order, includeProperties: "Major,Season,AdmissionCriterion,TrainingProgram");
 
                 IEnumerable<IGrouping<Models.Major, Models.MajorDetail>> groupbyMajor = majorDetails.GroupBy(m => m.Major);
                 foreach (IGrouping<Models.Major, Models.MajorDetail> item in groupbyMajor)
@@ -712,52 +902,57 @@ namespace CapstoneAPI.Features.University.Service
                         majorDetailUniDataSet.TrainingProgramId = detailWithAMajor.TrainingProgram.Id;
                         majorDetailUniDataSet.TrainingProgramName = detailWithAMajor.TrainingProgram.Name;
                         majorDetailUniDataSet.MajorDetailCode = detailWithAMajor.MajorCode;
-                        majorDetailUniDataSet.AdmissionQuantity = detailWithAMajor.AdmissionCriterion.Quantity;
+                        
                         majorDetailUniDataSet.SeasonId = detailWithAMajor.Season.Id;
                         majorDetailUniDataSet.SeasonName = detailWithAMajor.Season.Name;
-                        IEnumerable<Models.SubAdmissionCriterion> subAdmissionCriteria = await _uow.SubAdmissionCriterionRepository.
-                                                   Get(filter: s => s.AdmissionCriterionId == detailWithAMajor.AdmissionCriterion.MajorDetailId
-                                                   && s.Status == Consts.STATUS_ACTIVE,
-                                                   includeProperties: "Province,AdmissionMethod");
-                        foreach (Models.SubAdmissionCriterion subAdmission in subAdmissionCriteria)
+                        if (detailWithAMajor.AdmissionCriterion != null)
                         {
-                            MajorDetailSubAdmissionDataSet majorDetailSubAdmissionDataSet = new MajorDetailSubAdmissionDataSet();
-                            majorDetailSubAdmissionDataSet.Id = subAdmission.Id;
-                            majorDetailSubAdmissionDataSet.Quantity = subAdmission.Quantity;
-                            majorDetailSubAdmissionDataSet.ProvinceId = subAdmission.ProvinceId;
-                            if (subAdmission.ProvinceId != null)
+                            majorDetailUniDataSet.AdmissionQuantity = detailWithAMajor.AdmissionCriterion.Quantity;
+                            IEnumerable<Models.SubAdmissionCriterion> subAdmissionCriteria = await _uow.SubAdmissionCriterionRepository.
+                                                       Get(filter: s => s.AdmissionCriterionId == detailWithAMajor.AdmissionCriterion.MajorDetailId
+                                                       && s.Status == Consts.STATUS_ACTIVE,
+                                                       includeProperties: "Province,AdmissionMethod");
+                            foreach (Models.SubAdmissionCriterion subAdmission in subAdmissionCriteria)
                             {
-                                majorDetailSubAdmissionDataSet.ProvinceName = subAdmission.Province.Name;
-                            }
-                            majorDetailSubAdmissionDataSet.GenderId = subAdmission.Gender;
-                            if (subAdmission.AdmissionMethod != null)
-                            {
-                                majorDetailSubAdmissionDataSet.AdmissionMethodId = subAdmission.AdmissionMethod.Id;
-                                majorDetailSubAdmissionDataSet.AdmissionMethodName = subAdmission.AdmissionMethod.Name;
-                            }
-                            IEnumerable<Models.EntryMark> entryMarks = await _uow.EntryMarkRepository.Get(e => e.SubAdmissionCriterionId == subAdmission.Id
-                            && e.Status == Consts.STATUS_ACTIVE,
-                               includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup");
-                            foreach (Models.EntryMark entry in entryMarks)
-                            {
-                                MajorDetailEntryMarkDataset majorDetailEntryMarkDataset = new MajorDetailEntryMarkDataset();
-                                majorDetailEntryMarkDataset.Id = entry.Id;
-                                majorDetailEntryMarkDataset.Mark = entry.Mark;
-                                majorDetailEntryMarkDataset.MajorSubjectGoupId = entry.MajorSubjectGroup.Id;
-                                majorDetailEntryMarkDataset.SubjectGroupId = entry.MajorSubjectGroup.SubjectGroup.Id;
-                                majorDetailEntryMarkDataset.SubjectGroupCode = entry.MajorSubjectGroup.SubjectGroup.GroupCode;
-                                if (majorDetailSubAdmissionDataSet.MajorDetailEntryMarks == null)
+                                MajorDetailSubAdmissionDataSet majorDetailSubAdmissionDataSet = new MajorDetailSubAdmissionDataSet();
+                                majorDetailSubAdmissionDataSet.Id = subAdmission.Id;
+                                majorDetailSubAdmissionDataSet.Quantity = subAdmission.Quantity;
+                                majorDetailSubAdmissionDataSet.ProvinceId = subAdmission.ProvinceId;
+                                if (subAdmission.ProvinceId != null)
                                 {
-                                    majorDetailSubAdmissionDataSet.MajorDetailEntryMarks = new List<MajorDetailEntryMarkDataset>();
+                                    majorDetailSubAdmissionDataSet.ProvinceName = subAdmission.Province.Name;
                                 }
-                                majorDetailSubAdmissionDataSet.MajorDetailEntryMarks.Add(majorDetailEntryMarkDataset);
+                                majorDetailSubAdmissionDataSet.GenderId = subAdmission.Gender;
+                                if (subAdmission.AdmissionMethod != null)
+                                {
+                                    majorDetailSubAdmissionDataSet.AdmissionMethodId = subAdmission.AdmissionMethod.Id;
+                                    majorDetailSubAdmissionDataSet.AdmissionMethodName = subAdmission.AdmissionMethod.Name;
+                                }
+                                IEnumerable<Models.EntryMark> entryMarks = await _uow.EntryMarkRepository.Get(e => e.SubAdmissionCriterionId == subAdmission.Id
+                                && e.Status == Consts.STATUS_ACTIVE,
+                                   includeProperties: "MajorSubjectGroup,MajorSubjectGroup.SubjectGroup");
+                                foreach (Models.EntryMark entry in entryMarks)
+                                {
+                                    MajorDetailEntryMarkDataset majorDetailEntryMarkDataset = new MajorDetailEntryMarkDataset();
+                                    majorDetailEntryMarkDataset.Id = entry.Id;
+                                    majorDetailEntryMarkDataset.Mark = entry.Mark;
+                                    majorDetailEntryMarkDataset.MajorSubjectGoupId = entry.MajorSubjectGroup.Id;
+                                    majorDetailEntryMarkDataset.SubjectGroupId = entry.MajorSubjectGroup.SubjectGroup.Id;
+                                    majorDetailEntryMarkDataset.SubjectGroupCode = entry.MajorSubjectGroup.SubjectGroup.GroupCode;
+                                    if (majorDetailSubAdmissionDataSet.MajorDetailEntryMarks == null)
+                                    {
+                                        majorDetailSubAdmissionDataSet.MajorDetailEntryMarks = new List<MajorDetailEntryMarkDataset>();
+                                    }
+                                    majorDetailSubAdmissionDataSet.MajorDetailEntryMarks.Add(majorDetailEntryMarkDataset);
+                                }
+                                if (majorDetailUniDataSet.MajorDetailSubAdmissions == null)
+                                {
+                                    majorDetailUniDataSet.MajorDetailSubAdmissions = new List<MajorDetailSubAdmissionDataSet>();
+                                }
+                                majorDetailUniDataSet.MajorDetailSubAdmissions.Add(majorDetailSubAdmissionDataSet);
                             }
-                            if (majorDetailUniDataSet.MajorDetailSubAdmissions == null)
-                            {
-                                majorDetailUniDataSet.MajorDetailSubAdmissions = new List<MajorDetailSubAdmissionDataSet>();
-                            }
-                            majorDetailUniDataSet.MajorDetailSubAdmissions.Add(majorDetailSubAdmissionDataSet);
                         }
+                        
                         if (uniMajorDataSet.MajorDetailUnies == null)
                         {
                             uniMajorDataSet.MajorDetailUnies = new List<MajorDetailUniDataSet>();
@@ -888,6 +1083,7 @@ namespace CapstoneAPI.Features.University.Service
                 }
 
                 Models.University university = _mapper.Map<Models.University>(createUniversityDataset);
+                university.UpdatedDate = JWTUtils.GetCurrentTimeInVN();
                 _uow.UniversityRepository.Insert(university);
                 int result = await _uow.CommitAsync();
                 if (result > 0)
@@ -920,6 +1116,7 @@ namespace CapstoneAPI.Features.University.Service
         public async Task<Response<AdminUniversityDataSet>> UpdateUniversity(AdminUniversityDataSet adminUniversityDataSet)
         {
             Response<AdminUniversityDataSet> response = new Response<AdminUniversityDataSet>();
+            using var tran = _uow.GetTransaction();
             try
             {
                 if (adminUniversityDataSet.Name.Equals("") || adminUniversityDataSet.Code.Equals("") || (adminUniversityDataSet.Status != Consts.STATUS_ACTIVE && adminUniversityDataSet.Status != Consts.STATUS_INACTIVE))
@@ -932,7 +1129,7 @@ namespace CapstoneAPI.Features.University.Service
                     response.Errors.Add("Các thông tin cần thiết không hợp lệ!");
                     return response;
                 }
-                Models.University existUni = await _uow.UniversityRepository.GetFirst(filter: u => u.Code.Equals(adminUniversityDataSet.Code.Trim()));
+                Models.University existUni = await _uow.UniversityRepository.GetFirst(filter: u => u.Code.Equals(adminUniversityDataSet.Code.Trim()) && u.Status == Consts.STATUS_ACTIVE);
                 if (existUni != null && existUni.Id != adminUniversityDataSet.Id)
                 {
                     response.Succeeded = false;
@@ -1013,8 +1210,53 @@ namespace CapstoneAPI.Features.University.Service
                 updatedUni.TuitionTo = adminUniversityDataSet.TuitionTo;
                 updatedUni.Rating = adminUniversityDataSet.Rating;
                 updatedUni.Status = adminUniversityDataSet.Status;
-
+                updatedUni.UpdatedDate = JWTUtils.GetCurrentTimeInVN();
                 _uow.UniversityRepository.Update(updatedUni);
+                if (adminUniversityDataSet.Status == Consts.STATUS_INACTIVE)
+                {
+                    var majorDetails = await _uow.MajorDetailRepository.Get(
+                        filter: u => u.UniversityId == updatedUni.Id && u.Status == Consts.STATUS_ACTIVE);
+                    if (majorDetails.Any())
+                    {
+                        foreach (var majorDetail in majorDetails)
+                        {
+                            majorDetail.Status = Consts.STATUS_INACTIVE;
+                            var admission = await _uow.AdmissionCriterionRepository.GetById(majorDetail.Id);
+                            if (admission == null)
+                            {
+                                continue;
+                            }
+                            var subAdmissions = await _uow.SubAdmissionCriterionRepository.Get(
+                                filter: s => s.Id == admission.MajorDetailId && s.Status == Consts.STATUS_ACTIVE);
+                            if (!subAdmissions.Any())
+                                continue;
+                            foreach (var subAdmission in subAdmissions)
+                            {
+                                subAdmission.Status = Consts.STATUS_INACTIVE;
+                                var entryMarks = await _uow.EntryMarkRepository.Get(
+                                    filter: e => e.SubAdmissionCriterionId == subAdmission.Id && e.Status == Consts.STATUS_ACTIVE);
+                                if (!entryMarks.Any())
+                                    continue;
+                                foreach (var entryMark in entryMarks)
+                                {
+                                    entryMark.Status = Consts.STATUS_INACTIVE;
+                                    var followingDetails = await _uow.FollowingDetailRepository.Get(
+                                        filter: f => f.EntryMarkId == entryMark.Id && f.Status == Consts.STATUS_ACTIVE);
+                                    if (!followingDetails.Any())
+                                        continue;
+                                    foreach (var followingDetail in followingDetails)
+                                    {
+                                        followingDetail.Status = Consts.STATUS_INACTIVE;
+                                    }
+                                    _uow.FollowingDetailRepository.UpdateRange(followingDetails);
+                                }
+                                _uow.EntryMarkRepository.UpdateRange(entryMarks);
+                            }
+                            _uow.SubAdmissionCriterionRepository.UpdateRange(subAdmissions);
+                        }
+                        _uow.MajorDetailRepository.UpdateRange(majorDetails);
+                    }
+                }
                 int result = await _uow.CommitAsync();
                 if (result > 0)
                 {
@@ -1030,9 +1272,11 @@ namespace CapstoneAPI.Features.University.Service
                     }
                     response.Errors.Add("Lỗi hệ thống!");
                 }
+                tran.Commit();
             } catch (Exception ex)
             {
                 _log.Error(ex.ToString());
+                tran.Rollback();
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -1101,7 +1345,7 @@ namespace CapstoneAPI.Features.University.Service
                     TrainingProgramId = addingMajorUniversityParam.TrainingProgramId,
                     SeasonId = addingMajorUniversityParam.SeasonId,
                     MajorCode = addingMajorUniversityParam.MajorCode,
-                    UpdatedDate = DateTime.UtcNow,
+                    UpdatedDate = JWTUtils.GetCurrentTimeInVN(),
                     Status = Consts.STATUS_ACTIVE,
                 };
 
@@ -1115,6 +1359,17 @@ namespace CapstoneAPI.Features.University.Service
                         response.Errors = new List<string>();
                     }
                     response.Errors.Add("Thêm ngành bị lỗi!");
+                    return response;
+                }
+
+                if (addingMajorUniversityParam.TotalAdmissionQuantity < 0)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Chỉ tiêu không hợp lệ");
                     return response;
                 }
 
@@ -1189,8 +1444,9 @@ namespace CapstoneAPI.Features.University.Service
                     }
                     foreach (UniSubjectGroupDataSet item in uniSubAdmission.SubjectGroups)
                     {
-                        Models.MajorSubjectGroup majorSubjectGroup = await _uow.MajorSubjectGroupRepository.GetFirst(m => m.Id == item.MajorSubjectGroupId &&
-                                              m.MajorId == addingMajorUniversityParam.MajorId);
+                        Models.MajorSubjectGroup majorSubjectGroup = await _uow.MajorSubjectGroupRepository
+                                            .GetFirst(m => m.Id == item.MajorSubjectGroupId && m.Status == Consts.STATUS_ACTIVE
+                                                    && m.MajorId == addingMajorUniversityParam.MajorId);
                         if (majorSubjectGroup == null)
                         {
                             response.Succeeded = false;
@@ -1199,6 +1455,16 @@ namespace CapstoneAPI.Features.University.Service
                                 response.Errors = new List<string>();
                             }
                             response.Errors.Add("Ngành này chưa có khối mà bạn thêm vào!");
+                            return response;
+                        }
+                        if (item.EntryMarkPerGroup < 0)
+                        {
+                            response.Succeeded = false;
+                            if (response.Errors == null)
+                            {
+                                response.Errors = new List<string>();
+                            }
+                            response.Errors.Add("Điểm chuẩn không hợp lệ");
                             return response;
                         }
                         Models.EntryMark entryMark = new EntryMark
@@ -1245,7 +1511,8 @@ namespace CapstoneAPI.Features.University.Service
         {
             Response<bool> response = new Response<bool>();
             if (updatingMajorUniversityParam.MajorDetailId <= 0
-                || updatingMajorUniversityParam.Status < 0)
+                || (updatingMajorUniversityParam.Status != Consts.STATUS_ACTIVE
+                && updatingMajorUniversityParam.Status != Consts.STATUS_INACTIVE))
             {
                 response.Succeeded = false;
                 if (response.Errors == null)
@@ -1275,7 +1542,7 @@ namespace CapstoneAPI.Features.University.Service
             try
             {
                 MajorDetailExisted.MajorCode = updatingMajorUniversityParam.MajorCode;
-                MajorDetailExisted.UpdatedDate = DateTime.Now;
+                MajorDetailExisted.UpdatedDate = JWTUtils.GetCurrentTimeInVN();
                 MajorDetailExisted.Status = updatingMajorUniversityParam.Status;
                 _uow.MajorDetailRepository.Update(MajorDetailExisted);
                 if ((await _uow.CommitAsync()) <= 0)
@@ -1288,22 +1555,77 @@ namespace CapstoneAPI.Features.University.Service
                     response.Errors.Add("Cập nhật ngành bị lỗi!");
                     return response;
                 }
+                var currentSeason = await _uow.SeasonRepository.GetCurrentSeason();
+                var shouldNoti = false;
+                if (currentSeason != null && currentSeason.Id == MajorDetailExisted.SeasonId)
+                {
+                    shouldNoti = true;
+                }
+                string deleteMajorDetail = "Trường {0} đã không còn tuyển sinh Ngành {1} - Hệ {2}";
+                string deleteSubAdmiss = "Trường {0} đã thay đổi phương thức tuyển sinh Ngành {1} - Hệ {2}";
+                string deleteEntryMark = "Trường {0} đã không còn tuyển sinh Ngành {1} - Hệ {2} theo tổ hợp môn {3}";
+                string updateSubvsEn = "Trường {0} đã cập nhật thông tin tuyển sinh Ngành {1} - Hệ {2}";
+                var notifications = new List<Models.Notification>();
+                var messages = new List<Message>();
 
                 //REMOVE MAJORDETAIL
                 if (updatingMajorUniversityParam.Status == Consts.STATUS_INACTIVE)
                 {
                     IEnumerable<Models.SubAdmissionCriterion> subAdmissionCriterias = await _uow.SubAdmissionCriterionRepository.Get(filter:
                        s => s.AdmissionCriterionId == MajorDetailExisted.Id && s.Status == Consts.STATUS_ACTIVE);
-                    if (subAdmissionCriterias != null && subAdmissionCriterias.Count() > 0)
+                    if (subAdmissionCriterias.Any())
                     {
                         foreach (SubAdmissionCriterion aSubAdmission in subAdmissionCriterias)
                         {
                             IEnumerable<Models.EntryMark> entryMarks = await _uow.EntryMarkRepository.Get(filter: e =>
                             e.SubAdmissionCriterionId == aSubAdmission.Id && e.Status == Consts.STATUS_ACTIVE);
-                            if (entryMarks != null && entryMarks.Count() >0)
+                            if (entryMarks.Any())
                             {
                                 foreach (EntryMark mark in entryMarks)
                                 {
+                                    IEnumerable<Models.FollowingDetail> followingDetails = await _uow.FollowingDetailRepository.Get(
+                                        filter: e => e.EntryMarkId == mark.Id && e.Status == Consts.STATUS_ACTIVE);
+                                    if (followingDetails.Any())
+                                    {
+                                        foreach (var followingDetail in followingDetails)
+                                        {
+                                            //Xoa major detail, xoa Follow, khong can update ranking
+                                            followingDetail.Status = Consts.STATUS_INACTIVE;
+                                            _uow.FollowingDetailRepository.Update(followingDetail);
+                                            if (shouldNoti)
+                                            {
+                                                var uniName = (await _uow.UniversityRepository.GetById(MajorDetailExisted.UniversityId)).Name;
+                                                var majorName = (await _uow.MajorRepository.GetById(MajorDetailExisted.MajorId)).Name;
+                                                var trainingProgramName = (await _uow.TrainingProgramRepository
+                                                            .GetById(MajorDetailExisted.TrainingProgramId)).Name;
+                                                var notification = new Models.Notification()
+                                                {
+                                                    Data = MajorDetailExisted.UniversityId.ToString(),
+                                                    DateRecord = JWTUtils.GetCurrentTimeInVN(),
+                                                    IsRead = false,
+                                                    Message = string.Format(deleteMajorDetail, uniName, majorName, trainingProgramName),
+                                                    Type = NotificationTypes.UpdateUniversity,
+                                                    UserId = followingDetail.UserId
+                                                };
+                                                notifications.Add(notification);
+                                                messages.Add(new Message()
+                                                {
+                                                    Notification = new FirebaseAdmin.Messaging.Notification()
+                                                    {
+                                                        Title = "Thông báo!",
+                                                        Body = notification.Message,
+                                                    },
+                                                    Data = new Dictionary<string, string>()
+                                                    {
+                                                        {"type" , notification.Type.ToString()},
+                                                        {"message" , notification.Message},
+                                                        {"data" , notification.Data},
+                                                    },
+                                                    Topic = followingDetail.UserId.ToString()
+                                                });
+                                            }
+                                        }
+                                    }
                                     mark.Status = Consts.STATUS_INACTIVE;
                                     _uow.EntryMarkRepository.Update(mark);
                                 }
@@ -1322,10 +1644,8 @@ namespace CapstoneAPI.Features.University.Service
                             return response;
                         }
                     }
-                    tran.Commit();
-                    response.Succeeded = true;
                 }
-
+                //Update majorDetail
                 else
                 {
                     //UPDATE ADMISSION QUANTITY
@@ -1333,92 +1653,49 @@ namespace CapstoneAPI.Features.University.Service
 
                     _uow.AdmissionCriterionRepository.Update(MajorDetailExisted.AdmissionCriterion);
 
-
                     //SUB ASSMISSION CAN NOT NULL
-                    if (updatingMajorUniversityParam.UpdatingUniSubAdmissionParams == null
-                        || updatingMajorUniversityParam.UpdatingUniSubAdmissionParams.Count < 1)
+                    if (updatingMajorUniversityParam.UpdatingUniSubAdmissionParams != null
+                        && updatingMajorUniversityParam.UpdatingUniSubAdmissionParams.Any())
                     {
-                        response.Succeeded = false;
-                        if (response.Errors == null)
+                        foreach (UpdatingUniSubAdmissionParam subAdmissionParam in updatingMajorUniversityParam.UpdatingUniSubAdmissionParams)
                         {
-                            response.Errors = new List<string>();
-                        }
-                        response.Errors.Add("Một ngành học phải có chỉ tiêu!");
-                        return response;
-                    }
-
-                    foreach (UpdatingUniSubAdmissionParam subAdmissionParam in updatingMajorUniversityParam.UpdatingUniSubAdmissionParams)
-                    {
-                        Models.SubAdmissionCriterion newSubAdmissionCriterion = new SubAdmissionCriterion();
-                        newSubAdmissionCriterion.AdmissionCriterionId = MajorDetailExisted.Id;
-                        newSubAdmissionCriterion.AdmissionMethodId = subAdmissionParam.AdmissionMethodId;
-                        newSubAdmissionCriterion.Gender = subAdmissionParam.GenderId;
-                        newSubAdmissionCriterion.ProvinceId = subAdmissionParam.ProvinceId;
-                        newSubAdmissionCriterion.Quantity = subAdmissionParam.Quantity;
-                        newSubAdmissionCriterion.Status = subAdmissionParam.Status;
-                        if (subAdmissionParam.SubAdmissionId == null || subAdmissionParam.SubAdmissionId <= 0)
-                        {
-                            _uow.SubAdmissionCriterionRepository.Insert(newSubAdmissionCriterion);
-                        }
-                        else
-                        {
-                            newSubAdmissionCriterion.Id = (int)subAdmissionParam.SubAdmissionId;
-                            _uow.SubAdmissionCriterionRepository.Update(newSubAdmissionCriterion);
-                        }
-
-                        if ((await _uow.CommitAsync()) <= 0)
-                        {
-                            response.Succeeded = false;
-                            if (response.Errors == null)
+                            //Thêm chỉ tiêu phụ
+                            if (subAdmissionParam.SubAdmissionId == null || subAdmissionParam.SubAdmissionId <= 0)
                             {
-                                response.Errors = new List<string>();
-                            }
-                            response.Errors.Add("Cập nhật chỉ tiêu phụ bị lỗi!");
-                            return response;
-                        }
-                        if(subAdmissionParam.MajorDetailEntryMarkParams != null)
-                        {
-                            foreach (var entryMarkParam in subAdmissionParam.MajorDetailEntryMarkParams)
-                            {
-                                if (entryMarkParam.Mark < 0 || entryMarkParam.MajorSubjectGroupId <= 0)
+                                var subAdmissions = await _uow.SubAdmissionCriterionRepository.Get(
+                                    filter: s => s.Gender == subAdmissionParam.GenderId &&
+                                                s.ProvinceId == subAdmissionParam.ProvinceId
+                                                && s.AdmissionMethodId == subAdmissionParam.AdmissionMethodId
+                                                && s.AdmissionCriterionId == MajorDetailExisted.AdmissionCriterion.MajorDetailId
+                                                && s.Status == Consts.STATUS_ACTIVE);
+                                if (subAdmissions.Any())
                                 {
                                     response.Succeeded = false;
                                     if (response.Errors == null)
                                     {
                                         response.Errors = new List<string>();
                                     }
-                                    response.Errors.Add("Điểm chuẩn không hợp lệ");
+                                    response.Errors.Add("Chỉ tiêu phụ bị trùng!");
                                     return response;
                                 }
-                                if (await _uow.MajorSubjectGroupRepository.GetById(entryMarkParam.MajorSubjectGroupId) == null)
+                                if (subAdmissionParam.Quantity < 0)
                                 {
                                     response.Succeeded = false;
                                     if (response.Errors == null)
                                     {
                                         response.Errors = new List<string>();
                                     }
-                                    response.Errors.Add("Khối không hợp lệ");
+                                    response.Errors.Add("Chỉ tiêu không hợp lệ");
                                     return response;
                                 }
-
-
-                                Models.EntryMark entryMark = new EntryMark
-                                {
-                                    SubAdmissionCriterionId = newSubAdmissionCriterion.Id,
-                                    MajorSubjectGroupId = entryMarkParam.MajorSubjectGroupId,
-                                    Mark = entryMarkParam.Mark,
-                                    Status = entryMarkParam.Status
-                                };
-                                if (entryMarkParam.EntryMarkId == null || entryMarkParam.EntryMarkId <= 0)
-                                {
-                                    _uow.EntryMarkRepository.Insert(entryMark);
-
-                                }
-                                else
-                                {
-                                    entryMark.Id = (int)entryMarkParam.EntryMarkId;
-                                    _uow.EntryMarkRepository.Update(entryMark);
-                                }
+                                Models.SubAdmissionCriterion newSubAdmissionCriterion = new SubAdmissionCriterion();
+                                newSubAdmissionCriterion.AdmissionMethodId = subAdmissionParam.AdmissionMethodId;
+                                newSubAdmissionCriterion.AdmissionCriterionId = MajorDetailExisted.AdmissionCriterion.MajorDetailId;
+                                newSubAdmissionCriterion.Gender = subAdmissionParam.GenderId;
+                                newSubAdmissionCriterion.ProvinceId = subAdmissionParam.ProvinceId;
+                                newSubAdmissionCriterion.Quantity = subAdmissionParam.Quantity;
+                                newSubAdmissionCriterion.Status = Consts.STATUS_ACTIVE;
+                                _uow.SubAdmissionCriterionRepository.Insert(newSubAdmissionCriterion);
                                 if ((await _uow.CommitAsync()) <= 0)
                                 {
                                     response.Succeeded = false;
@@ -1426,16 +1703,431 @@ namespace CapstoneAPI.Features.University.Service
                                     {
                                         response.Errors = new List<string>();
                                     }
-                                    response.Errors.Add("Cập nhật điểm chuẩn bị lỗi!");
+                                    response.Errors.Add("Thêm chỉ tiêu phụ bị lỗi!");
                                     return response;
+                                }
+
+                                //Insert entrymarks
+                                if (subAdmissionParam.MajorDetailEntryMarkParams != null)
+                                {
+                                    foreach (var entryMarkParam in subAdmissionParam.MajorDetailEntryMarkParams)
+                                    {
+                                        //Validate param
+                                        if (entryMarkParam.Mark < 0 || entryMarkParam.MajorSubjectGroupId <= 0)
+                                        {
+                                            response.Succeeded = false;
+                                            if (response.Errors == null)
+                                            {
+                                                response.Errors = new List<string>();
+                                            }
+                                            response.Errors.Add("Điểm chuẩn không hợp lệ");
+                                            return response;
+                                        }
+
+                                        //Check subject group tồn tại
+                                        Models.MajorSubjectGroup majorSubjectGroup = await _uow.MajorSubjectGroupRepository
+                                            .GetById(entryMarkParam.MajorSubjectGroupId);
+                                        if (majorSubjectGroup == null || majorSubjectGroup.Status != Consts.STATUS_ACTIVE)
+                                        {
+                                            response.Succeeded = false;
+                                            if (response.Errors == null)
+                                            {
+                                                response.Errors = new List<string>();
+                                            }
+                                            response.Errors.Add("Khối không hợp lệ");
+                                            return response;
+                                        }
+
+                                        var entryMarks = await _uow.EntryMarkRepository.Get(
+                                            filter: e => e.SubAdmissionCriterionId == newSubAdmissionCriterion.Id
+                                                    && e.MajorSubjectGroupId == entryMarkParam.MajorSubjectGroupId
+                                                    && e.Status == Consts.STATUS_ACTIVE);
+                                        if (entryMarks.Any())
+                                        {
+                                            response.Succeeded = false;
+                                            if (response.Errors == null)
+                                            {
+                                                response.Errors = new List<string>();
+                                            }
+                                            response.Errors.Add("Các khối tuyển bị trùng!");
+                                            return response;
+                                        }
+                                        //Tạo model
+                                        var entryMark = new EntryMark
+                                        {
+                                            SubAdmissionCriterionId = newSubAdmissionCriterion.Id,
+                                            MajorSubjectGroupId = entryMarkParam.MajorSubjectGroupId,
+                                            Mark = entryMarkParam.Mark,
+                                            Status = Consts.STATUS_ACTIVE
+                                        };
+                                        _uow.EntryMarkRepository.Insert(entryMark);
+
+                                        //Insert
+                                        if ((await _uow.CommitAsync()) <= 0)
+                                        {
+                                            response.Succeeded = false;
+                                            if (response.Errors == null)
+                                            {
+                                                response.Errors = new List<string>();
+                                            }
+                                            response.Errors.Add("Cập nhật điểm chuẩn bị lỗi!");
+                                            return response;
+                                        }
+                                    }
+                                }
+                            }
+                            //Cập nhật chỉ tiêu phụ
+                            else
+                            {
+                                if (subAdmissionParam.Status != Consts.STATUS_ACTIVE && subAdmissionParam.Status != Consts.STATUS_INACTIVE)
+                                {
+                                    response.Succeeded = false;
+                                    if (response.Errors == null)
+                                    {
+                                        response.Errors = new List<string>();
+                                    }
+                                    response.Errors.Add("Cập nhật trạng thái chỉ tiêu không hợp lệ!");
+                                    return response;
+                                }
+                                var subAdmissionCriterion = await _uow.SubAdmissionCriterionRepository
+                                    .GetById(subAdmissionParam.SubAdmissionId);
+                                if (subAdmissionCriterion == null)
+                                {
+                                    response.Succeeded = false;
+                                    if (response.Errors == null)
+                                    {
+                                        response.Errors = new List<string>();
+                                    }
+                                    response.Errors.Add("Chỉ tiêu phụ không tồn tại!");
+                                    return response;
+                                }
+                                if (subAdmissionParam.Quantity < 0)
+                                {
+                                    response.Succeeded = false;
+                                    if (response.Errors == null)
+                                    {
+                                        response.Errors = new List<string>();
+                                    }
+                                    response.Errors.Add("Chỉ tiêu không hợp lệ");
+                                    return response;
+                                }
+                                var isSubAdmissionEdited = false;
+                                if (subAdmissionCriterion.Quantity != subAdmissionParam.Quantity)
+                                {
+                                    isSubAdmissionEdited = true;
+                                }
+                                subAdmissionCriterion.Quantity = subAdmissionParam.Quantity;
+                                subAdmissionCriterion.Status = subAdmissionParam.Status;
+                                _uow.SubAdmissionCriterionRepository.Update(subAdmissionCriterion);
+                                if ((await _uow.CommitAsync()) <= 0)
+                                {
+                                    response.Succeeded = false;
+                                    if (response.Errors == null)
+                                    {
+                                        response.Errors = new List<string>();
+                                    }
+                                    response.Errors.Add("Cập nhật chỉ tiêu phụ bị lỗi!");
+                                    return response;
+                                }
+
+                                //Xóa chỉ tiêu phụ
+                                if (subAdmissionParam.Status == Consts.STATUS_INACTIVE)
+                                {
+                                    IEnumerable<Models.EntryMark> entryMarks = await _uow.EntryMarkRepository.Get(filter: e =>
+                                        e.SubAdmissionCriterionId == subAdmissionParam.SubAdmissionId && e.Status == Consts.STATUS_ACTIVE);
+                                    if (entryMarks.Any())
+                                    {
+                                        foreach (EntryMark mark in entryMarks)
+                                        {
+                                            IEnumerable<Models.FollowingDetail> followingDetails = await _uow.FollowingDetailRepository.Get(
+                                                filter: e => e.EntryMarkId == mark.Id && e.Status == Consts.STATUS_ACTIVE);
+                                            if (followingDetails.Any())
+                                            {
+                                                foreach (var followingDetail in followingDetails)
+                                                {
+                                                    //Xoa chỉ tiêu phụ, xoa Follow, khong can update ranking
+                                                    followingDetail.Status = Consts.STATUS_INACTIVE;
+                                                    _uow.FollowingDetailRepository.Update(followingDetail);
+                                                    if (shouldNoti)
+                                                    {
+                                                        var uniName = (await _uow.UniversityRepository.GetById(MajorDetailExisted.UniversityId)).Name;
+                                                        var majorName = (await _uow.MajorRepository.GetById(MajorDetailExisted.MajorId)).Name;
+                                                        var trainingProgramName = (await _uow.TrainingProgramRepository
+                                                                    .GetById(MajorDetailExisted.TrainingProgramId)).Name;
+                                                        var notification = new Models.Notification()
+                                                        {
+                                                            Data = MajorDetailExisted.UniversityId.ToString(),
+                                                            DateRecord = JWTUtils.GetCurrentTimeInVN(),
+                                                            IsRead = false,
+                                                            Message = string.Format(deleteSubAdmiss, uniName, majorName, trainingProgramName),
+                                                            Type = NotificationTypes.UpdateUniversity,
+                                                            UserId = followingDetail.UserId
+                                                        };
+                                                        notifications.Add(notification);
+                                                        messages.Add(new Message()
+                                                        {
+                                                            Notification = new FirebaseAdmin.Messaging.Notification()
+                                                            {
+                                                                Title = "Thông báo!",
+                                                                Body = notification.Message,
+                                                            },
+                                                            Data = new Dictionary<string, string>()
+                                                        {
+                                                            {"type" , notification.Type.ToString()},
+                                                            {"message" , notification.Message},
+                                                            {"data" , notification.Data},
+                                                        },
+                                                            Topic = followingDetail.UserId.ToString()
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                            mark.Status = Consts.STATUS_INACTIVE;
+                                            _uow.EntryMarkRepository.Update(mark);
+                                        }
+                                        if ((await _uow.CommitAsync()) <= 0)
+                                        {
+                                            response.Succeeded = false;
+                                            if (response.Errors == null)
+                                            {
+                                                response.Errors = new List<string>();
+                                            }
+                                            response.Errors.Add("Xóa điểm chuẩn bị lỗi!");
+                                            return response;
+                                        }
+                                    }
+                                }
+                                //Sửa chỉ tiêu phụ
+                                else
+                                {
+                                    if (subAdmissionParam.MajorDetailEntryMarkParams != null)
+                                    {
+                                        foreach (var entryMarkParam in subAdmissionParam.MajorDetailEntryMarkParams)
+                                        {
+                                            //Validate điểm chuẩn
+                                            if (entryMarkParam.Mark < 0)
+                                            {
+                                                response.Succeeded = false;
+                                                if (response.Errors == null)
+                                                {
+                                                    response.Errors = new List<string>();
+                                                }
+                                                response.Errors.Add("Điểm chuẩn không hợp lệ");
+                                                return response;
+                                            }
+                                            //Check subject group tồn tại
+
+                                            //Thêm điểm chuẩn
+                                            if (entryMarkParam.EntryMarkId == null || entryMarkParam.EntryMarkId <= 0)
+                                            {
+                                                Models.MajorSubjectGroup majorSubjectGroup = await _uow.MajorSubjectGroupRepository
+                                               .GetById(entryMarkParam.MajorSubjectGroupId);
+                                                if (majorSubjectGroup == null || majorSubjectGroup.Status != Consts.STATUS_ACTIVE)
+                                                {
+                                                    response.Succeeded = false;
+                                                    if (response.Errors == null)
+                                                    {
+                                                        response.Errors = new List<string>();
+                                                    }
+                                                    response.Errors.Add("Khối không hợp lệ");
+                                                    return response;
+                                                }
+                                                var entryMarks = await _uow.EntryMarkRepository.Get(
+                                                    filter: e => e.SubAdmissionCriterionId == subAdmissionCriterion.Id
+                                                        && e.MajorSubjectGroupId == entryMarkParam.MajorSubjectGroupId
+                                                        && e.Status == Consts.STATUS_ACTIVE);
+                                                if (entryMarks.Any())
+                                                {
+                                                    response.Succeeded = false;
+                                                    if (response.Errors == null)
+                                                    {
+                                                        response.Errors = new List<string>();
+                                                    }
+                                                    response.Errors.Add("Các khối tuyển bị trùng!");
+                                                    return response;
+                                                }
+                                                Models.EntryMark entryMark = new EntryMark
+                                                {
+                                                    SubAdmissionCriterionId = (int)subAdmissionParam.SubAdmissionId,
+                                                    MajorSubjectGroupId = entryMarkParam.MajorSubjectGroupId,
+                                                    Mark = entryMarkParam.Mark,
+                                                    Status = Consts.STATUS_ACTIVE
+                                                };
+                                                _uow.EntryMarkRepository.Insert(entryMark);
+
+                                            }
+                                            //Sửa điểm chuẩn
+                                            else
+                                            {
+                                                if (entryMarkParam.Status != Consts.STATUS_ACTIVE && entryMarkParam.Status != Consts.STATUS_INACTIVE)
+                                                {
+                                                    response.Succeeded = false;
+                                                    if (response.Errors == null)
+                                                    {
+                                                        response.Errors = new List<string>();
+                                                    }
+                                                    response.Errors.Add("Cập nhật trạng thái điểm chuẩn không hợp lệ!");
+                                                    return response;
+                                                }
+                                                EntryMark entryMark = await _uow.EntryMarkRepository.GetById(entryMarkParam.EntryMarkId);
+                                                if (entryMark == null)
+                                                {
+                                                    response.Succeeded = false;
+                                                    if (response.Errors == null)
+                                                    {
+                                                        response.Errors = new List<string>();
+                                                    }
+                                                    response.Errors.Add("Điểm chuẩn không tồn tại!");
+                                                    return response;
+                                                }
+                                                var isEntryMarkEdited = false;
+                                                if (entryMark.Mark != entryMarkParam.Mark)
+                                                {
+                                                    isEntryMarkEdited = true;
+                                                }
+                                                entryMark.Mark = entryMarkParam.Mark;
+                                                entryMark.Status = entryMarkParam.Status;
+                                                _uow.EntryMarkRepository.Update(entryMark);
+
+                                                //Xoa diem chuan,
+                                                if (entryMark.Status == Consts.STATUS_INACTIVE)
+                                                {
+                                                    IEnumerable<Models.FollowingDetail> followingDetails = await _uow.FollowingDetailRepository.Get(
+                                                         filter: e => e.EntryMarkId == entryMark.Id && e.Status == Consts.STATUS_ACTIVE,
+                                                         includeProperties: "Rank");
+                                                    if (followingDetails.Any())
+                                                    {
+                                                        foreach (var followingDetail in followingDetails)
+                                                        {
+                                                            //Sua chỉ tiêu phụ, xoa entrymark, xoa follow, update ranking
+                                                            followingDetail.Status = Consts.STATUS_INACTIVE;
+                                                            _uow.FollowingDetailRepository.Update(followingDetail);
+
+                                                            followingDetail.Rank.IsUpdate = true;
+                                                            
+                                                            if (shouldNoti)
+                                                            {
+                                                                var uniName = (await _uow.UniversityRepository.GetById(MajorDetailExisted.UniversityId)).Name;
+                                                                var majorName = (await _uow.MajorRepository.GetById(MajorDetailExisted.MajorId)).Name;
+                                                                var trainingProgramName = (await _uow.TrainingProgramRepository
+                                                                            .GetById(MajorDetailExisted.TrainingProgramId)).Name;
+                                                                var subjectGroupName = (await _uow.MajorSubjectGroupRepository.GetFirst(
+                                                            filter: m => m.Id == entryMark.MajorSubjectGroupId, includeProperties: "SubjectGroup")).SubjectGroup.GroupCode;
+                                                                var notification = new Models.Notification()
+                                                                {
+                                                                    Data = MajorDetailExisted.UniversityId.ToString(),
+                                                                    DateRecord = JWTUtils.GetCurrentTimeInVN(),
+                                                                    IsRead = false,
+                                                                    Message = string.Format(deleteEntryMark, uniName, majorName, trainingProgramName, subjectGroupName),
+                                                                    Type = NotificationTypes.UpdateUniversity,
+                                                                    UserId = followingDetail.UserId
+                                                                };
+                                                                notifications.Add(notification);
+                                                                messages.Add(new Message()
+                                                                {
+                                                                    Notification = new FirebaseAdmin.Messaging.Notification()
+                                                                    {
+                                                                        Title = "Thông báo!",
+                                                                        Body = notification.Message,
+                                                                    },
+                                                                    Data = new Dictionary<string, string>()
+                                                                {
+                                                                    {"type" , notification.Type.ToString()},
+                                                                    {"message" , notification.Message},
+                                                                    {"data" , notification.Data},
+                                                                },
+                                                                    Topic = followingDetail.UserId.ToString()
+                                                                });
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                //Sua diem chuan
+                                                else if ((isEntryMarkEdited || isSubAdmissionEdited) && shouldNoti)
+                                                {
+                                                    IEnumerable<Models.FollowingDetail> followingDetails = await _uow.FollowingDetailRepository.Get(
+                                                         filter: e => e.EntryMarkId == entryMark.Id && e.Status == Consts.STATUS_ACTIVE);
+                                                    if (followingDetails.Any())
+                                                    {
+                                                        foreach (var followingDetail in followingDetails)
+                                                        {
+
+                                                            var uniName = (await _uow.UniversityRepository.GetById(MajorDetailExisted.UniversityId)).Name;
+                                                            var majorName = (await _uow.MajorRepository.GetById(MajorDetailExisted.MajorId)).Name;
+                                                            var trainingProgramName = (await _uow.TrainingProgramRepository
+                                                                        .GetById(MajorDetailExisted.TrainingProgramId)).Name;
+                                                            var notification = new Models.Notification()
+                                                            {
+                                                                Data = MajorDetailExisted.UniversityId.ToString(),
+                                                                DateRecord = JWTUtils.GetCurrentTimeInVN(),
+                                                                IsRead = false,
+                                                                Message = string.Format(updateSubvsEn, uniName, majorName, trainingProgramName),
+                                                                Type = NotificationTypes.UpdateUniversity,
+                                                                UserId = followingDetail.UserId
+                                                            };
+                                                            notifications.Add(notification);
+                                                            messages.Add(new Message()
+                                                            {
+                                                                Notification = new FirebaseAdmin.Messaging.Notification()
+                                                                {
+                                                                    Title = "Thông báo!",
+                                                                    Body = notification.Message,
+                                                                },
+                                                                Data = new Dictionary<string, string>()
+                                                            {
+                                                                {"type" , notification.Type.ToString()},
+                                                                {"message" , notification.Message},
+                                                                {"data" , notification.Data},
+                                                            },
+                                                                Topic = followingDetail.UserId.ToString()
+                                                            });
+
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            if ((await _uow.CommitAsync()) <= 0)
+                                            {
+                                                response.Succeeded = false;
+                                                if (response.Errors == null)
+                                                {
+                                                    response.Errors = new List<string>();
+                                                }
+                                                response.Errors.Add("Cập nhật điểm chuẩn bị lỗi!");
+                                                return response;
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
+
                     }
 
-                    tran.Commit();
-                    response.Succeeded = true;
-                }                
+                }
+                if (notifications.Any())
+                {
+                    _uow.NotificationRepository.InsertRange(notifications);
+                    if ((await _uow.CommitAsync()) <= 0)
+                    {
+                        response.Succeeded = false;
+                        if (response.Errors == null)
+                        {
+                            response.Errors = new List<string>();
+                        }
+                        response.Errors.Add("Cập nhật ngành bị lỗi!");
+                        return response;
+                    }
+                }
+                tran.Commit();
+                if (messages.Any())
+                {
+                    #pragma warning disable
+                    _firebaseService.SendBatchMessage(messages);
+                }
+                response.Succeeded = true;
+                response.Data = true;
+
             }
             catch (Exception ex)
             {
