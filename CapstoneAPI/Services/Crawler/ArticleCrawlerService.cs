@@ -107,30 +107,6 @@ namespace CapstoneAPI.Services.Crawler
 
                 HtmlDocument htmlDocument = await CrawlerHelper.GetHtmlDocument(article.RootUrl);
 
-                var headerConfig = htmlDocument.DocumentNode
-                    .Descendants(configuration.SelectToken("GDTD.articleDetails.headerTag.name").ToString()).First();
-                var webIcon = headerConfig.Descendants(configuration.SelectToken("GDTD.articleDetails.webIcon.name").ToString())
-                    .Where(node => node.GetAttributeValue(
-                        configuration.SelectToken("GDTD.articleDetails.webIcon.attribute").ToString(), "")
-                    .Contains(configuration.SelectToken("GDTD.articleDetails.webIcon.attibuteValue").ToString())).First();
-                if (webIcon != null)
-                {
-                    webIcon.ParentNode.RemoveChild(webIcon);
-                }
-                var styles = headerConfig.Descendants(
-                    configuration.SelectToken("GDTD.articleDetails.styleUrls.name").ToString())
-                    .Where(node => !node.GetAttributeValue(
-                        configuration.SelectToken("GDTD.articleDetails.styleUrls.attribute").ToString(), "")
-                    .Contains(article.PublishedPage));
-                foreach (var style in styles)
-                {
-                    string currentValue = style.GetAttributeValue(
-                        configuration.SelectToken("GDTD.articleDetails.styleUrls.attribute").ToString(), "");
-                    style.SetAttributeValue(
-                        configuration.SelectToken("GDTD.articleDetails.styleUrls.attribute").ToString(),
-                        article.PublishedPage + currentValue);
-                }
-
                 var detail = htmlDocument.DocumentNode.Descendants(
                     configuration.SelectToken("GDTD.articleDetails.detailTag.name").ToString())
                     .Where(node => node.GetAttributeValue(
@@ -139,7 +115,6 @@ namespace CapstoneAPI.Services.Crawler
 
                 double currentTimeZone = 7;
 
-                article.HeaderConfig = headerConfig.InnerHtml.Trim();
                 article.Status = 0;
                 article.CrawlerDate = DateTime.UtcNow.AddHours(currentTimeZone);
                 article.Content = detail.InnerHtml.Trim();
@@ -361,15 +336,6 @@ namespace CapstoneAPI.Services.Crawler
                 {
                     HtmlDocument htmlDocument = await CrawlerHelper.GetHtmlDocument(article.RootUrl);
 
-                    var headerConfigTag = htmlDocument.DocumentNode.Descendants(
-                        configuration.SelectToken("VNExpress.details.headerTag.name").ToString()).First();
-                    string headerConfig = string.Empty;
-
-                    if (headerConfigTag != null)
-                    {
-                        headerConfig = headerConfigTag.InnerHtml;
-                    }
-
                     var titleTag = htmlDocument.DocumentNode.Descendants(
                         configuration.SelectToken("VNExpress.details.titleTag.name").ToString())
                         .Where(node => node.GetAttributeValue(
@@ -437,7 +403,6 @@ namespace CapstoneAPI.Services.Crawler
                         related.First().ParentNode.RemoveChild(related.First());
                     }
 
-                    article.HeaderConfig = headerConfig;
                     article.Status = 0;
                     article.CrawlerDate = DateTime.UtcNow.AddHours(7);
                     article.Content = detail.InnerHtml.Trim();
