@@ -101,5 +101,13 @@ namespace CapstoneAPI.Features.SubjectGroup
             Response<SubjectGroupResponseDataSet> response = await _service.GetSubjectGroupWeight(id);
             return Ok(response);
         }
+
+        [Authorize(Roles = Roles.Student)]
+        [HttpGet("{id}/spectrum")]
+        public async Task<ActionResult<Response<List<int>>>> GetSubjectGroupSpectrum(int id)
+        {
+            Response<List<int>> response = await _service.GetScoreSpectrum(id);
+            return Ok(response);
+        }
     }
 }

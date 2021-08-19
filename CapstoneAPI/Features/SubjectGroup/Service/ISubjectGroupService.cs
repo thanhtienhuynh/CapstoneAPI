@@ -16,5 +16,6 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
         Task<Response<CreateSubjectGroupDataset>> CreateNewSubjectGroup(CreateSubjectGroupParam createSubjectGroupParam);
         Task<Response<CreateSubjectGroupDataset>> UpdateSubjectGroup(UpdateSubjectGroupParam updateSubjectGroupParam);
         Task<Response<SubjectGroupResponseDataSet>> GetSubjectGroupWeight(int id);
+        Task<Response<List<int>>> GetScoreSpectrum(int subjectGroupId);
     }
 }

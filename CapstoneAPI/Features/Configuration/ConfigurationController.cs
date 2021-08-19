@@ -46,5 +46,11 @@ namespace CapstoneAPI.Features.Configuration
         {
             return Ok(await _service.GetAppConfiguration());
         }
+
+        [HttpGet("test")]
+        public async Task<ActionResult<Response<int>>> GetTestConfig()
+        {
+            return Ok(await _service.GetTestConfiguration());
+        }
     }
 }

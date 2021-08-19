@@ -1357,5 +1357,110 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
 
             return response;
         }
+
+        public async Task<Response<List<int>>> GetScoreSpectrum(int subjectGroupId)
+        {
+            Response<List<int>> response = new Response<List<int>>();
+            List<int> data = new List<int>();
+            try
+            {
+                var currentSeason = await _uow.SeasonRepository.GetCurrentSeason();
+                if (currentSeason == null)
+                {
+                    response.Succeeded = true;
+                    response.Data = data;
+                    return response;
+                }
+
+                var subjectGroup = await _uow.SubjectGroupRepository.GetFirst(
+                    filter: s => s.Id == subjectGroupId && s.Status == Consts.STATUS_ACTIVE,
+                    includeProperties: "SubjectGroupDetails.Subject,SubjectGroupDetails.SpecialSubjectGroup");
+                if (subjectGroup == null)
+                {
+                    response.Succeeded = true;
+                    response.Data = data;
+                    return response;
+                }
+
+                List<int> subjectIds = new List<int>();
+
+                foreach (var subjectGroupDetail in subjectGroup.SubjectGroupDetails)
+                {
+                    if (subjectGroupDetail.SubjectId != null)
+                    {
+                        subjectIds.Add((int)subjectGroupDetail.SubjectId);
+                        continue;
+                    }
+                    if (subjectGroupDetail.SpecialSubjectGroupId != null)
+                    {
+                        foreach (var subject in subjectGroupDetail.SpecialSubjectGroup.Subjects)
+                        {
+                            subjectIds.Add((int)subjectGroupDetail.SubjectId);
+                        }
+                    }
+                }
+
+                var transcriptGrByUser = (await _uow.TranscriptRepository.Get(
+                    filter: t => subjectIds.Contains(t.SubjectId) && t.Status == Consts.STATUS_ACTIVE
+                                && t.TranscriptTypeId == TranscriptTypes.ThiThu && t.DateRecord >= currentSeason.FromDate))
+                                .GroupBy(t => t.UserId).ToList();
+                foreach (var group in transcriptGrByUser.ToList())
+                {
+                    if (group.Count() < subjectIds.Count)
+                    {
+                        transcriptGrByUser.Remove(group);
+                    }
+                }
+
+                if (!transcriptGrByUser.Any())
+                {
+                    response.Succeeded = true;
+                    response.Data = data;
+                    return response;
+                }
+
+                List<double> marks = new List<double>();
+
+                foreach (var group in transcriptGrByUser)
+                {
+                    List<MarkParam> markParams = new List<MarkParam>();
+                    foreach (var transcript in group)
+                    {
+                        var markParam = new MarkParam();
+                        markParam.SubjectId = transcript.SubjectId;
+                        markParam.Mark = transcript.Mark;
+                        markParams.Add(markParam);
+                    }
+                    var subjectGroupMark = await CalculateSubjectGroupMark(markParams, subjectGroup.SubjectGroupDetails.ToList());
+                    marks.Add(subjectGroupMark);
+                }
+
+                for (var i = 1; i <= 30; i++)
+                {
+                    var count = 0;
+                    if (i == 1)
+                    {
+                        count = marks.Where(m => m <= i).Count();
+                    } else
+                    {
+                        count = marks.Where(m => m <= i && m > (i - 1)).Count();
+                    }
+                    data.Add(count);
+                }
+                response.Succeeded = true;
+                response.Data = data;
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.Message);
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+            return response;
+        }
     }
 }

@@ -53,12 +53,8 @@ namespace CapstoneAPI.Features.University.Service
 
                 if (universityParam.TotalMark <= 0)
                 {
-                    response.Succeeded = false;
-                    if (response.Errors == null)
-                    {
-                        response.Errors = new List<string>();
-                    }
-                    response.Errors.Add("Điểm của bạn không đủ điều kiện xét tuyển đại học!");
+                    response.Succeeded = true;
+                    response.Data = trainingProgramBasedUniversityDataSets;
                     return response;
                 }
 
@@ -202,7 +198,7 @@ namespace CapstoneAPI.Features.University.Service
                             .FirstOrDefault();
 
                         if (currentEntryMark == null || previousEntryMark == null || previousEntryMark.Mark == null
-                            || previousEntryMark.Mark <= 0|| previousEntryMark.Mark > universityParam.TotalMark)
+                            || previousEntryMark.Mark <= 0 || previousEntryMark.Mark > universityParam.TotalMark)
                         {
                             continue;
                         }
@@ -334,17 +330,6 @@ namespace CapstoneAPI.Features.University.Service
                     return response;
                 }
 
-                if (!user.IsActive)
-                {
-                    response.Succeeded = false;
-                    if (response.Errors == null)
-                    {
-                        response.Errors = new List<string>();
-                    }
-                    response.Errors.Add("Tài khoản của bạn đã bị khóa!");
-                    return response;
-                }
-
                 List<TrainingProgramBasedUniversityDataSet> trainingProgramBasedUniversityDataSets = new List<TrainingProgramBasedUniversityDataSet>();
                 MockTestBasedUniversity mockTestBasedUniversity = new MockTestBasedUniversity();
 
@@ -377,12 +362,8 @@ namespace CapstoneAPI.Features.University.Service
 
                 if (totalMark == 0)
                 {
-                    response.Succeeded = false;
-                    if (response.Errors == null)
-                    {
-                        response.Errors = new List<string>();
-                    }
-                    response.Errors.Add("Điểm thi thử của bạn không đủ điều kiện xét tuyển đại học!");
+                    response.Succeeded = true;
+                    response.Data = mockTestBasedUniversity;
                     return response;
                 }
 
