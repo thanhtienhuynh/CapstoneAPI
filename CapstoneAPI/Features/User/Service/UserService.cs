@@ -104,6 +104,16 @@
                         return response;
                     }
                 }
+                if (!user.IsActive)
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Tài khoản của bạn đã bị vô hiệu hóa!");
+                    return response;
+                }
                 var claims = new[]
                 {
                         new Claim(ClaimTypes.Role, user.RoleId.ToString() ?? ""),

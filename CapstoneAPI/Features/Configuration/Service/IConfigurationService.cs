@@ -11,5 +11,6 @@ namespace CapstoneAPI.Features.Configuration.Service
         Response<object> SetPaginationConfiguration(int? firstPage, int? highestQuantity);
         Task<Response<ConfigParam>> SetAppConfiguration(ConfigParam configuration);
         Task<Response<ConfigParam>> GetAppConfiguration();
+        Task<Response<int>> GetTestConfiguration();
     }
 }

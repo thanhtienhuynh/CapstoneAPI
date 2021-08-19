@@ -160,5 +160,29 @@ namespace CapstoneAPI.Features.Configuration.Service
 
             return response;
         }
+
+        public async Task<Response<int>> GetTestConfiguration()
+        {
+            Response<int> response = new Response<int>();
+            try
+            {
+                var appConfigLines = await File.ReadAllTextAsync(@"Configuration\AppConfig.json");
+                var appConfig = Newtonsoft.Json.JsonConvert.DeserializeObject(appConfigLines) as JObject;
+                response.Succeeded = true;
+                response.Data = appConfig.SelectToken("TestMonths").Value<int>();
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex.ToString());
+                response.Succeeded = false;
+                if (response.Errors == null)
+                {
+                    response.Errors = new List<string>();
+                }
+                response.Errors.Add("Lỗi hệ thống: " + ex.Message);
+            }
+
+            return response;
+        }
     }
 }

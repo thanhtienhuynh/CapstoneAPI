@@ -40,6 +40,14 @@
         public async Task<Response<List<SubjectBasedTestDataSet>>> GetFilteredTests(string token, TestParam testParam)
         {
             Response<List<SubjectBasedTestDataSet>> response = new Response<List<SubjectBasedTestDataSet>>();
+            var appConfigLines = await File.ReadAllTextAsync(@"Configuration\AppConfig.json");
+            var appConfig = Newtonsoft.Json.JsonConvert.DeserializeObject(appConfigLines) as JObject;
+            var monthsToken = appConfig.SelectToken("TestMonths").ToString();
+
+            if (!int.TryParse(monthsToken, out int months)) {
+                months = 3;
+            };
+
             try
             {
                 Models.User user = await _uow.UserRepository.GetUserByToken(token);
@@ -100,9 +108,9 @@
                         if (transcript != null && transcript.DateRecord != null)
                         {
                             userTranscript = transcript.Mark;
-                            if (DateTime.Compare(transcript.DateRecord.Date.AddDays(90), JWTUtils.GetCurrentTimeInVN().Date) > 0)
+                            if (DateTime.Compare(transcript.DateRecord.Date.AddDays(months * 30), JWTUtils.GetCurrentTimeInVN().Date) > 0)
                             {
-                                daysRemaining = transcript.DateRecord.Date.AddDays(90).Subtract(JWTUtils.GetCurrentTimeInVN().Date).TotalDays;
+                                daysRemaining = transcript.DateRecord.Date.AddDays(months * 30).Subtract(JWTUtils.GetCurrentTimeInVN().Date).TotalDays;
                             }
                         }
 
@@ -246,6 +254,17 @@
                     return response;
                 }
 
+                if (testParam == null || testParam.Questions == null || testParam.Questions.Any())
+                {
+                    response.Succeeded = false;
+                    if (response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    response.Errors.Add("Nội dung bài thi không hợp lệ!");
+                    return response;
+                }
+
                 string path = Path.Combine(Path
                     .GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Configuration\TimeZoneConfiguration.json");
                 JObject configuration = JObject.Parse(File.ReadAllText(path));
@@ -285,7 +304,7 @@
                     }
                 }
                 Test t = _mapper.Map<Test>(testParam);
-                t.NumberOfQuestion = t.Questions.Count();
+                t.NumberOfQuestion = t.Questions.Where(q => !q.IsAnnotate).Count();
                 t.UserId = user.Id;
                 t.Status = Consts.STATUS_ACTIVE;
                 t.IsSuggestedTest = false;
