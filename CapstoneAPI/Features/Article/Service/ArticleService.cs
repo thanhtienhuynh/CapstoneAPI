@@ -404,11 +404,12 @@ namespace CapstoneAPI.Features.Article.Service
                             };
 
                             //FIND USER TO SEND NOTI
-                            if (oldStatus != approvingArticleDataSet.Status && approvingArticleDataSet.Status == Consts.STATUS_PUBLISHED)
+                            if (oldStatus != approvingArticleDataSet.Status && approvingArticleDataSet.Status == Consts.STATUS_PUBLISHED
+                                && DateTime.Compare(JWTUtils.GetCurrentTimeInVN(), (DateTime)approvingArticleDataSet.PublicFromDate) >= 0)
                             {
                                 Dictionary<int, Models.User> dictionaryUsers = new Dictionary<int, Models.User>();
-                                IEnumerable<Models.MajorArticle> majorArticles = await _uow.MajorArticleRepository.Get(filter: m => m.ArticleId == articleToUpdate.Id);
-                                IEnumerable<Models.UniversityArticle> universityArticles = await _uow.UniversityArticleRepository.Get(filter: u => u.ArticleId == articleToUpdate.Id);
+                                IEnumerable<MajorArticle> majorArticles = await _uow.MajorArticleRepository.Get(filter: m => m.ArticleId == articleToUpdate.Id);
+                                IEnumerable<UniversityArticle> universityArticles = await _uow.UniversityArticleRepository.Get(filter: u => u.ArticleId == articleToUpdate.Id);
                                 IEnumerable<int> majorIds = majorArticles.Select(s => s.MajorId);
                                 IEnumerable<int> universityIds = universityArticles.Select(s => s.UniversityId);
 
@@ -461,9 +462,8 @@ namespace CapstoneAPI.Features.Article.Service
                                             {"message" , notification.Message},
                                             {"data" , notification.Data},
                                         },
-                                        Topic = user.Id.ToString()
+                                        Topic = userEl.Id.ToString()
                                     });
-                                    
                                 }
                                 _uow.NotificationRepository.InsertRange(notifications);
                                 await _uow.CommitAsync();
