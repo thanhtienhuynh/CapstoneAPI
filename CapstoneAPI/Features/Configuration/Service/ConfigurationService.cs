@@ -98,7 +98,8 @@ namespace CapstoneAPI.Features.Configuration.Service
                 || (configuration.TestMonths <= 0 || configuration.TestMonths > 12)
                 || (configuration.ExpireArticleTime.Start < 0 || configuration.ExpireArticleTime.Start > 23)
                 || (configuration.ExpireArticleTime.Type != CronExporessionType.EachHours && configuration.ExpireArticleTime.Type != CronExporessionType.SpecificHour)
-                || (configuration.ExpireArticleTime.MinStart < 0 || configuration.ExpireArticleTime.MinStart > 59)) {
+                || (configuration.ExpireArticleTime.MinStart < 0 || configuration.ExpireArticleTime.MinStart > 59)
+                || configuration.PassRatio <= 100) {
                 response.Succeeded = false;
                 if (response.Errors == null)
                 {
@@ -118,6 +119,7 @@ namespace CapstoneAPI.Features.Configuration.Service
                 appConfig.SelectToken("ExpireArticleTime.Start").Replace(configuration.ExpireArticleTime.Start);
                 appConfig.SelectToken("ExpireArticleTime.Type").Replace(configuration.ExpireArticleTime.Type);
                 appConfig.SelectToken("TestMonths").Replace(configuration.TestMonths);
+                appConfig.SelectToken("PassRatio").Replace(configuration.PassRatio);
                 string updatedJsonString = appConfig.ToString();
                 await File.WriteAllTextAsync(@"Configuration\AppConfig.json", updatedJsonString);
                 response.Succeeded = true;

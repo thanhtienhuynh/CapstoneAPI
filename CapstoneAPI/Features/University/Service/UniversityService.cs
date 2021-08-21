@@ -22,6 +22,7 @@ using CapstoneAPI.Features.FollowingDetail.DataSet;
 using CapstoneAPI.Features.SubjectGroup.DataSet;
 using FirebaseAdmin.Messaging;
 using CapstoneAPI.Features.FCM.Service;
+using Newtonsoft.Json.Linq;
 
 namespace CapstoneAPI.Features.University.Service
 {
@@ -45,6 +46,14 @@ namespace CapstoneAPI.Features.University.Service
             try
             {
                 Models.User user = await _uow.UserRepository.GetUserByToken(token);
+
+                var appConfigLines = await File.ReadAllTextAsync(@"Configuration\AppConfig.json");
+                var appConfig = Newtonsoft.Json.JsonConvert.DeserializeObject(appConfigLines) as JObject;
+                var passRatioToken = appConfig.SelectToken("PassRatio").ToString();
+                if (!int.TryParse(passRatioToken, out int ratio))
+                {
+                    ratio = 150;
+                };
 
                 List<TrainingProgramBasedUniversityDataSet> trainingProgramBasedUniversityDataSets = new List<TrainingProgramBasedUniversityDataSet>();
 
@@ -245,7 +254,7 @@ namespace CapstoneAPI.Features.University.Service
                         if (ration == null || ration <= UniversityRatios.Green)
                         {
                             trainingProgramDataSet.DividedClass = UniversityRatios.GreenGroup;
-                        } else if (ration <= UniversityRatios.Yellow)
+                        } else if (ration <= (ratio/100.0))
                         {
                             trainingProgramDataSet.DividedClass = UniversityRatios.YellowGroup;
                         } else
