@@ -18,6 +18,7 @@ namespace CapstoneAPI.Features.TestSubmission.DataSet
         public int NumberOfQuestion { get; set; }
         public int TimeLimit { get; set; }
         public int NumberOfCompletion { get; set; }
+        public bool IsSuggestedTest { get; set; }
         public List<QuestionSubmissionDataSet> QuestionSubmissions { get; set; }
     }
 }
