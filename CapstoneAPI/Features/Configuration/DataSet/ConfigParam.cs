@@ -11,6 +11,7 @@ namespace CapstoneAPI.Features.Configuration.DataSet
         public CrawlExpression UpdateRankTime { get; set; }
         public CrawlExpression ExpireArticleTime { get; set; }
         public int TestMonths { get; set; }
+        public int PassRatio { get; set; }
     }
 
     public class CrawlExpression

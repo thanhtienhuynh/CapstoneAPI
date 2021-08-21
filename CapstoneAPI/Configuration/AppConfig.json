@@ -14,5 +14,6 @@
     "MinStart": 0,
     "Type": 1
   },
-  "TestMonths": 3
+  "TestMonths": 3,
+  "PassRatio": 150
 }
