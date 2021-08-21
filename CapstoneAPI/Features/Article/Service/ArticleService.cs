@@ -333,14 +333,39 @@ namespace CapstoneAPI.Features.Article.Service
                                 if (response.Errors == null)
                                     response.Errors = new List<string>();
                                 response.Errors.Add("Trạng thái bài viết cập nhật không thành công!");
+                                response.Succeeded = false;
                                 return response;
                             }
                         }
                         //FIND USER TO SEND NOTI
                         oldStatus = articleToUpdate.Status;
 
-                        articleToUpdate.PublicFromDate = approvingArticleDataSet?.PublicFromDate;
-                        articleToUpdate.PublicToDate = approvingArticleDataSet?.PublicToDate;
+                        if (approvingArticleDataSet.Status == Articles.Published)
+                        {
+                            if (approvingArticleDataSet.PublicFromDate == null || approvingArticleDataSet.PublicToDate == null)
+                            {
+                                if (response.Errors == null)
+                                    response.Errors = new List<string>();
+                                response.Errors.Add("Ngày đăng không được để trống!");
+                                response.Succeeded = false;
+                                return response;
+                            } else
+                            {
+                                if (DateTime.Compare((DateTime)approvingArticleDataSet.PublicFromDate,
+                                    (DateTime)approvingArticleDataSet.PublicToDate) >= 0)
+                                {
+                                    if (response.Errors == null)
+                                        response.Errors = new List<string>();
+                                    response.Errors.Add("Ngày đăng không hợp lệ!");
+                                    response.Succeeded = false;
+                                    return response;
+                                }
+                            }
+                            
+                        }
+
+                        articleToUpdate.PublicFromDate = approvingArticleDataSet.PublicFromDate;
+                        articleToUpdate.PublicToDate = approvingArticleDataSet.PublicToDate;
                         articleToUpdate.Status = approvingArticleDataSet.Status;
                         articleToUpdate.Censor = user.Id;
 
