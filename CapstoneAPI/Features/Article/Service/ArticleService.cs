@@ -352,7 +352,9 @@ namespace CapstoneAPI.Features.Article.Service
                             } else
                             {
                                 if (DateTime.Compare((DateTime)approvingArticleDataSet.PublicFromDate,
-                                    (DateTime)approvingArticleDataSet.PublicToDate) >= 0)
+                                    (DateTime)approvingArticleDataSet.PublicToDate) >= 0
+                                    || DateTime.Compare((DateTime)approvingArticleDataSet.PublicToDate,
+                                    JWTUtils.GetCurrentTimeInVN()) > 0)
                                 {
                                     if (response.Errors == null)
                                         response.Errors = new List<string>();
