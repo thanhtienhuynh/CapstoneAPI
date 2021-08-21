@@ -354,7 +354,7 @@ namespace CapstoneAPI.Features.Article.Service
                                 if (DateTime.Compare((DateTime)approvingArticleDataSet.PublicFromDate,
                                     (DateTime)approvingArticleDataSet.PublicToDate) >= 0
                                     || DateTime.Compare((DateTime)approvingArticleDataSet.PublicToDate,
-                                    JWTUtils.GetCurrentTimeInVN()) > 0)
+                                    JWTUtils.GetCurrentTimeInVN()) < 0)
                                 {
                                     if (response.Errors == null)
                                         response.Errors = new List<string>();
@@ -363,7 +363,6 @@ namespace CapstoneAPI.Features.Article.Service
                                     return response;
                                 }
                             }
-                            
                         }
 
                         articleToUpdate.PublicFromDate = approvingArticleDataSet.PublicFromDate;
