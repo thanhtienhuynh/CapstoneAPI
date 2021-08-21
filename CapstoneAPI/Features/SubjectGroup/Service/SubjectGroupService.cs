@@ -650,13 +650,20 @@ namespace CapstoneAPI.Features.SubjectGroup.Service
                                                                                     .OrderByDescending(g => g.Key);
             foreach (IGrouping<double, MajorDataSet> topMajorDataSetsGroup in topMajorDataSetsGroups)
             {
-                if (majorDataSetsBaseOnEntryMark.Count() < Consts.NUMBER_OF_SUGGESTED_MAJOR)
-                {
-                    majorDataSetsBaseOnEntryMark.AddRange(topMajorDataSetsGroup.AsEnumerable());
-                }
-                else
+                if (majorDataSetsBaseOnEntryMark.Count() >= Consts.NUMBER_OF_SUGGESTED_MAJOR)
                 {
                     break;
+                }
+                foreach (var majorDataSet in topMajorDataSetsGroup.OrderByDescending(m => m.HighestEntryMark).GroupBy(s => s.HighestEntryMark))
+                {
+                    if (majorDataSetsBaseOnEntryMark.Count() < Consts.NUMBER_OF_SUGGESTED_MAJOR)
+                    {
+                        majorDataSetsBaseOnEntryMark.AddRange(majorDataSet.AsEnumerable());
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
             }
 
