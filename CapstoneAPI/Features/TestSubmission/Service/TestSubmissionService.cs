@@ -435,6 +435,7 @@
                         .Get(filter: t => t.UserId == user.Id && t.TestId == testSubmission.TestId)).Count();
                     userTestSubmissionDataSet.TestName = testSubmission.Test.Name;
                     userTestSubmissionDataSet.SubmissionDate = DateTime.Parse(userTestSubmissionDataSet.SubmissionDate.ToString("MM/dd/yyyy h:mm tt"));
+                    userTestSubmissionDataSet.IsSuggestedTest = testSubmission.Test.IsSuggestedTest;
                     userTestSubmissionDataSets.Add(userTestSubmissionDataSet);
                 }
 
@@ -534,7 +535,7 @@
                 detailTestSubmissionDataSet.TimeLimit = (int)testSubmission.Test.TimeLimit;
                 detailTestSubmissionDataSet.TestName = testSubmission.Test.Name;
                 detailTestSubmissionDataSet.SubmissionDate = DateTime.Parse(detailTestSubmissionDataSet.SubmissionDate.ToString("MM/dd/yyyy h:mm tt"));
-
+                detailTestSubmissionDataSet.IsSuggestedTest = testSubmission.Test.IsSuggestedTest;
                 response.Succeeded = true;
                 response.Data = detailTestSubmissionDataSet;
             }
