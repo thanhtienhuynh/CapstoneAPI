@@ -430,8 +430,7 @@ namespace CapstoneAPI.Features.Article.Service
                             };
 
                             //FIND USER TO SEND NOTI
-                            if (oldStatus != approvingArticleDataSet.Status && approvingArticleDataSet.Status == Consts.STATUS_PUBLISHED
-                                && DateTime.Compare(JWTUtils.GetCurrentTimeInVN(), (DateTime)approvingArticleDataSet.PublicFromDate) >= 0)
+                            if (oldStatus != approvingArticleDataSet.Status && approvingArticleDataSet.Status == Consts.STATUS_PUBLISHED)
                             {
                                 Dictionary<int, Models.User> dictionaryUsers = new Dictionary<int, Models.User>();
                                 IEnumerable<MajorArticle> majorArticles = await _uow.MajorArticleRepository.Get(filter: m => m.ArticleId == articleToUpdate.Id);
@@ -467,7 +466,7 @@ namespace CapstoneAPI.Features.Article.Service
                                 {
                                     Models.Notification notification = new Models.Notification()
                                     {
-                                        DateRecord = JWTUtils.GetCurrentTimeInVN(),
+                                        DateRecord = (DateTime) approvingArticleDataSet.PublicFromDate,
                                         Data = articleToUpdate.Id.ToString(),
                                         Message = articleToUpdate.Title,
                                         IsRead = false,
@@ -494,7 +493,10 @@ namespace CapstoneAPI.Features.Article.Service
                                 _uow.NotificationRepository.InsertRange(notifications);
                                 await _uow.CommitAsync();
                                 #pragma warning disable
-                                _firebaseService.SendBatchMessage(messages);
+                                if (DateTime.Compare(JWTUtils.GetCurrentTimeInVN(), (DateTime)approvingArticleDataSet.PublicFromDate) >= 0)
+                                {
+                                    _firebaseService.SendBatchMessage(messages);
+                                }
                                 #pragma warning restore
 
                             }

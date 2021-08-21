@@ -43,7 +43,8 @@ namespace CapstoneAPI.Features.Notification.Service
                     return response;
                 }
                 IEnumerable<Models.Notification> allNotifications = await _uow.NotificationRepository
-                        .Get(filter: m => m.UserId == user.Id, orderBy: n => n.OrderByDescending(n => n.DateRecord));
+                        .Get(filter: m => m.UserId == user.Id
+                        && DateTime.Compare(m.DateRecord, JWTUtils.GetCurrentTimeInVN()) <= 0, orderBy: n => n.OrderByDescending(n => n.DateRecord));
                 List<NotificationDataSet> result = allNotifications.Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
                                                         .Take(validFilter.PageSize)
                                                         .Select(n => _mapper.Map<NotificationDataSet>(n)).ToList();
@@ -83,7 +84,8 @@ namespace CapstoneAPI.Features.Notification.Service
                     return response;
                 }
                 int count = await _uow.NotificationRepository.Count(
-                    filter: n => n.UserId == user.Id && !n.IsRead);
+                    filter: n => n.UserId == user.Id && !n.IsRead
+                    && DateTime.Compare(n.DateRecord, JWTUtils.GetCurrentTimeInVN()) <= 0);
 
                 response.Data = count;
                 response.Succeeded = true;
@@ -161,7 +163,7 @@ namespace CapstoneAPI.Features.Notification.Service
                     return response;
                 }
                 IEnumerable<Models.Notification> allUnreadNotifications = await _uow.NotificationRepository
-                        .Get(filter: m => m.UserId == user.Id && !m.IsRead);
+                        .Get(filter: m => m.UserId == user.Id && !m.IsRead && DateTime.Compare(m.DateRecord, JWTUtils.GetCurrentTimeInVN()) <= 0);
 
                 foreach (Models.Notification notification in allUnreadNotifications)
                 {
