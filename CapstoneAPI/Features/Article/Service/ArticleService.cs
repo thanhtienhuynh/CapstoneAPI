@@ -180,7 +180,8 @@ namespace CapstoneAPI.Features.Article.Service
 
                 Models.Article article = await _uow.ArticleRepository.GetFirst(filter: a => a.Id == id &&
                     a.Status == Articles.Published && a.PublicFromDate != null && a.PublicToDate != null
-                    && DateTime.Compare((DateTime)a.PublicToDate, currentDate) > 0);
+                    && DateTime.Compare((DateTime)a.PublicToDate, currentDate) >= 0
+                    && DateTime.Compare((DateTime)a.PublicFromDate, currentDate) <= 0);
                 if (article == null)
                 {
                     if (result.Errors == null)
