@@ -618,7 +618,8 @@ namespace CapstoneAPI.Features.Article.Service
 
                 todayArticles = (await _uow.ArticleRepository
                 .Get(filter: a => a.Status == Articles.Published
-                    && (a.PublicFromDate != null && a.PublicFromDate >= date && a.PublicFromDate < date.AddDays(1))
+                    && (a.PublicFromDate != null && a.PublicFromDate >= date
+                        && a.PublicFromDate <= currentDate)
                     && (a.PublicToDate != null && a.PublicToDate >= currentDate),
                 orderBy: o => o.OrderByDescending(a => a.PublicFromDate)))
                 .Select(m => _mapper.Map<ArticleCollapseDataSet>(m)).ToList();
