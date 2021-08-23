@@ -237,11 +237,22 @@ namespace CapstoneAPI.Features.University.Service
                             
                         }
 
-                        IEnumerable<Models.Rank> ranks = (await _uow.FollowingDetailRepository
+                        IEnumerable<Models.Rank> ranks = null;
+                        if (user != null)
+                        {
+                            ranks = (await _uow.FollowingDetailRepository
                                                                 .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId)
                                                                 && f.Status == Consts.STATUS_ACTIVE && f.UserId != user.Id,
                                                                     includeProperties: "Rank"))
                                                                 .Select(u => u.Rank).Where(r => r != null);
+                        } else
+                        {
+                            ranks = (await _uow.FollowingDetailRepository
+                                                               .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId)
+                                                               && f.Status == Consts.STATUS_ACTIVE,
+                                                                   includeProperties: "Rank"))
+                                                               .Select(u => u.Rank).Where(r => r != null);
+                        }
                         trainingProgramDataSet.Rank = _uow.RankRepository
                             .CalculateRank(universityParam.TranscriptTypeId, universityParam.TotalMark, ranks, (double) previousEntryMark.Mark);
 
@@ -541,11 +552,21 @@ namespace CapstoneAPI.Features.University.Service
                         {
                             trainingProgramDataSet.NumberOfCaring += 1;
                         }
-                        IEnumerable<Models.Rank> ranks = (await _uow.FollowingDetailRepository
-                                                                .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE
-                                                                            && f.UserId != user.Id,
-                                                                    includeProperties: "Rank"))
-                                                                .Select(u => u.Rank).Where(r => r != null);
+                        IEnumerable<Models.Rank> ranks = null;
+                        if (user != null)
+                        {
+                            ranks = (await _uow.FollowingDetailRepository
+                                                               .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE
+                                                                           && f.UserId != user.Id,
+                                                                   includeProperties: "Rank"))
+                                                               .Select(u => u.Rank).Where(r => r != null);
+                        } else
+                        {
+                            ranks = (await _uow.FollowingDetailRepository
+                                                               .Get(filter: f => currentEntryMarkIds.Contains(f.EntryMarkId) && f.Status == Consts.STATUS_ACTIVE,
+                                                                   includeProperties: "Rank"))
+                                                               .Select(u => u.Rank).Where(r => r != null);
+                        }
                         trainingProgramDataSet.Rank = _uow.RankRepository.CalculateRank(3, totalMark, ranks, (double) previousEntryMark.Mark);
                         double? ration = null;
 
